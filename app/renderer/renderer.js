@@ -45,6 +45,7 @@ async function poll() {
       for (const page of Object.values(window.NitroPages ?? {})) page.collect?.(lastSnapshot);
       activePage?.update?.(lastSnapshot);
       window.NitroWidgetPanel?.update(lastSnapshot);
+      window.NitroModeKey?.enforce(lastSnapshot);
     } catch (error) {
       console.error("sensor snapshot failed", error);
     }

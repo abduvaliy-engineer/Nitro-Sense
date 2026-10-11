@@ -38,4 +38,8 @@ async function setFanSpeed(cpu, gpu) {
   await write(await senseFile("fan_speed"), values.join(","));
 }
 
-module.exports = { setProfile, setFanSpeed };
+async function setModeKeyCycle(cycle) {
+  await write("/sys/module/linuwu_sense/parameters/cycle_gaming_thermal_profile", cycle ? "Y" : "N");
+}
+
+module.exports = { setProfile, setFanSpeed, setModeKeyCycle };

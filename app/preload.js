@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld("nitro", {
   controls: {
     setProfile: (profile) => ipcRenderer.invoke("controls:setProfile", profile),
     setFanSpeed: (cpu, gpu) => ipcRenderer.invoke("controls:setFanSpeed", cpu, gpu),
+    setModeKeyCycle: (cycle) => ipcRenderer.invoke("controls:setModeKeyCycle", cycle),
   },
   notify: (title, body) => ipcRenderer.invoke("notify", title, body),
 });

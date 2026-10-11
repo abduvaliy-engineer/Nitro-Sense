@@ -80,7 +80,19 @@ async function readCpu() {
     if (khz) freqs.push(khz);
   }
   const frequency = freqs.length ? Math.round(freqs.reduce((a, b) => a + b, 0) / freqs.length / 1000) : null;
-  return { frequency, usage };
+  cpuMax ??= await readCpuMax();
+  return { frequency, usage, maxFrequency: cpuMax };
+}
+
+// NitroSense scales the CPU gauge to the SMBIOS "Max Speed" (root-only to read), which install.sh
+// stores in /etc/nitrosense/cpu_max_mhz; fall back to the kernel's cpuinfo_max_freq.
+let cpuMax;
+
+async function readCpuMax() {
+  const smbios = await readInt("/etc/nitrosense/cpu_max_mhz");
+  if (smbios) return smbios;
+  const khz = await readInt(path.join(CPUS, "cpu0", "cpufreq", "cpuinfo_max_freq"));
+  return khz ? Math.round(khz / 1000) : null;
 }
 
 let gpuDevice;
@@ -100,11 +112,11 @@ async function findGpu() {
 
 function nvidiaSmi() {
   return new Promise((resolve) => {
-    execFile("nvidia-smi", ["--query-gpu=clocks.gr,utilization.gpu", "--format=csv,noheader,nounits"],
+    execFile("nvidia-smi", ["--query-gpu=clocks.gr,utilization.gpu,clocks.max.gr", "--format=csv,noheader,nounits"],
       { timeout: 1500 }, (error, stdout) => {
         if (error) return resolve(null);
-        const [frequency, usage] = stdout.trim().split(",").map((v) => parseInt(v, 10));
-        resolve({ frequency, usage });
+        const [frequency, usage, maxFrequency] = stdout.trim().split(",").map((v) => parseInt(v, 10));
+        resolve({ frequency, usage, maxFrequency });
       });
   });
 }
@@ -116,10 +128,10 @@ async function readGpu() {
   if (gpu.vendor === "nvidia") {
     // Never wake a suspended dGPU just to read its clock.
     if ((await read(path.join(gpu.dir, "power", "runtime_status"))) !== "active") {
-      return { frequency: 0, usage: 0, active: false };
+      return { frequency: 0, usage: 0, maxFrequency: null, active: false };
     }
     const sample = await nvidiaSmi();
-    return sample ? { ...sample, active: true } : { frequency: null, usage: null, active: true };
+    return sample ? { ...sample, active: true } : { frequency: null, usage: null, maxFrequency: null, active: true };
   }
 
   const sclk = (await read(path.join(gpu.dir, "pp_dpm_sclk")))?.split("\n").find((l) => l.includes("*"));
@@ -155,18 +167,28 @@ async function readFanMode() {
 
 async function readPower() {
   let ac = null;
+  let battery = null;
   for (const entry of await fs.readdir("/sys/class/power_supply").catch(() => [])) {
     const dir = path.join("/sys/class/power_supply", entry);
-    if ((await read(path.join(dir, "type"))) === "Mains") ac = (await read(path.join(dir, "online"))) === "1";
+    const type = await read(path.join(dir, "type"));
+    if (type === "Mains") ac = (await read(path.join(dir, "online"))) === "1";
+    else if (type === "Battery") battery = await readInt(path.join(dir, "capacity"));
   }
-  return { ac };
+  return { ac, battery };
+}
+
+// linuwu-sense: Y = the mode key cycles modes, N = it toggles Turbo on/off.
+async function readModeKeyCycle() {
+  const value = await read("/sys/module/linuwu_sense/parameters/cycle_gaming_thermal_profile");
+  return value === null ? null : value === "Y" || value === "1";
 }
 
 async function snapshot() {
-  const [temps, fans, cpu, gpu, ram, profile, fanMode, power] = await Promise.all([
+  const [temps, fans, cpu, gpu, ram, profile, fanMode, power, modeKeyCycle] = await Promise.all([
     readTemps(), readFans(), readCpu(), readGpu(), readRam(), read(PLATFORM_PROFILE), readFanMode(), readPower(),
+    readModeKeyCycle(),
   ]);
-  return { temps, fans, cpu, gpu, ram, profile, fanMode, power };
+  return { temps, fans, cpu, gpu, ram, profile, fanMode, power, modeKeyCycle };
 }
 
 module.exports = { snapshot };

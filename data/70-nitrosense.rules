@@ -1,3 +1,4 @@
 # Let the linuwu_sense group drive NitroSense controls without root.
 ACTION=="add|bind", SUBSYSTEM=="platform", KERNEL=="acer-wmi", RUN+="/bin/sh -c 'chgrp linuwu_sense /sys%p/nitro_sense/* /sys%p/predator_sense/* /sys/firmware/acpi/platform_profile; chmod g+w /sys%p/nitro_sense/* /sys%p/predator_sense/* /sys/firmware/acpi/platform_profile; true'"
 SUBSYSTEM=="hidraw", KERNELS=="*:0CF2:5130.*", GROUP="linuwu_sense", MODE="0660"
+ACTION=="add", SUBSYSTEM=="module", KERNEL=="linuwu_sense", RUN+="/bin/sh -c 'chgrp linuwu_sense /sys%p/parameters/cycle_gaming_thermal_profile; chmod g+w /sys%p/parameters/cycle_gaming_thermal_profile'"

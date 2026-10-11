@@ -18,6 +18,7 @@ function registerIpc() {
   ipcMain.handle("shortcuts:launch", (_e, id) => shortcuts.launch(id));
   ipcMain.handle("controls:setProfile", (_e, profile) => controls.setProfile(profile));
   ipcMain.handle("controls:setFanSpeed", (_e, cpu, gpu) => controls.setFanSpeed(cpu, gpu));
+  ipcMain.handle("controls:setModeKeyCycle", (_e, cycle) => controls.setModeKeyCycle(Boolean(cycle)));
   ipcMain.handle("notify", (_e, title, body) => {
     if (Notification.isSupported()) new Notification({ title: String(title), body: String(body) }).show();
   });

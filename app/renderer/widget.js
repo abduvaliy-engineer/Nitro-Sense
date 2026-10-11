@@ -90,7 +90,9 @@
     arrow.src = `${ACER}/widget_bottom_arrow.svg`;
     arrow.alt = "";
     details.append(el("span", "", "Details"), arrow);
-    details.addEventListener("click", () => window.NitroApp?.selectTab(item.details));
+    details.addEventListener("click", () => (item.id === "Scenario_Profile"
+      ? window.NitroScenarioNav?.open("Scenario_Manager")
+      : window.NitroApp?.selectTab(item.details)));
     footer.append(details);
 
     root.append(header, body, footer);

@@ -1,6 +1,7 @@
-// Scenario profiles (NitroSense electron-store "Scenario"): presets, active profile, apply.
+// Scenario profiles (NitroSense electron-store "Scenario"): presets, active profile, apply and edit.
 (() => {
   const KEY = "scenario";
+  const LIMIT = 15;
 
   const MODE_NAMES = {
     "low-power": "Eco",
@@ -12,25 +13,28 @@
   const FAN_NAMES = { auto: "Auto", max: "Max", custom: "Custom" };
 
   // NitroSense's built-in presets (getDefaultProfile / getGamingProfile / getQUIETProfile).
+  // mode applies on AC, dcMode on battery (linuwu-sense only accepts Eco and Balanced on battery).
   const PRESETS = [
-    { name: "Daily Use", mode: "balanced", fan: { mode: "auto", cpu: 30, gpu: 30 }, effect: "Wave" },
-    { name: "Gaming", mode: "balanced-performance", fan: { mode: "auto", cpu: 30, gpu: 30 }, effect: "Breathing" },
-    { name: "Quiet Occasion", mode: "quiet", fan: { mode: "auto", cpu: 30, gpu: 30 }, effect: "Static" },
+    { name: "Daily Use", mode: "balanced", dcMode: "balanced", fan: { mode: "auto", cpu: 30, gpu: 30 }, effect: "Wave" },
+    { name: "Gaming", mode: "balanced-performance", dcMode: "balanced", fan: { mode: "auto", cpu: 30, gpu: 30 }, effect: "Breathing" },
+    { name: "Quiet Occasion", mode: "quiet", dcMode: "balanced", fan: { mode: "auto", cpu: 30, gpu: 30 }, effect: "Static" },
   ];
 
   let state = null;
+  let loading = null;
+  let lastPower = null;
   const listeners = new Set();
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const emit = () => listeners.forEach((listener) => listener(state));
   const save = () => window.nitro.settings.set(KEY, state);
-
-  let loading = null;
+  const onBattery = () => lastPower?.ac === false;
 
   async function load() {
     if (state) return state;
     loading ??= window.nitro.settings.get(KEY).catch(() => null).then((stored) => {
       state = stored?.profiles?.length ? stored : { active: 0, profiles: clone(PRESETS) };
+      for (const profile of state.profiles) profile.dcMode ??= "balanced";
       emit();
       return state;
     });
@@ -44,28 +48,38 @@
   }
 
   // linuwu-sense resets the fans to auto when the platform profile changes, so the mode goes first.
-  async function apply(index) {
+  async function apply(index, { notify = true } = {}) {
     await load();
     const profile = state.profiles[index];
     if (!profile) return;
     state.active = index;
     await save();
     emit();
+    const mode = onBattery() ? profile.dcMode : profile.mode;
     try {
-      await window.nitro.controls.setProfile(profile.mode);
+      await window.nitro.controls.setProfile(mode);
       await window.nitro.controls.setFanSpeed(...fanSpeeds(profile.fan));
     } catch (error) {
       console.error("applying scenario failed", error);
       return;
     }
-    const plugged = lastPower?.ac !== false;
-    window.nitro.notify(
-      `${profile.name} Enabled`,
-      `${plugged ? "System mode (AC Plugged In):" : "Current system mode:"}\n${MODE_NAMES[profile.mode] ?? profile.mode}`,
-    );
+    if (notify) {
+      window.nitro.notify(
+        `${profile.name} Enabled`,
+        `${onBattery() ? "Current system mode:" : "System mode (AC Plugged In):"}\n${MODE_NAMES[mode] ?? mode}`,
+      );
+    }
   }
 
-  let lastPower = null;
+  // Mode page: switch the live mode and record it in the active profile (AC or battery slot).
+  async function setMode(mode) {
+    await load();
+    const profile = state.profiles[state.active];
+    profile[onBattery() ? "dcMode" : "mode"] = mode;
+    save();
+    emit();
+    await window.nitro.controls.setProfile(mode);
+  }
 
   // Mode and fan changes made elsewhere (keys, other pages) are written into the active profile.
   async function sync(snapshot) {
@@ -74,8 +88,9 @@
     const profile = state.profiles[state.active];
     if (!profile) return;
     let changed = false;
-    if (snapshot.profile && MODE_NAMES[snapshot.profile] && profile.mode !== snapshot.profile) {
-      profile.mode = snapshot.profile;
+    const slot = onBattery() ? "dcMode" : "mode";
+    if (snapshot.profile && MODE_NAMES[snapshot.profile] && profile[slot] !== snapshot.profile) {
+      profile[slot] = snapshot.profile;
       changed = true;
     }
     const fanMode = snapshot.fanMode?.mode;
@@ -90,12 +105,68 @@
     }
   }
 
+  // ---------- editing (NitroSense ⋮ menu) ----------
+
+  const isFull = () => state.profiles.length >= LIMIT;
+  const nameTaken = (name) => state.profiles.some((p) => p.name.replace(/\s/g, "") === name.replace(/\s/g, ""));
+
+  function duplicateName() {
+    const base = state.profiles[state.active].name;
+    for (let n = 1; n <= LIMIT; n++) if (!nameTaken(`${base} (${n})`)) return `${base} (${n})`;
+    return base;
+  }
+
+  async function add(name) {
+    if (isFull()) return;
+    state.profiles.push({ ...clone(PRESETS[0]), name });
+    await apply(state.profiles.length - 1);
+  }
+
+  async function rename(name) {
+    state.profiles[state.active].name = name;
+    await save();
+    emit();
+  }
+
+  async function duplicate(name) {
+    if (isFull()) return;
+    state.profiles.push({ ...clone(state.profiles[state.active]), name });
+    state.active = state.profiles.length - 1;
+    await save();
+    emit();
+  }
+
+  async function remove() {
+    if (state.profiles.length <= 1) return;
+    state.profiles.splice(state.active, 1);
+    await apply(0);
+  }
+
+  async function restore(presetIndex) {
+    const { name } = state.profiles[state.active];
+    state.profiles[state.active] = { ...clone(PRESETS[presetIndex]), name };
+    await apply(state.active);
+  }
+
   window.NitroScenario = {
     MODE_NAMES,
     FAN_NAMES,
+    PRESETS,
+    LIMIT,
     load,
     apply,
+    setMode,
     sync,
+    onBattery,
+    isFull,
+    nameTaken,
+    duplicateName,
+    add,
+    rename,
+    duplicate,
+    remove,
+    restore,
+    get state() { return state; },
     subscribe(listener) {
       listeners.add(listener);
       if (state) listener(state);

@@ -21,7 +21,7 @@
     trigger.append(triggerText, el("div", "wi-dropdown-arrow"));
 
     const rows = el("div", "wi-scenario-rows");
-    function row(icon, label) {
+    function row(icon, label, subTab) {
       const button = el("button", "wi-scenario-row");
       const left = el("section", "wi-scenario-cell");
       const image = el("img", "wi-scenario-icon");
@@ -38,14 +38,14 @@
       button.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        window.NitroApp?.selectTab("Scenario");
+        window.NitroScenarioNav?.open(subTab);
       });
       rows.append(button);
       return value;
     }
-    const modeValue = row("mode", "Mode");
-    const fanValue = row("fan", "Fan");
-    const effectValue = row("effect", "Effect");
+    const modeValue = row("mode", "Mode", "Mode");
+    const fanValue = row("fan", "Fan", "Fan_Control");
+    const effectValue = row("effect", "Effect", "Pulsar_Lighting");
     content.append(trigger, rows);
     body.append(content);
 
@@ -68,46 +68,17 @@
     });
     scenario.load();
 
-    // Material-style menu, rendered in a full-window layer so the panel's overflow can't clip it.
-    let layer = null;
-    function closeMenu() {
-      if (!layer) return;
-      const closing = layer;
-      layer = null;
-      trigger.classList.remove("open");
-      closing.querySelector(".wi-menu").classList.add("closing");
-      setTimeout(() => closing.remove(), 125);
-    }
-
-    function openMenu() {
+    trigger.addEventListener("click", () => {
+      if (window.NitroMenu.isOpen()) return window.NitroMenu.close();
       if (!state) return;
-      const box = trigger.getBoundingClientRect();
-      layer = el("div", "wi-menu-layer");
-      const menu = el("div", "wi-menu");
-      menu.setAttribute("role", "listbox");
-      menu.style.left = `${box.left}px`;
-      menu.style.top = `${box.bottom + 4}px`;
-      state.profiles.forEach((profile, index) => {
-        const item = el("div", "wi-menu-item");
-        const option = el("button", index === state.active ? "active" : "");
-        option.setAttribute("role", "option");
-        option.setAttribute("aria-selected", String(index === state.active));
-        option.append(el("span", "", profile.name));
-        option.addEventListener("click", () => {
-          closeMenu();
-          if (index !== state.active) scenario.apply(index);
-        });
-        item.append(option);
-        menu.append(item);
-      });
-      layer.addEventListener("pointerdown", (event) => event.target === layer && closeMenu());
-      layer.append(menu);
-      document.body.append(layer);
       trigger.classList.add("open");
-    }
-
-    trigger.addEventListener("click", () => (layer ? closeMenu() : openMenu()));
-    addEventListener("resize", closeMenu);
+      window.NitroMenu.open(trigger, state.profiles.map((profile, index) => ({
+        label: profile.name,
+        active: index === state.active,
+        ariaLabel: `scenario profile ${profile.name}`,
+        onSelect: () => index !== state.active && scenario.apply(index),
+      })), { onClose: () => trigger.classList.remove("open") });
+    });
 
     return {
       update(snapshot) {
