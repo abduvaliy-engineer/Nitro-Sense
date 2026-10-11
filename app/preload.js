@@ -10,4 +10,7 @@ contextBridge.exposeInMainWorld("nitro", {
   sensors: {
     snapshot: () => ipcRenderer.invoke("sensors:snapshot"),
   },
+  system: {
+    info: () => ipcRenderer.invoke("system:info"),
+  },
 });

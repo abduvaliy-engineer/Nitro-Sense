@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; connect-src 'self' data: blob:; worker-src 'self' blob:">
   <title>NitroSense</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="pages/home.css">
 </head>
 <body>
   <div class="app main-background">
@@ -30,6 +31,11 @@
     </nav>
     <main id="content"></main>
   </div>
+  <script src="../vendor/three/regenerator-global.js"></script>
+  <script src="../vendor/three/three.min.js"></script>
+  <script src="../vendor/three/GLTFLoader.js"></script>
+  <script src="../vendor/lottie/lottie_light.min.js"></script>
+  <script src="pages/home.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

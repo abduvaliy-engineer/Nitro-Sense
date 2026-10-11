@@ -3,8 +3,17 @@
   --color-ff: #ffffff;
   --color-c0: #c0c0c0;
   --color-80: #808080;
+  --color-4c: #4c4c4c;
+  --color-32: #323232;
   --color-lb: #ff6624;
+  --color-lig: #ffa000;
+  --color-nb: #ff001e;
+  --color-gb: #ff761a;
+  --color-gd: #803412;
   --color-mgd: #381200;
+  --color-hb: #c6521c;
+  --color-widgetbg: #592500;
+  --color-widgetsecbg: #380e00;
 }
 
 @font-face {
@@ -27,6 +36,8 @@
 }
 
 :focus { outline: none; }
+
+[hidden] { display: none !important; }
 
 html, body {
   height: 100%;
@@ -168,12 +179,18 @@ button {
 
 #content {
   position: relative;
+  display: flex;
   flex: 1;
-  overflow: hidden;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .placeholder {
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: center;
   height: 100%;

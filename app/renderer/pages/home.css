@@ -1,0 +1,556 @@
+/* Home tab — mirrors NitroSense 5.1's app-main Home block (breakpoints: 785 / 1168). */
+
+.home {
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+  height: fit-content;
+  flex: none;
+}
+
+.home-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: 20px 0 4px;
+}
+
+.home-appname {
+  width: 260px;
+  height: 20px;
+}
+
+/* Below 785px the mode name moves under the wordmark. */
+.home-mode-compact {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 368px;
+  margin-top: 12px;
+}
+
+.home-mode-compact .home-mode-label {
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.home-mode-label {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: center;
+}
+
+.home-mode-name {
+  margin-top: 4px;
+  font-size: 20px;
+  line-height: 24px;
+  color: var(--color-ff);
+  text-align: center;
+  background: url(../../assets/acer/home/home_modebg.svg) center / contain no-repeat;
+}
+
+.home-row-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.home-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.home-left-center {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+/* ---------- left panel ---------- */
+
+.home-left {
+  width: 368px;
+  height: 600px;
+  margin: 8px 0;
+  border-radius: 4px;
+}
+
+.home-left-frame {
+  background: url(../../assets/acer/home/home_leftbg2.svg) 0 0 no-repeat;
+}
+
+.home-left-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 368px;
+  height: 356px;
+  padding: 8px;
+  text-align: center;
+}
+
+.home-ring-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  height: fit-content;
+  margin-top: 40px;
+}
+
+.home-ring {
+  width: 268px;
+  height: 268px;
+}
+
+.home-readout {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.home-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  gap: 4px;
+}
+
+.home-switch button {
+  font-size: 20px;
+  line-height: 24px;
+  color: var(--color-c0);
+}
+
+.home-switch button:hover,
+.home-switch button.active {
+  color: var(--color-ff);
+}
+
+.home-switch-divider {
+  width: 2px;
+  height: 100%;
+  margin: 0 8px;
+  background: var(--color-4c);
+}
+
+.home-frequency-label {
+  width: 160px;
+  margin-top: 1.5px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: center;
+}
+
+.home-frequency {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  width: 160px;
+  height: 36px;
+}
+
+.home-frequency-value {
+  font-size: 32px;
+  line-height: 48px;
+  font-weight: 700;
+  color: var(--color-ff);
+  text-align: center;
+}
+
+.home-frequency-unit {
+  position: absolute;
+  right: 0;
+  padding-top: 24px;
+  font-size: 12px;
+  line-height: 12px;
+  color: var(--color-80);
+}
+
+.home-usage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 112px;
+  gap: 8px;
+}
+
+.home-usage-value {
+  width: 112px;
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--color-ff);
+}
+
+.home-gpu-idle {
+  width: 100%;
+  height: 12px;
+  margin-top: 16px;
+}
+
+.home-gpu-idle p {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-lb);
+}
+
+.home-card-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 368px;
+  height: 300px;
+  padding: 0 24px;
+}
+
+/* ---------- info card (same frame as Acer's Experience Zone card) ---------- */
+
+.home-card-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 368px;
+  margin-top: 24px;
+}
+
+.home-card {
+  position: relative;
+  width: 368px;
+  height: 220px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px #00000029;
+}
+
+.home-card-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.home-card-slide.active { opacity: 1; }
+
+.home-card-image {
+  position: relative;
+  flex: none;
+  height: 120px;
+  background-color: #000;
+  background-repeat: no-repeat;
+}
+
+.home-card-image.device {
+  background-image: url(../../assets/acer/home/card/nitro_bios.jpg);
+  background-position: center 42%;
+  background-size: auto 140%;
+}
+
+.home-card-image.battery {
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.15) 70%),
+    url(../../assets/acer/home/card/city.jpg);
+  background-position: center, center 40%;
+  background-size: cover, cover;
+}
+
+.home-card-image.keyboard {
+  background-image: url(../../assets/acer/home/card/keyboard.jpg);
+  background-position: 45% 58%;
+  background-size: 125% auto;
+}
+
+.home-card-text {
+  flex: 1;
+  padding: 16px 16px 0;
+  background: rgba(255, 255, 255, 0.14);
+  font-family: "Segoe UI", "Noto Sans", sans-serif;
+}
+
+.home-card-title {
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: #a9a8a5;
+}
+
+.home-card-body {
+  display: -webkit-box;
+  margin-top: 4px;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 21px;
+  color: var(--color-ff);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.home-card-arrow {
+  position: absolute;
+  top: 90px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(235, 235, 235, 0.55);
+}
+
+.home-card-arrow:hover { background: rgba(245, 245, 245, 0.8); }
+.home-card-arrow.prev { left: 16px; }
+.home-card-arrow.next { right: 16px; }
+
+.home-card-arrow svg {
+  fill: none;
+  stroke: #3a3a3a;
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.home-card-figure {
+  position: absolute;
+  top: 18px;
+  left: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.home-card-figure-value {
+  font-size: 40px;
+  line-height: 44px;
+  font-weight: 700;
+  color: var(--color-ff);
+}
+
+.home-card-figure-caption {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+}
+
+.home-card-meter {
+  width: 160px;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: rgba(255, 102, 36, 0.3);
+  overflow: hidden;
+}
+
+.home-card-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-lb);
+}
+
+.home-card-meter-fill[data-level="warning"] { background: var(--color-lig); }
+.home-card-meter-fill[data-level="critical"] { background: var(--color-nb); }
+
+/* ---------- mini usage chart ---------- */
+
+.mini-chart {
+  position: relative;
+  width: 112px;
+  background: url(../../assets/acer/monitor/monitor_tablebg.svg) bottom / contain repeat-x;
+}
+
+.mini-chart-plot {
+  height: 50px;
+  padding-top: 1px;
+  overflow: hidden;
+}
+
+.mini-chart-plot svg {
+  display: block;
+  width: 100%;
+  height: 50px;
+}
+
+.mini-chart-line {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: silver;
+  pointer-events: none;
+}
+
+.mini-chart-tip {
+  position: absolute;
+  top: -52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 52px;
+  border-radius: 6px;
+  background: linear-gradient(0deg, #181818 0%, #323232 100%);
+  font-size: 12px;
+  line-height: 16px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.mini-chart-tip .time { color: var(--color-80); }
+.mini-chart-tip .value { color: var(--color-nb); }
+.mini-chart-tip .idle { color: var(--color-ff); }
+
+/* ---------- center column ---------- */
+
+.home-center {
+  position: relative;
+  display: none;
+  width: 400px;
+  height: 660px;
+}
+
+.home-center-labels {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 400px;
+  margin-bottom: 12px;
+  padding-top: 8px;
+  pointer-events: none;
+}
+
+.home-avatar {
+  position: relative;
+  width: 100%;
+  height: 660px;
+  overflow: clip;
+}
+
+.home-avatar canvas {
+  display: block;
+}
+
+.home-avatar-hit {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- right panel: temperature ---------- */
+
+.home-temperature {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 368px;
+  height: 600px;
+  margin: 8px 0 48px;
+  background-image: url(../../assets/acer/home/home_rightbg.svg);
+}
+
+.home-temperature-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.temp-gauges {
+  display: flex;
+  flex-direction: column;
+}
+
+.temp-gauge {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  background: url(../../assets/acer/home/home_circlebg.svg) center / contain no-repeat;
+}
+
+.temp-gauge-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: rotate(90deg);
+}
+
+.temp-gauge-svg circle {
+  fill: none;
+  stroke-width: 16px;
+}
+
+.temp-gauge-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+
+.temp-gauge-value {
+  position: relative;
+  font-size: 36px;
+  line-height: 40px;
+  font-weight: 700;
+  color: var(--color-ff);
+}
+
+.temp-gauge-unit {
+  position: relative;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--color-80);
+}
+
+.temp-gauge-label {
+  position: absolute;
+  right: 20px;
+  bottom: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+}
+
+/* ---------- breakpoints ---------- */
+
+@media (min-width: 785px) {
+  .home { width: auto; }
+  .home-mode-compact { display: none; }
+  .home-center { display: flex; flex-direction: column; }
+  .home-temperature {
+    width: 752px;
+    height: 240px;
+    background-image: url(../../assets/acer/home/home_downbg.svg);
+  }
+  .temp-gauges { flex-direction: row; }
+  .temp-gauge { margin: 0 18px; }
+}
+
+@media (min-width: 1168px) {
+  .home { width: 1168px; }
+  .home-row { flex-direction: row; }
+  .home-temperature {
+    width: 368px;
+    height: 600px;
+    background-image: url(../../assets/acer/home/home_rightbg.svg);
+  }
+  .temp-gauges { flex-direction: column; }
+  .temp-gauge { margin: 0 auto; }
+}

@@ -1,5 +1,5 @@
 const TABS = ["Home", "Scenario", "Personal Settings", "Checkup", "Monitoring", "App Center", "Experience Zone"];
-const POLL_MS = 1000;
+const POLL_MS = 2000;
 
 const tabs = document.getElementById("tabs");
 const content = document.getElementById("content");
@@ -42,6 +42,7 @@ async function poll() {
   if (!document.hidden) {
     try {
       lastSnapshot = await window.nitro.sensors.snapshot();
+      for (const page of Object.values(window.NitroPages ?? {})) page.collect?.(lastSnapshot);
       activePage?.update?.(lastSnapshot);
     } catch (error) {
       console.error("sensor snapshot failed", error);
