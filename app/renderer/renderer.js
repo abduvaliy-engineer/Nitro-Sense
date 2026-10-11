@@ -37,7 +37,13 @@ function selectTab(name) {
   if (lastSnapshot) activePage.update?.(lastSnapshot);
 }
 
+let pollTimer = 0;
+let polling = false;
+
 async function poll() {
+  clearTimeout(pollTimer);
+  if (polling) return;
+  polling = true;
   // Skip while hidden so a minimized window never keeps the dGPU awake.
   if (!document.hidden) {
     try {
@@ -50,8 +56,12 @@ async function poll() {
       console.error("sensor snapshot failed", error);
     }
   }
-  setTimeout(poll, POLL_MS);
+  polling = false;
+  pollTimer = setTimeout(poll, POLL_MS);
 }
+
+// Power-mode changes from anywhere (mode key, other tools, AC plug) refresh immediately.
+window.nitro.sensors.onChange(() => poll());
 
 document.getElementById("btn-min").addEventListener("click", () => window.nitro.window.minimize());
 document.getElementById("btn-max").addEventListener("click", () => window.nitro.window.toggleMaximize());
