@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:">
+  <title>NitroSense</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app main-background">
+    <nav id="nav">
+      <div class="header-logo"></div>
+      <div id="tabs" class="tabs"></div>
+      <div class="header-actions">
+        <button class="header-btn" aria-label="Support"><img src="../assets/acer/header/header_support.svg" alt=""></button>
+        <button class="header-btn" aria-label="Settings" data-tab="Settings"><img src="../assets/acer/header/header_setting.svg" alt=""></button>
+        <div class="caption">
+          <button class="caption-btn" id="btn-min" aria-label="Minimize">
+            <svg viewBox="0 0 10 10"><path d="M0 5h10"/></svg>
+          </button>
+          <button class="caption-btn" id="btn-max" aria-label="Maximize">
+            <svg viewBox="0 0 10 10" class="glyph-max"><rect x="0.5" y="0.5" width="9" height="9" rx="1"/></svg>
+            <svg viewBox="0 0 10 10" class="glyph-restore"><rect x="0.5" y="2.5" width="7" height="7" rx="1"/><path d="M2.5 2.5v-1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-1"/></svg>
+          </button>
+          <button class="caption-btn close" id="btn-close" aria-label="Close">
+            <svg viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10"/></svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+    <main id="content"></main>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

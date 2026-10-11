@@ -1,0 +1,182 @@
+:root {
+  --color-00: #000000;
+  --color-ff: #ffffff;
+  --color-c0: #c0c0c0;
+  --color-80: #808080;
+  --color-lb: #ff6624;
+  --color-mgd: #381200;
+}
+
+@font-face {
+  font-family: predator;
+  src: url(../assets/acer/font/Predator-Regular.otf) format("opentype");
+}
+
+@font-face {
+  font-family: predator;
+  font-weight: 700;
+  src: url(../assets/acer/font/Predator-Bold.otf) format("opentype");
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  font-family: predator, sans-serif;
+  user-select: none;
+  cursor: default;
+}
+
+:focus { outline: none; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-mgd);
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+}
+
+.main-background {
+  background: url(../assets/acer/img_background.png) center / cover no-repeat;
+}
+
+/* ---------- header ---------- */
+
+#nav {
+  display: flex;
+  flex: none;
+  height: 48px;
+  background: var(--color-00);
+  -webkit-app-region: drag;
+}
+
+#nav button { -webkit-app-region: no-drag; }
+
+.header-logo {
+  flex: none;
+  width: 26px;
+  height: 32px;
+  margin: auto 12px auto 24px;
+  background: url(../assets/acer/home_headerlogo.svg) center / contain no-repeat;
+}
+
+.tabs {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 16px;
+  font-size: 16px;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--color-80);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+
+.tab:hover { color: var(--color-c0); }
+.tab:active { color: var(--color-ff); }
+
+.tab.selected {
+  color: var(--color-ff);
+  border-bottom-color: var(--color-lb);
+  pointer-events: none;
+}
+
+.header-actions {
+  display: flex;
+  flex: none;
+  height: 100%;
+}
+
+.header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 100%;
+}
+
+.header-btn img {
+  width: 32px;
+  height: 32px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.header-btn:hover { background-color: #ffffff10; }
+.header-btn:hover img { opacity: 0.7; }
+.header-btn:active img { opacity: 1; }
+
+/* Native Windows 11 caption buttons (NitroSense uses Electron's titleBarOverlay). */
+.caption {
+  display: flex;
+  justify-content: flex-end;
+  width: 144px;
+  height: 100%;
+}
+
+.caption-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+}
+
+.caption-btn svg {
+  width: 10px;
+  height: 10px;
+  overflow: visible;
+  fill: none;
+  stroke: #fff;
+  stroke-width: var(--hairline, 1px);
+}
+
+.caption-btn:not(.close) svg { shape-rendering: crispEdges; }
+.caption-btn.close svg { stroke-width: 1px; }
+
+.caption-btn:hover { background-color: rgba(255, 255, 255, 0.0605); }
+.caption-btn:active { background-color: rgba(255, 255, 255, 0.0419); }
+.caption-btn.close:hover { background-color: #c42b1c; }
+.caption-btn.close:active { background-color: rgba(196, 43, 28, 0.9); }
+
+.glyph-restore,
+.maximized .glyph-max { display: none; }
+.maximized .glyph-restore { display: block; }
+
+/* ---------- content ---------- */
+
+#content {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 20px;
+  color: var(--color-80);
+}
