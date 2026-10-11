@@ -1,0 +1,59 @@
+@define-color accent_bg_color #e3062c;
+@define-color accent_color #ff3355;
+@define-color window_bg_color #111114;
+@define-color view_bg_color #111114;
+@define-color headerbar_bg_color #0b0b0d;
+@define-color card_bg_color #1b1b20;
+
+:root {
+  --accent-bg-color: #e3062c;
+  --accent-color: #ff3355;
+  --window-bg-color: #111114;
+  --view-bg-color: #111114;
+  --headerbar-bg-color: #0b0b0d;
+  --card-bg-color: #1b1b20;
+}
+
+.brand {
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #e3062c;
+}
+
+.section-title {
+  font-weight: 800;
+  font-size: 0.85em;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: alpha(white, 0.55);
+  margin-top: 6px;
+}
+
+.gauge-card {
+  padding: 12px;
+}
+
+.mode-card {
+  background: @card_bg_color;
+  border: 1px solid alpha(white, 0.06);
+  border-radius: 12px;
+  min-height: 96px;
+}
+
+.mode-card:hover {
+  background: shade(@card_bg_color, 1.25);
+}
+
+.mode-card:checked {
+  background: alpha(#e3062c, 0.18);
+  border-color: #e3062c;
+  color: white;
+}
+
+.mode-card:checked image {
+  color: #ff3355;
+}
+
+.profile-card {
+  min-height: 72px;
+}

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=NitroSense
+Comment=Fan, power mode, lighting and battery control for Acer Nitro laptops
+Exec=nitrosense
+Icon=computer
+Terminal=false
+Categories=Settings;HardwareSettings;
+Keywords=acer;nitro;fan;thermal;battery;rgb;
+StartupWMClass=io.github.abduvaliy.NitroSense
