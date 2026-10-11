@@ -621,6 +621,142 @@
   padding: 0 16px;
 }
 
+/* ---------- Fan Control page ---------- */
+
+.fan-page {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: fit-content;
+  padding: 16px 24px 40px;
+}
+
+.fan-page > .fan-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: fit-content;
+  padding: 28px;
+}
+
+.fan-modes { flex-wrap: wrap; }
+
+.fan-card-icon img {
+  width: 72px;
+  height: 70px;
+}
+
+.fan-blocks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.fan-block {
+  display: flex;
+  flex: none;
+  flex-direction: row;
+  width: 368px;
+  height: 236px;
+  margin: 8px;
+  padding: 28px;
+}
+
+.fan-art {
+  position: relative;
+  flex: none;
+  width: 180px;
+  height: 180px;
+}
+
+.fan-blades {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 180px;
+  height: 180px;
+}
+
+.fan-text {
+  display: block;
+  flex-grow: 1;
+  color: var(--color-ff);
+  text-align: right;
+}
+
+.fan-title {
+  font-size: 20px;
+  line-height: 24px;
+  color: var(--color-c0);
+}
+
+.fan-rpm {
+  margin-top: 20px;
+  font-size: 36px;
+  line-height: 40px;
+}
+
+.fan-unit {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+}
+
+.fan-custom {
+  display: none;
+  margin-top: 16px;
+  text-align: center;
+}
+
+.fan-card.custom .fan-custom { display: block; }
+
+.fan-custom-dim.auto { opacity: 0.5; }
+
+.fan-tips {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin: 0 8px 0 12px;
+}
+
+.fan-tips img {
+  width: 8px;
+  height: 8px;
+}
+
+.fan-auto {
+  width: 112px;
+  height: 24px;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+  background: url(../../assets/acer/fan/fan_autobtn_off_normal.svg) center / contain no-repeat;
+}
+
+.fan-auto:hover {
+  color: var(--color-c0);
+  background-image: url(../../assets/acer/fan/fan_autobtn_off_hover.svg);
+}
+
+.fan-auto.on {
+  color: var(--color-ff);
+  background-image: url(../../assets/acer/fan/fan_autobtn_on_normal.svg);
+}
+
+.fan-auto.on:hover { background-image: url(../../assets/acer/fan/fan_autobtn_on_hover.svg); }
+
+.fan-divider {
+  display: none;
+  flex: none;
+  width: 2px;
+  height: 220px;
+  background: #8034124d;
+}
+
 /* ---------- breakpoints ---------- */
 
 @media (min-width: 785px) {
@@ -631,6 +767,9 @@
   .mode-message { width: 752px; }
   .mode-gauges { flex-direction: row; }
   .mode-gauge-divider { display: flex; }
+  .fan-modes { flex-wrap: nowrap; }
+  .fan-blocks { flex-direction: row; }
+  .fan-divider { display: flex; }
 }
 
 @media (min-width: 1168px) {
@@ -640,4 +779,5 @@
   .mode-main { width: 848px; }
   .mode-info { right: 20px; }
   .mode-side { width: 272px; margin-top: 0; }
+  .fan-page > .fan-card { width: 1136px; flex: none; }
 }

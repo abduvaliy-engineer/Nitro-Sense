@@ -249,3 +249,70 @@
 
 .ns-radio:hover { background-image: url(../assets/acer/btn/radiobtn_off_hover.svg); }
 .ns-radio.on { background-image: url(../assets/acer/btn/radiobtn_on.svg); }
+
+/* ---------- slider (predator-slider / mat-slider) ---------- */
+
+.ns-slider {
+  position: relative;
+  display: inline-block;
+  width: 128px;
+  height: 16px;
+  padding: 8px;
+  outline: none;
+  vertical-align: middle;
+  touch-action: none;
+}
+
+.ns-slider-track {
+  position: absolute;
+  top: 2px;
+  right: 8px;
+  left: 8px;
+  height: 4px;
+}
+
+.ns-slider-bg,
+.ns-slider-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+}
+
+.ns-slider-bg {
+  background: #fff;
+  opacity: 0.1;
+}
+
+.ns-slider-fill {
+  background: var(--color-lb);
+  transform-origin: 0 0;
+  transition: transform 400ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.ns-slider-thumb-box {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  z-index: 1;
+  width: 100%;
+  height: 0;
+  transition: transform 400ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.ns-slider.sliding .ns-slider-fill,
+.ns-slider.sliding .ns-slider-thumb-box { transition: none; }
+
+.ns-slider-thumb {
+  position: absolute;
+  right: -10px;
+  bottom: -8px;
+  width: 20px;
+  height: 16px;
+  background: url(../assets/acer/fan/slider_point.svg) center / contain no-repeat;
+}
+
+.ns-slider:not(.disabled) .ns-slider-thumb:hover { background-image: url(../assets/acer/fan/slider_point_hover.svg); }
+.ns-slider:not(.disabled):active .ns-slider-thumb { background-image: url(../assets/acer/fan/slider_point_click.svg); }
+.ns-slider.disabled { pointer-events: none; }
