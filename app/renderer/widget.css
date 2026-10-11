@@ -1,0 +1,633 @@
+/* Right widget panel — NitroSense app-main #widget (overlay below 1488px, in flow above). */
+
+#main-row {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  min-height: 0;
+}
+
+#column {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.widget {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  width: 56px;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  transition: width 0.5s;
+}
+
+.widget.open { width: 408px; }
+
+.widget-toggle-slot {
+  z-index: 1;
+  display: flex;
+  flex: none;
+  height: fit-content;
+}
+
+.widget-toggle {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 40px;
+  background: url(../assets/acer/widget/widget_closeopen_bg.svg) center / contain no-repeat;
+  pointer-events: auto;
+}
+
+.widget-toggle {
+  perspective: 120px;
+}
+
+/* NitroSense spins this icon 180°, which turns it upside down; a vertical-axis flip keeps it upright
+   and lands on the mirrored arrow, in step with the panel's 0.5s slide. */
+.widget-toggle img {
+  width: 36px;
+  height: 36px;
+  opacity: 0.7;
+  transition: transform 0.5s ease;
+}
+
+.widget-toggle:hover img { opacity: 1; }
+.widget-toggle.closed img { transform: rotateY(180deg); }
+
+.widget-toggle.in-column {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: none;
+}
+
+.widget-bg {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 352px;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: linear-gradient(180deg, var(--color-widgetbg) 0%, var(--color-widgetsecbg) 100%);
+  pointer-events: auto;
+}
+
+.widget-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 20px;
+}
+
+.widget-item {
+  display: flex;
+  flex-direction: column;
+  width: 312px;
+}
+
+.widget-item-header {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 36px;
+  padding: 0 8px 0 12px;
+  background: #00000080;
+  cursor: move;
+}
+
+.widget-item-header * { cursor: move; }
+.widget-item-header button,
+.widget-item-header button * { cursor: default; }
+.widget-item.dragging { opacity: 0.8; }
+
+.widget-item-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 28px;
+}
+
+.widget-item-title {
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--color-hb);
+}
+
+.widget-item-setup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.widget-item-setup img {
+  width: 16px;
+  height: 16px;
+}
+
+.widget-item-decoline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+}
+
+.widget-item-footer {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.widget-details {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  height: 32px;
+  padding: 0 16px;
+  background: url(../assets/acer/widget/widget_bottom_bg.svg) center / 100% 100% no-repeat;
+}
+
+.widget-details:hover { background-image: url(../assets/acer/widget/widget_bottom_bg_hover.svg); }
+.widget-details:active { background-image: url(../assets/acer/widget/widget_bottom_bg_click.svg); }
+
+.widget-details span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+}
+
+.widget-details img {
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+}
+
+/* NitroSense's .custom_btn: dim icon buttons that brighten on hover. */
+.custom-btn { opacity: 0.35; }
+.custom-btn:hover { opacity: 0.7; }
+.custom-btn:active { opacity: 1; }
+
+@media (min-width: 1488px) {
+  .widget {
+    position: relative;
+    width: 0;
+  }
+
+  .widget.open { width: 352px; }
+  .widget-toggle-slot { display: none; }
+  .widget-toggle.in-column { display: flex; }
+}
+
+/* ---------- Monitoring ---------- */
+
+.wi-monitor {
+  width: 100%;
+  padding: 16px 12px;
+  background: #00000080;
+}
+
+.wi-monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 88px);
+  gap: 12px;
+}
+
+.wi-tile {
+  display: flex;
+  flex-direction: column;
+  width: 88px;
+  height: 68px;
+  padding: 4px;
+  background: #80341233;
+}
+
+.wi-tile-label p,
+.wi-tile-unit span {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.wi-tile-label p { color: var(--color-c0); text-align: left; }
+
+.wi-tile-center {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+}
+
+.wi-tile-value {
+  font-size: 20px;
+  line-height: 24px;
+  color: var(--color-ff);
+}
+
+.wi-tile-unit {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.wi-tile-unit span { color: var(--color-80); text-align: right; }
+
+/* ---------- Monitoring settings dialog ---------- */
+
+.ns-dialog-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.wi-setup {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  margin: 8px 0;
+  padding: 0 16px;
+  overflow: hidden;
+}
+
+.wi-setup-hint {
+  display: flex;
+  width: 100%;
+  min-height: 32px;
+}
+
+.wi-setup-hint span,
+.wi-setup-group-name span,
+.wi-setup-row span {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.wi-setup-hint span { color: var(--color-c0); }
+
+.wi-setup-groups {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 326px;
+  margin-top: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.wi-setup-group {
+  display: flex;
+  flex: none;
+  flex-direction: row;
+  width: 100%;
+  padding: 8px 0;
+  border-top: 2px solid #8034124d;
+}
+
+.wi-setup-group-name {
+  position: relative;
+  flex: none;
+  width: 84px;
+}
+
+.wi-setup-group-name span {
+  position: absolute;
+  right: 0;
+  color: var(--color-80);
+}
+
+.wi-setup-group-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-left: 12px;
+}
+
+.wi-setup-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.wi-setup-row span {
+  margin-left: 4px;
+  color: var(--color-80);
+}
+
+.wi-setup-row.disabled { opacity: 0.3; }
+
+/* ---------- Live Update ---------- */
+
+.wi-update {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 12px 20px;
+  background: #00000080;
+}
+
+.wi-update-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 96px;
+}
+
+.wi-update-spinner {
+  width: 72px;
+  height: 72px;
+}
+
+.wi-update-block {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 48px;
+}
+
+.wi-update-empty {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.wi-update-empty span,
+.wi-update-label span {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.wi-update-empty span { color: var(--color-80); }
+
+.wi-update-line {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+.wi-update-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.wi-update-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.wi-update-count {
+  display: flex;
+  justify-content: flex-end;
+  width: 48px;
+  height: 24px;
+}
+
+.wi-update-count span {
+  font-size: 20px;
+  line-height: 24px;
+  color: var(--color-ff);
+}
+
+.wi-update-label {
+  display: flex;
+  align-items: center;
+}
+
+.wi-update-label span { color: var(--color-c0); }
+
+.wi-update-refresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wi-update-refresh img {
+  width: 24px;
+  height: 24px;
+}
+
+.wi-update-button { margin-top: 16px; }
+
+/* ---------- App Shortcut ---------- */
+
+.wi-apps {
+  width: 100%;
+  padding: 12px 20px;
+  background: #00000080;
+}
+
+.wi-apps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 56px);
+  gap: 16px;
+}
+
+.wi-app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+}
+
+.wi-app img {
+  width: 100%;
+  height: 100%;
+}
+
+.wi-app-fallback {
+  font-size: 24px;
+  color: var(--color-ff);
+}
+
+.wi-apps-empty {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: 40px;
+}
+
+.wi-apps-empty span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+}
+
+/* ---------- Scenario Profile ---------- */
+
+.wi-scenario {
+  width: 100%;
+  padding: 12px;
+  background: #00000080;
+}
+
+.wi-dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 32px;
+  padding: 4px 4px 4px 8px;
+  border: 1px solid #ff66244d;
+  background: #0000004d;
+}
+
+.wi-dropdown:hover { border-color: #ff662480; background: #00000080; }
+.wi-dropdown:active,
+.wi-dropdown.open { border-color: #ff6624b3; background: #000000b3; }
+
+.wi-dropdown-text {
+  width: 240px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 15.6px;
+  color: var(--color-ff);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wi-dropdown-arrow {
+  width: 40px;
+  height: 24px;
+  clip-path: polygon(0% 100%, 50% 0%, 100% 0%, 100% 100%);
+  background: url(../assets/acer/widget/ic_droparrow_normal.svg) center no-repeat;
+}
+
+.wi-dropdown:hover .wi-dropdown-arrow { background-image: url(../assets/acer/widget/ic_droparrow_hover.svg); }
+.wi-dropdown:active .wi-dropdown-arrow,
+.wi-dropdown.open .wi-dropdown-arrow { background-image: url(../assets/acer/widget/ic_droparrow_click.svg); }
+
+.wi-scenario-rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+
+.wi-scenario-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 32px;
+}
+
+.wi-scenario-row:hover { background: #ff66241a; }
+.wi-scenario-row:active { background: #ff662433; }
+
+.wi-scenario-cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.wi-scenario-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.wi-scenario-label,
+.wi-scenario-value {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.wi-scenario-label { color: var(--color-c0); text-align: left; }
+.wi-scenario-value { color: var(--color-ff); }
+
+.wi-scenario-chevron {
+  width: 12px;
+  height: 12px;
+  margin-left: 4px;
+}
+
+.wi-menu-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+
+.wi-menu {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  width: 288px;
+  max-height: 200px;
+  padding: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--color-mgd);
+  box-shadow: 0 0 8px #000;
+  transform-origin: top left;
+  animation: wi-menu-open 120ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.wi-menu > * { animation: wi-menu-items 400ms 100ms cubic-bezier(0.55, 0, 0.55, 0.2) backwards; }
+.wi-menu.closing { animation: wi-menu-close 100ms 25ms linear forwards; }
+
+@keyframes wi-menu-open {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes wi-menu-items {
+  from { opacity: 0; }
+}
+
+@keyframes wi-menu-close {
+  to { opacity: 0; }
+}
+
+.wi-menu-item {
+  display: flex;
+  flex: none;
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+}
+
+.wi-menu-item:hover { background: #ff662426; }
+.wi-menu-item:active { background: #ff662433; }
+
+.wi-menu-item button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+}
+
+.wi-menu-item button.active,
+.wi-menu-item button:active { color: var(--color-ff); }
+
+.wi-menu-item span { white-space: pre; }

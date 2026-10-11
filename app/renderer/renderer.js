@@ -44,6 +44,7 @@ async function poll() {
       lastSnapshot = await window.nitro.sensors.snapshot();
       for (const page of Object.values(window.NitroPages ?? {})) page.collect?.(lastSnapshot);
       activePage?.update?.(lastSnapshot);
+      window.NitroWidgetPanel?.update(lastSnapshot);
     } catch (error) {
       console.error("sensor snapshot failed", error);
     }
@@ -61,6 +62,8 @@ function updateHairline() {
   document.documentElement.style.setProperty("--hairline", `${1 / window.devicePixelRatio}px`);
   matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener("change", updateHairline, { once: true });
 }
+
+window.NitroApp = { selectTab };
 
 updateHairline();
 selectTab(activeTab);

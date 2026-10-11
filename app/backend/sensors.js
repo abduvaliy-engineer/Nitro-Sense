@@ -6,6 +6,7 @@ const HWMON = "/sys/class/hwmon";
 const CPUS = "/sys/devices/system/cpu";
 const PCI = "/sys/bus/pci/devices";
 const PLATFORM_PROFILE = "/sys/firmware/acpi/platform_profile";
+const FAN_SPEED = ["/sys/devices/platform/acer-wmi/nitro_sense/fan_speed", "/sys/devices/platform/acer-wmi/predator_sense/fan_speed"];
 
 async function read(file) {
   try {
@@ -129,11 +130,43 @@ async function readGpu() {
   };
 }
 
+async function readRam() {
+  const info = await read("/proc/meminfo");
+  if (!info) return { usage: null, used: null, total: null };
+  const kb = (key) => parseInt(info.match(new RegExp(`^${key}:\\s+(\\d+)`, "m"))?.[1], 10);
+  const total = kb("MemTotal");
+  const available = kb("MemAvailable");
+  if (!total || Number.isNaN(available)) return { usage: null, used: null, total: null };
+  const used = total - available;
+  return { usage: Math.round((used / total) * 1000) / 10, used: used * 1024, total: total * 1024 };
+}
+
+// linuwu-sense echoes the last written "cpu,gpu" percentages: 0,0 = auto, 100,100 = max.
+async function readFanMode() {
+  for (const file of FAN_SPEED) {
+    const value = await read(file);
+    if (value === null) continue;
+    const [cpu, gpu] = value.split(",").map((v) => parseInt(v, 10));
+    const mode = cpu === 0 && gpu === 0 ? "auto" : cpu === 100 && gpu === 100 ? "max" : "custom";
+    return { mode, cpu, gpu };
+  }
+  return null;
+}
+
+async function readPower() {
+  let ac = null;
+  for (const entry of await fs.readdir("/sys/class/power_supply").catch(() => [])) {
+    const dir = path.join("/sys/class/power_supply", entry);
+    if ((await read(path.join(dir, "type"))) === "Mains") ac = (await read(path.join(dir, "online"))) === "1";
+  }
+  return { ac };
+}
+
 async function snapshot() {
-  const [temps, fans, cpu, gpu, profile] = await Promise.all([
-    readTemps(), readFans(), readCpu(), readGpu(), read(PLATFORM_PROFILE),
+  const [temps, fans, cpu, gpu, ram, profile, fanMode, power] = await Promise.all([
+    readTemps(), readFans(), readCpu(), readGpu(), readRam(), read(PLATFORM_PROFILE), readFanMode(), readPower(),
   ]);
-  return { temps, fans, cpu, gpu, profile };
+  return { temps, fans, cpu, gpu, ram, profile, fanMode, power };
 }
 
 module.exports = { snapshot };

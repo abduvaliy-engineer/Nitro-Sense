@@ -13,4 +13,21 @@ contextBridge.exposeInMainWorld("nitro", {
   system: {
     info: () => ipcRenderer.invoke("system:info"),
   },
+  settings: {
+    get: (key) => ipcRenderer.invoke("settings:get", key),
+    set: (key, value) => ipcRenderer.invoke("settings:set", key, value),
+  },
+  updates: {
+    check: () => ipcRenderer.invoke("updates:check"),
+    open: (url) => ipcRenderer.invoke("updates:open", url),
+  },
+  shortcuts: {
+    list: () => ipcRenderer.invoke("shortcuts:list"),
+    launch: (id) => ipcRenderer.invoke("shortcuts:launch", id),
+  },
+  controls: {
+    setProfile: (profile) => ipcRenderer.invoke("controls:setProfile", profile),
+    setFanSpeed: (cpu, gpu) => ipcRenderer.invoke("controls:setFanSpeed", cpu, gpu),
+  },
+  notify: (title, body) => ipcRenderer.invoke("notify", title, body),
 });

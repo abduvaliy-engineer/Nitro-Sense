@@ -1,14 +1,16 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const fs = require("fs");
 const path = require("path");
-const sensors = require("./backend/sensors");
-const system = require("./backend/system");
+const { registerIpc } = require("./backend/ipc");
+
+app.setName("NitroSense");
 
 function createWindow() {
   const win = new BrowserWindow({
     width: 1168,
     height: 780,
     minWidth: 500,
+    minHeight: 670,
     frame: false,
     show: false,
     center: true,
@@ -50,10 +52,20 @@ ipcMain.on("window:toggle-maximize", (e) => {
   const win = BrowserWindow.fromWebContents(e.sender);
   win.isMaximized() ? win.unmaximize() : win.maximize();
 });
-ipcMain.handle("sensors:snapshot", () => sensors.snapshot());
-ipcMain.handle("system:info", () => system.info());
 ipcMain.on("window:close", (e) => BrowserWindow.fromWebContents(e.sender).close());
+registerIpc();
 
-app.setName("NitroSense");
-app.whenReady().then(createWindow);
+// Like NitroSense, a second launch focuses the running window instead of opening another.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  });
+  app.whenReady().then(createWindow);
+}
 app.on("window-all-closed", () => app.quit());

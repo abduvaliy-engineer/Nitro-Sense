@@ -39,6 +39,13 @@
 
 [hidden] { display: none !important; }
 
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ffffff4d; }
+::-webkit-scrollbar-thumb:hover { background: #ffffff80; }
+::-webkit-scrollbar-thumb:active { background: #ffffffb3; }
+::-webkit-scrollbar-corner { background: #000000cc; }
+
 html, body {
   height: 100%;
   overflow: hidden;

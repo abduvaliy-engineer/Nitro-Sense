@@ -6,6 +6,8 @@
   <title>NitroSense</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="pages/home.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="widget.css">
 </head>
 <body>
   <div class="app main-background">
@@ -29,13 +31,21 @@
         </div>
       </div>
     </nav>
-    <main id="content"></main>
+    <div id="main-row">
+      <div id="column">
+        <main id="content"></main>
+      </div>
+    </div>
   </div>
   <script src="../vendor/three/regenerator-global.js"></script>
   <script src="../vendor/three/three.min.js"></script>
   <script src="../vendor/three/GLTFLoader.js"></script>
   <script src="../vendor/lottie/lottie_light.min.js"></script>
   <script src="pages/home.js"></script>
+  <script src="dialog.js"></script>
+  <script src="scenario.js"></script>
+  <script src="widgets.js"></script>
   <script src="renderer.js"></script>
+  <script src="widget.js"></script>
 </body>
 </html>
