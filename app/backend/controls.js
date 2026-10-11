@@ -42,4 +42,8 @@ async function setModeKeyCycle(cycle) {
   await write("/sys/module/linuwu_sense/parameters/cycle_gaming_thermal_profile", cycle ? "Y" : "N");
 }
 
-module.exports = { setProfile, setFanSpeed, setModeKeyCycle };
+async function setBacklightTimeout(on) {
+  await write(await senseFile("backlight_timeout"), on ? 1 : 0);
+}
+
+module.exports = { write, senseFile, setProfile, setFanSpeed, setModeKeyCycle, setBacklightTimeout };

@@ -5,14 +5,29 @@ const system = require("./system");
 const updates = require("./updates");
 const shortcuts = require("./shortcuts");
 const controls = require("./controls");
+const lighting = require("./lighting");
 const { Settings } = require("./settings");
 
-// The kernel notifies platform_profile changes (sysfs_notify → inotify) within milliseconds,
-// so windows refresh at once instead of waiting for the next poll.
+const PLATFORM_PROFILE = "/sys/firmware/acpi/platform_profile";
+
+function readProfile() {
+  try {
+    return fs.readFileSync(PLATFORM_PROFILE, "utf8").trim();
+  } catch {
+    return null;
+  }
+}
+
+// The kernel notifies platform_profile changes (sysfs_notify → inotify) within milliseconds, so windows
+// refresh at once and the keyboard flashes the new mode's color. Rewriting the same mode notifies too.
 function watchPlatformProfile() {
   let timer = null;
+  let last = readProfile();
   try {
-    fs.watch("/sys/firmware/acpi/platform_profile", () => {
+    fs.watch(PLATFORM_PROFILE, () => {
+      const profile = readProfile();
+      if (profile && last && profile !== last) lighting.flash(profile);
+      if (profile) last = profile;
       clearTimeout(timer);
       timer = setTimeout(() => {
         for (const win of BrowserWindow.getAllWindows()) win.webContents.send("sensors:changed");
@@ -37,6 +52,10 @@ function registerIpc() {
   ipcMain.handle("controls:setProfile", (_e, profile) => controls.setProfile(profile));
   ipcMain.handle("controls:setFanSpeed", (_e, cpu, gpu) => controls.setFanSpeed(cpu, gpu));
   ipcMain.handle("controls:setModeKeyCycle", (_e, cycle) => controls.setModeKeyCycle(Boolean(cycle)));
+  ipcMain.handle("controls:setBacklightTimeout", (_e, on) => controls.setBacklightTimeout(Boolean(on)));
+  ipcMain.handle("lighting:info", () => lighting.info());
+  ipcMain.handle("lighting:apply", (_e, value) => lighting.apply(value));
+  ipcMain.handle("lighting:pickColor", () => lighting.pickColor());
   ipcMain.handle("notify", (_e, title, body) => {
     if (Notification.isSupported()) new Notification({ title: String(title), body: String(body) }).show();
   });
