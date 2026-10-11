@@ -30,6 +30,12 @@ contextBridge.exposeInMainWorld("nitro", {
     setProfile: (profile) => ipcRenderer.invoke("controls:setProfile", profile),
     setFanSpeed: (cpu, gpu) => ipcRenderer.invoke("controls:setFanSpeed", cpu, gpu),
     setModeKeyCycle: (cycle) => ipcRenderer.invoke("controls:setModeKeyCycle", cycle),
+    setBacklightTimeout: (on) => ipcRenderer.invoke("controls:setBacklightTimeout", on),
+  },
+  lighting: {
+    info: () => ipcRenderer.invoke("lighting:info"),
+    apply: (lighting) => ipcRenderer.invoke("lighting:apply", lighting),
+    pickColor: () => ipcRenderer.invoke("lighting:pickColor"),
   },
   notify: (title, body) => ipcRenderer.invoke("notify", title, body),
 });
