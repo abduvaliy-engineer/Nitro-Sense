@@ -30,19 +30,23 @@ function createWindow() {
   if (process.argv.includes("--dev")) watchForChanges(win);
 }
 
-// --dev: reload the window when the UI changes, restart when the main process changes.
+// --dev: reload the window in place when the UI changes; restart for main-process changes, but only
+// while the window is focused, so a relaunch never pops a new window up while the user is elsewhere.
 function watchForChanges(win) {
   let timer = null;
+  let restartPending = false;
+  const restart = () => {
+    app.relaunch();
+    app.exit(0);
+  };
+  win.on("focus", () => restartPending && restart());
   fs.watch(__dirname, { recursive: true }, (_event, file) => {
     if (!file || file.startsWith("node_modules")) return;
     clearTimeout(timer);
     timer = setTimeout(() => {
-      if (/^(renderer|assets|vendor)\//.test(file)) {
-        win.webContents.reloadIgnoringCache();
-      } else {
-        app.relaunch();
-        app.exit(0);
-      }
+      if (/^(renderer|assets|vendor)\//.test(file)) win.webContents.reloadIgnoringCache();
+      else if (win.isFocused()) restart();
+      else restartPending = true;
     }, 200);
   });
 }
