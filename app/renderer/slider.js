@@ -7,7 +7,8 @@
     return node;
   }
 
-  function create({ min = 0, max = 100, step = 10, value = min, ariaLabel = "", onChange } = {}) {
+  // scale: the values at the track ends. NitroSense's fan sliders keep 0-100 although they start at 10.
+  function create({ min = 0, max = 100, step = 10, value = min, scale = [0, 100], ariaLabel = "", onChange } = {}) {
     const root = el("div", "ns-slider");
     root.tabIndex = 0;
     root.setAttribute("role", "slider");
@@ -24,17 +25,19 @@
     let current = value;
     let disabled = false;
 
-    // Positions use NitroSense's 0-100 scale even when min is higher, so the geometry matches.
+    const [low, high] = scale;
+
     function render() {
-      fill.style.transform = `scaleX(${current / 100})`;
-      thumbBox.style.transform = `translateX(${current - 100}%)`;
+      const fraction = (current - low) / (high - low);
+      fill.style.transform = `scaleX(${fraction})`;
+      thumbBox.style.transform = `translateX(${fraction * 100 - 100}%)`;
       root.setAttribute("aria-valuenow", String(current));
     }
 
     function valueAt(clientX) {
       const box = track.getBoundingClientRect();
-      const raw = ((clientX - box.left) / box.width) * 100;
-      return Math.min(max, Math.max(min, Math.round(raw / step) * step));
+      const raw = low + ((clientX - box.left) / box.width) * (high - low);
+      return Math.min(max, Math.max(min, Math.round((raw - low) / step) * step + low));
     }
 
     function commit(next) {

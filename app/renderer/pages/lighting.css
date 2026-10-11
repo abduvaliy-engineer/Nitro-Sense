@@ -1,0 +1,879 @@
+/* Scenario → Pulsar Lighting (NitroSense app-lighting, app-color-pick-panel, app-area-lighting-control). */
+
+/* ---------- Global page ---------- */
+
+.lt-page {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: fit-content;
+  padding: 0 24px;
+}
+
+.lt-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 16px 0 24px;
+}
+
+.lt-row {
+  display: flex;
+  flex-direction: column;
+  row-gap: 16px;
+  justify-content: center;
+}
+
+.lt-main {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 28px;
+}
+
+.lt-title {
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--color-hb);
+  text-align: center;
+}
+
+.lt-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-bottom: 2px solid #8034124d;
+}
+
+.lt-toggle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 176px;
+  height: 64px;
+  margin: 8px;
+  background: url(../../assets/acer/light/light_controlbtn_normal.svg) center / contain no-repeat;
+  color: var(--color-80);
+}
+
+.lt-toggle-btn p { font-size: 14px; line-height: 16px; }
+.lt-toggle-btn:hover { background-image: url(../../assets/acer/light/light_controlbtn_hover.svg); color: var(--color-c0); }
+.lt-toggle-btn.selected { background-image: url(../../assets/acer/light/light_controlbtn_select.svg); color: var(--color-ff); }
+
+/* brightness: bulb, 1-5 slider, sun */
+.lt-brightness-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.lt-brightness {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  margin: 16px 0;
+}
+
+.lt-brightness.start {
+  justify-content: flex-start;
+  margin: 0 0 12px;
+}
+
+.lt-brightness-icon { height: 20px; }
+.lt-brightness-icon img { width: 20px; height: 20px; }
+
+.lt-brightness-slider {
+  flex: none;
+  width: 140px;
+  height: 20px;
+  margin: 0 8px;
+}
+
+.lt-brightness-slider .ns-slider {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+}
+
+/* Brightness 1 turns the backlight off: grey thumb. */
+.ns-slider.min-thumb .ns-slider-thumb,
+.ns-slider.min-thumb:not(.disabled) .ns-slider-thumb:hover,
+.ns-slider.min-thumb:not(.disabled):active .ns-slider-thumb {
+  background-image: url(../../assets/acer/fan/slider_point_diabled.svg);
+}
+
+/* effects */
+.lt-global-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.lt-effects {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: center;
+}
+
+.lt-effects-head {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.lt-select-label {
+  width: 240px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: left;
+}
+
+.lt-select-label.dim { opacity: 0.4; }
+
+.lt-effect-dropdown-box {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.wi-dropdown.lt-dropdown {
+  flex: none;
+  width: 240px;
+  margin-top: 4px;
+}
+
+.lt-dropdown .wi-dropdown-text { width: 188px; }
+.wi-dropdown.lt-dropdown:disabled { opacity: 0.3; pointer-events: none; }
+
+.lt-effect-grid {
+  display: none;
+  grid-template-columns: repeat(2, 188px);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.lt-effect {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 188px;
+  height: 40px;
+  background: url(../../assets/acer/light/light_effectbtn_normal.svg) no-repeat;
+  color: var(--color-80);
+  opacity: 0.8;
+}
+
+.lt-effect img { width: 40px; height: 40px; opacity: 0.35; }
+
+.lt-effect span {
+  margin-left: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: left;
+}
+
+.lt-effect:not([disabled]):hover { background-image: url(../../assets/acer/light/light_effectbtn_hover.svg); color: var(--color-c0); }
+.lt-effect:not([disabled]):hover img { opacity: 0.7; }
+
+.lt-effect.selected,
+.lt-effect.selected:not([disabled]):hover {
+  background-image: url(../../assets/acer/light/light_effectbtn_select.svg);
+  color: var(--color-ff);
+  opacity: 1;
+}
+
+.lt-effect.selected img { opacity: 1; }
+.lt-effect:disabled { opacity: 0.4; }
+
+.lt-color-column {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 20px;
+}
+
+/* Area info (Area selected on the Global page) */
+.lt-area-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 52px 0;
+}
+
+.lt-area-info-text {
+  width: 368px;
+  height: 48px;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+}
+
+.lt-area-info-text span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+}
+
+.lt-area-info-go { margin-top: 24px; }
+.lt-area-info-go .pill-btn { padding: 8px; }
+.lt-area-info-go p { font-size: 12px; line-height: 16px; }
+
+/* right column */
+.lt-side {
+  display: flex;
+  flex-direction: column;
+  row-gap: 16px;
+  width: 100%;
+  height: fit-content;
+}
+
+.lt-side-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: fit-content;
+  padding: 28px;
+}
+
+.lt-link-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.lt-link {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 16px;
+  opacity: 0.7;
+}
+
+.lt-link span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-gb);
+  text-underline-offset: 1px;
+  pointer-events: none;
+}
+
+.lt-link img { width: 12px; height: 12px; }
+.lt-link:hover { opacity: 0.9; }
+.lt-link:active { opacity: 1; }
+.lt-link:hover span { text-decoration: underline; }
+
+.lt-reset-label {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: left;
+}
+
+.lt-reset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-width: 52px;
+  height: 32px;
+  margin-top: 8px;
+  padding: 8px;
+  background: #8034124d;
+  color: var(--color-80);
+}
+
+.lt-reset span { font-size: 12px; line-height: 16px; }
+.lt-reset:hover { background: #80341280; color: var(--color-c0); }
+.lt-reset:active { background: #80341299; color: var(--color-ff); }
+
+/* ---------- color panel ---------- */
+
+.lt-color {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  height: fit-content;
+}
+
+.lt-color-header {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  height: 24px;
+}
+
+.lt-color-title {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+}
+
+.lt-color-tools {
+  display: flex;
+  align-items: flex-start;
+}
+
+.lt-color-tools button {
+  width: 16px;
+  height: 16px;
+  margin-left: 16px;
+}
+
+.lt-color-tools .custom-btn:disabled { opacity: 0.1; }
+.lt-dropper { background: url(../../assets/acer/light/ic_colordropper_click.svg) center / contain no-repeat; }
+.lt-color-info img { width: 16px; height: 16px; pointer-events: none; }
+
+.lt-color-popover {
+  position: absolute;
+  left: -15px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  margin-top: 44px;
+  border: 2px solid var(--color-gd);
+  background: #180800;
+}
+
+.lt-color-popover-body {
+  width: 252px;
+  height: 140px;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: left;
+}
+
+.lt-color-popover-gap { width: 4px; height: 12px; }
+
+.lt-wheel-row {
+  display: flex;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.lt-disc {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lt-wheel {
+  display: block;
+  width: 128px;
+  height: 128px;
+  border: 1px solid var(--color-4c);
+  border-radius: 50%;
+  touch-action: none;
+}
+
+.lt-auto {
+  position: absolute;
+  display: none;
+}
+
+.lt-auto span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-ff);
+}
+
+.lt-color.locked .lt-auto { display: block; }
+.lt-color.disabled .lt-auto span { opacity: 0.4; }
+
+.lt-range-box {
+  height: 24px;
+  margin-top: 8px;
+  padding-top: 11px;
+}
+
+.lt-range {
+  display: block;
+  width: 128px;
+  height: 6px;
+  margin: 0;
+  border-radius: 4px;
+  outline: none;
+  appearance: none;
+}
+
+.lt-range:disabled { opacity: 0.4; }
+
+.lt-range::-webkit-slider-thumb {
+  width: 8px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #000;
+  appearance: none;
+}
+
+.lt-color.locked .lt-wheel,
+.lt-color.disabled .lt-wheel,
+.lt-color.locked .lt-range-box,
+.lt-color.disabled .lt-range-box,
+.lt-color.locked .lt-current,
+.lt-color.disabled .lt-current,
+.lt-color.locked .lt-rgb label,
+.lt-color.disabled .lt-rgb label,
+.lt-color.disabled .lt-color-title,
+.lt-color.disabled .lt-extras { opacity: 0.4; }
+
+.lt-swatches {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  margin-top: 4px;
+  margin-left: 16px;
+}
+
+.lt-basic,
+.lt-favorites {
+  display: grid;
+  grid-template-columns: repeat(5, 16px);
+  gap: 4px;
+}
+
+.lt-favorites {
+  width: 96px;
+  height: 36px;
+  margin-top: 12px;
+}
+
+.lt-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 8px;
+}
+
+.lt-swatch:not(:disabled):not(.lt-none):hover { border: 1px solid #fff; }
+.lt-swatch:disabled { opacity: 0.4; }
+
+.lt-none {
+  position: absolute;
+  margin-left: -20px;
+  box-sizing: content-box;
+  background: url(../../assets/acer/light/ic_nonecolor_normal.svg) center / contain no-repeat;
+}
+
+.lt-none:hover { background-image: url(../../assets/acer/light/ic_nonecolor_hover.svg); }
+.lt-none:active { background-image: url(../../assets/acer/light/ic_nonecolor_click.svg); }
+.lt-none:disabled { opacity: 1; }
+
+.lt-add {
+  width: 16px;
+  height: 16px;
+  background: url(../../assets/acer/light/ic_addcolor_normal.svg) center / contain no-repeat;
+}
+
+.lt-add:not([disabled]):hover { background-image: url(../../assets/acer/light/ic_addcolor_hover.svg); }
+.lt-add:not([disabled]):active { background-image: url(../../assets/acer/light/ic_addcolor_click.svg); }
+.lt-add:disabled { opacity: 0.4; }
+
+.lt-rgb-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  font-size: 12px;
+  line-height: 14.4px;
+  color: var(--color-c0);
+}
+
+.lt-current {
+  width: 16px;
+  border: 1px solid var(--color-4c);
+  border-radius: 8px;
+}
+
+.lt-rgb-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lt-rgb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.lt-rgb-box {
+  width: 48px;
+  border: 1px solid #ff662433;
+  background: #0003;
+}
+
+.lt-rgb-box:hover { border-color: #ff662466; background: #0006; }
+.lt-rgb-box:active,
+.lt-rgb-box:focus-within { border-color: #ff662496; background: #0009; }
+
+.lt-rgb input {
+  display: block;
+  width: 100%;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  user-select: text;
+}
+
+.lt-rgb input:disabled { opacity: 0.4; }
+
+.lt-extras { margin-top: 20px; }
+
+.lt-label {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: left;
+}
+
+.lt-speed { height: 40px; }
+
+.lt-speed .ns-slider {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.lt-direction { padding-top: 20px; }
+
+.lt-direction-buttons {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.lt-direction-btn {
+  width: 28px;
+  height: 28px;
+  background: center / contain no-repeat;
+}
+
+.lt-direction-btn.left { background-image: url(../../assets/acer/light/ic_direcleft_normal.svg); }
+.lt-direction-btn.left:not([disabled]):hover { background-image: url(../../assets/acer/light/ic_direcleft_normal_hover.svg); }
+.lt-direction-btn.left.selected { background-image: url(../../assets/acer/light/ic_direcleft_normal_selected.svg); }
+.lt-direction-btn.right { background-image: url(../../assets/acer/light/ic_direcright_normal.svg); }
+.lt-direction-btn.right:not([disabled]):hover { background-image: url(../../assets/acer/light/ic_direcright_normal_hover.svg); }
+.lt-direction-btn.right.selected { background-image: url(../../assets/acer/light/ic_direcright_normal_selected.svg); }
+
+.lt-delete {
+  position: fixed;
+  padding: 4px 8px;
+  background: var(--color-mgd);
+  font-size: 12px;
+  line-height: 14.4px;
+  color: var(--color-c0);
+}
+
+.lt-delete:hover,
+.lt-delete:active { color: var(--color-ff); }
+
+/* ---------- Area Lighting Control ---------- */
+
+.lt-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.lt-area-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 16px 0;
+  padding: 0 24px;
+}
+
+.lt-area-card {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  padding: 28px;
+}
+
+.lt-area-top {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  border-bottom: 2px solid #8034124d;
+}
+
+.lt-area-body {
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+}
+
+.lt-area-left {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: center;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.lt-area-left-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.lt-zone-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 240px;
+}
+
+.lt-zone-wide,
+.lt-zone-info { display: none; }
+
+.lt-zone-info {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-left: 16px;
+}
+
+.lt-zone-info img { width: 16px; height: 16px; }
+
+.lt-zone-narrow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 240px;
+  margin-left: 8px;
+  text-align: left;
+}
+
+.lt-zone-narrow.dim { opacity: 0.4; }
+
+.lt-zone-narrow-title {
+  font-size: 13px;
+  line-height: 15.6px;
+  color: var(--color-ff);
+}
+
+.lt-zone-narrow-row {
+  display: flex;
+  align-items: center;
+}
+
+.lt-zone-narrow-row p,
+.lt-zone-item p {
+  margin-left: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+}
+
+.ns-menu-item button.lt-zone-item { height: 28px; }
+.ns-menu-item:hover .lt-zone-item .ns-checkbox { border-color: #ff6624d4; }
+.lt-zone-panel .ns-checkbox:not(.checked) img,
+.lt-zone-narrow .ns-checkbox:not(.checked) img { visibility: hidden; }
+
+.lt-kb-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.lt-kb-wrap {
+  display: none;
+  justify-content: center;
+  width: 100%;
+}
+
+.lt-kb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.lt-kb-inner {
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+}
+
+.lt-kb-art {
+  position: relative;
+  padding: 36px 0 24px;
+  text-align: center;
+}
+
+.lt-kb-art svg { display: block; width: 740px; height: 230px; }
+.lt-kb-art.dim { opacity: 0.4; }
+
+.lt-zone-row {
+  display: flex;
+  justify-content: space-around;
+  padding-bottom: 64px;
+}
+
+.lt-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.lt-zone-bar {
+  width: 2px;
+  height: 16px;
+  background: var(--color-32);
+}
+
+.lt-zone-bar.on { background: var(--color-ff); }
+
+.lt-zone-btn {
+  width: 40px;
+  height: 36px;
+  border-radius: 4px;
+  background: var(--color-32) center / contain no-repeat;
+  font-size: 16px;
+  color: var(--color-ff);
+}
+
+.lt-zone-btn:not([disabled]):hover { background-image: url(../../assets/acer/light/light_zoneareabtn_hover40x36.svg); }
+.lt-zone-btn.selected,
+.lt-zone-btn.selected:not([disabled]):hover { background-image: url(../../assets/acer/light/light_zoneareabtn_select40x36.svg); }
+.lt-zone-btn:disabled { opacity: 0.4; }
+
+.lt-area-color {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 20px 0 0 24px;
+}
+
+/* ---------- dialogs ---------- */
+
+.lt-led-art {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+}
+
+.lt-led-art img { width: 420px; height: 160px; }
+
+.lt-led-lines {
+  display: flex;
+  flex-direction: column;
+  padding-top: 12px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: left;
+}
+
+.lt-led-line {
+  display: flex;
+  margin-top: 12px;
+}
+
+.lt-led-line + .lt-led-line { margin-top: 28px; }
+.lt-led-line img { flex: none; width: 20px; height: 16px; }
+.lt-led-line span { margin-left: 8px; }
+
+/* ---------- breakpoints ---------- */
+
+@media (min-width: 785px) {
+  .lt-brightness-wrap,
+  .lt-effects-head { justify-content: flex-start; }
+  .lt-global-body { flex-direction: row; }
+
+  .lt-effects {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .lt-effect-dropdown-box { display: none; }
+  .lt-effect-grid { display: grid; }
+
+  .lt-color-column {
+    flex: none;
+    justify-content: flex-end;
+    width: 268px;
+    margin-top: 0;
+    border-left: 2px solid #8034124d;
+  }
+
+  .lt-area-body { flex-direction: row; }
+
+  .lt-area-left {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .lt-area-left-inner { justify-content: flex-start; }
+
+  .lt-zone-menu {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .lt-zone-wide,
+  .lt-zone-info { display: block; }
+  .lt-zone-narrow { display: none; }
+  .lt-kb-wrap { display: flex; }
+
+  .lt-area-color {
+    display: block;
+    flex: none;
+    width: 268px;
+    border-left: 2px solid #8034124d;
+  }
+}
+
+@media (min-width: 976px) and (max-width: 1167.98px) {
+  .lt-effect-grid { grid-template-columns: repeat(3, 188px); }
+}
+
+@media (min-width: 1168px) {
+  .lt-inner { width: 1136px; }
+
+  .lt-row {
+    flex-direction: row;
+    column-gap: 16px;
+    row-gap: 0;
+  }
+
+  .lt-main { flex: none; width: 848px; }
+  .lt-side { flex: none; width: 272px; }
+
+  .lt-area-inner {
+    width: 1136px;
+    padding: 0;
+  }
+
+  .lt-area-left { overflow-x: hidden; }
+}

@@ -12,14 +12,25 @@
   };
   const FAN_NAMES = { auto: "Auto", max: "Max", custom: "Custom" };
 
+  const clone = (value) => JSON.parse(JSON.stringify(value));
+
+  // Pulsar Lighting: "global" shows one effect on the whole keyboard, "area" gives each of the four zones
+  // its own static color. Levels are NitroSense's 1-5 (brightness 1 = backlight off).
+  const LIGHTING_GLOBAL = { effect: "WAVE", speed: 3, brightness: 5, direction: 1, color: "#ffa000" };
+  const LIGHTING_KEYBOARD = {
+    effect: "STATIC", speed: 5, brightness: 5, direction: 1, color: "#ffa000",
+    zones: ["#ffa000", "#ffa000", "#ffa000", "#ffa000"],
+  };
+  const defaultLighting = (effect) => ({ mode: "global", global: { ...LIGHTING_GLOBAL, effect }, keyboard: clone(LIGHTING_KEYBOARD) });
+
   // NitroSense's built-in presets (getDefaultProfile / getGamingProfile / getQUIETProfile).
   // mode applies on AC, dcMode on battery (linuwu-sense only accepts Eco and Balanced on battery).
   // fan.cpu/gpu are custom percentages; cpuAuto/gpuAuto hand a fan back to the firmware in Custom mode.
   const DEFAULT_FAN = { mode: "auto", cpu: 30, gpu: 30, cpuAuto: true, gpuAuto: true };
   const PRESETS = [
-    { name: "Daily Use", mode: "balanced", dcMode: "balanced", fan: { ...DEFAULT_FAN }, effect: "Wave" },
-    { name: "Gaming", mode: "balanced-performance", dcMode: "balanced", fan: { ...DEFAULT_FAN }, effect: "Breathing" },
-    { name: "Quiet Occasion", mode: "quiet", dcMode: "balanced", fan: { ...DEFAULT_FAN }, effect: "Static" },
+    { name: "Daily Use", mode: "balanced", dcMode: "balanced", fan: { ...DEFAULT_FAN }, lighting: defaultLighting("WAVE") },
+    { name: "Gaming", mode: "balanced-performance", dcMode: "balanced", fan: { ...DEFAULT_FAN }, lighting: defaultLighting("BREATHING") },
+    { name: "Quiet Occasion", mode: "quiet", dcMode: "balanced", fan: { ...DEFAULT_FAN }, lighting: defaultLighting("STATIC") },
   ];
 
   let state = null;
@@ -27,7 +38,6 @@
   let lastPower = null;
   const listeners = new Set();
 
-  const clone = (value) => JSON.parse(JSON.stringify(value));
   const emit = () => listeners.forEach((listener) => listener(state));
   const save = () => window.nitro.settings.set(KEY, state);
   const onBattery = () => lastPower?.ac === false;
@@ -39,6 +49,8 @@
       for (const profile of state.profiles) {
         profile.dcMode ??= "balanced";
         profile.fan = { ...DEFAULT_FAN, ...profile.fan };
+        profile.lighting ??= defaultLighting(profile.effect?.toUpperCase() ?? "WAVE");
+        delete profile.effect;
       }
       emit();
       return state;
@@ -69,6 +81,8 @@
       console.error("applying scenario failed", error);
       return;
     }
+    // The main process holds this until the mode-change flash has played, as Windows does.
+    window.nitro.lighting.apply(profile.lighting).catch((error) => console.error("applying lighting failed", error));
     if (notify) {
       window.nitro.notify(
         `${profile.name} Enabled`,
@@ -97,6 +111,28 @@
     save();
     emit();
     await window.nitro.controls.setProfile(mode);
+  }
+
+  // Pulsar Lighting page: apply and record the lighting in the active profile.
+  async function setLighting(lighting) {
+    await load();
+    state.profiles[state.active].lighting = clone(lighting);
+    save();
+    emit();
+    await window.nitro.lighting.apply(lighting);
+  }
+
+  // NitroSense "Reset": defaults for both pages, keeping the global effect and the Global/Area choice.
+  async function resetLighting() {
+    await load();
+    const { mode, global } = state.profiles[state.active].lighting;
+    await setLighting({ mode, global: { ...LIGHTING_GLOBAL, effect: global.effect }, keyboard: clone(LIGHTING_KEYBOARD) });
+  }
+
+  // App start: show the active profile's lighting again, as NitroSense does when it opens.
+  async function restoreLighting() {
+    await load();
+    await window.nitro.lighting.apply(state.profiles[state.active].lighting);
   }
 
   // Mode and fan changes made elsewhere (keys, other pages) are written into the active profile.
@@ -182,6 +218,9 @@
     apply,
     setMode,
     setFan,
+    setLighting,
+    resetLighting,
+    restoreLighting,
     sync,
     onBattery,
     isFull,

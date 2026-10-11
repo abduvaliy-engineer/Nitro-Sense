@@ -108,12 +108,32 @@
 
 .scn-menu::-webkit-scrollbar { display: none; }
 
-.scn-menu-list {
+.scn-menu-list { width: max-content; }
+
+.scn-menu-tabs {
   display: flex;
   justify-content: flex-start;
   gap: 24px;
-  width: max-content;
   margin-bottom: -1px;
+}
+
+.scn-back-row {
+  display: flex;
+  align-items: center;
+  margin: 12px 0;
+  padding: 0 24px;
+}
+
+.scn-back { width: 20px; height: 16px; }
+.scn-back img { width: 20px; height: 16px; }
+
+.scn-back-title {
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--color-ff);
 }
 
 .scn-subtab {

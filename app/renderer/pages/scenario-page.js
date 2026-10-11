@@ -24,6 +24,8 @@
     return image;
   }
 
+  const lightingSupported = () => window.NitroLighting.info?.supported !== false;
+
   // ---------- dialogs ----------
 
   function footer(buttons) {
@@ -109,6 +111,7 @@
           const row = el("div", "scn-restore-row");
           preview[key] = el("span", "");
           row.append(icon(`${ACER}/widget/widget_scen_${iconName}.svg`), preview[key]);
+          row.hidden = key === "effect" && !lightingSupported();
           rows.append(row);
         }
 
@@ -117,7 +120,7 @@
           triggerText.textContent = preset.name;
           preview.mode.textContent = scenario.MODE_NAMES[preset.mode];
           preview.fan.textContent = scenario.FAN_NAMES[preset.fan.mode];
-          preview.effect.textContent = preset.effect;
+          preview.effect.textContent = window.NitroLighting.name(window.NitroLighting.current(preset.lighting));
         }
 
         trigger.addEventListener("click", () => {
@@ -152,7 +155,7 @@
           el("p", "scn-dialog-text scn-intro-lead", "We integrate important system settings into a Scenario. It includes:"),
           el("p", "scn-dialog-text", "- Mode"),
           el("p", "scn-dialog-text", "- Fan Control"),
-          el("p", "scn-dialog-text", "- Pulsar Lighting"),
+          ...(lightingSupported() ? [el("p", "scn-dialog-text", "- Pulsar Lighting")] : []),
           el("p", "scn-dialog-text scn-intro-tail", "You can create and apply scenarios for different needs."),
         );
         body.append(content, footer([pill("Close", close)]));
@@ -243,18 +246,46 @@
     menu.append(list);
     bar.append(left, menu, right);
 
+    const tabRow = el("div", "scn-menu-tabs");
     const buttons = SUB_TABS.map((tab) => {
       const button = el("button", "scn-subtab", tab.label);
       button.setAttribute("aria-label", tab.id);
       button.addEventListener("click", () => selectSub(tab.id));
-      list.append(button);
+      tabRow.append(button);
       return { tab, button };
     });
+
+    // Area Lighting Control replaces the sub-tabs with a back arrow and its title.
+    const backRow = el("div", "scn-back-row");
+    const back = el("button", "scn-back custom-btn");
+    back.append(icon(`${ACER}/scenario/ic_back.svg`));
+    const backTitle = el("span", "scn-back-title");
+    backRow.append(back, backTitle);
+    backRow.hidden = true;
+    list.append(tabRow, backRow);
 
     return {
       root: bar,
       render() {
-        for (const { tab, button } of buttons) button.classList.toggle("selected", tab.id === activeSub);
+        for (const { tab, button } of buttons) {
+          button.classList.toggle("selected", tab.id === activeSub);
+          button.hidden = tab.id === "Pulsar_Lighting" && !lightingSupported();
+        }
+      },
+      showBack(title, ariaLabel, onBack) {
+        backTitle.textContent = title;
+        back.setAttribute("aria-label", ariaLabel);
+        back.onclick = onBack;
+        backRow.hidden = false;
+        tabRow.hidden = true;
+        left.hidden = true;
+        right.hidden = true;
+      },
+      showTabs() {
+        backRow.hidden = true;
+        tabRow.hidden = false;
+        left.hidden = false;
+        right.hidden = false;
       },
     };
   }
@@ -262,6 +293,7 @@
   function selectSub(id) {
     if (!parts) return;
     parts.page?.unmount?.();
+    parts.tabs.showTabs();
     activeSub = id;
     parts.tabs.render();
     const page = window.NitroScenarioPages?.[id] ?? placeholder(id === "Scenario_Manager" ? "Scenario Manager" : id.replace("_", " "));
@@ -282,6 +314,7 @@
       root.append(bars, pageContainer);
       container.replaceChildren(root);
       parts = { top, tabs, container: pageContainer, page: null };
+      window.NitroLighting.load().then(() => parts?.tabs.render());
       // NitroSense always lands on Mode when the Scenario tab is opened from the header.
       selectSub(pendingSub ?? "Mode");
       pendingSub = null;
@@ -295,6 +328,12 @@
       parts?.top.destroy();
       parts = null;
     },
+  };
+
+  // Sub-pages that take over the sub-tab bar (Area Lighting Control).
+  window.NitroScenarioFrame = {
+    showBack: (title, ariaLabel, onBack) => parts?.tabs.showBack(title, ariaLabel, onBack),
+    showTabs: () => parts?.tabs.showTabs(),
   };
 
   // Widget rows and Details open a specific sub-tab.

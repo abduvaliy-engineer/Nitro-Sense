@@ -41,11 +41,17 @@
         window.NitroScenarioNav?.open(subTab);
       });
       rows.append(button);
-      return value;
+      return { value, button };
     }
-    const modeValue = row("mode", "Mode", "Mode");
-    const fanValue = row("fan", "Fan", "Fan_Control");
-    const effectValue = row("effect", "Effect", "Pulsar_Lighting");
+    const modeValue = row("mode", "Mode", "Mode").value;
+    const fanValue = row("fan", "Fan", "Fan_Control").value;
+    const effectRow = row("effect", "Effect", "Pulsar_Lighting");
+    // NitroSense hides the Effect row on laptops without supported lighting.
+    effectRow.button.hidden = true;
+    window.NitroLighting.load().then((info) => {
+      effectRow.button.hidden = !info.supported;
+      render();
+    });
     content.append(trigger, rows);
     body.append(content);
 
@@ -59,7 +65,7 @@
       triggerText.textContent = profile.name;
       modeValue.textContent = scenario.MODE_NAMES[live?.profile ?? profile.mode] ?? "--";
       fanValue.textContent = scenario.FAN_NAMES[profile.fan.mode] ?? "--";
-      effectValue.textContent = profile.effect ?? "--";
+      effectRow.value.textContent = window.NitroLighting.name(window.NitroLighting.current(profile.lighting)) ?? "--";
     }
 
     scenario.subscribe((next) => {

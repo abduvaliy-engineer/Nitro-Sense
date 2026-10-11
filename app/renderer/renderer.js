@@ -79,3 +79,5 @@ window.NitroApp = { selectTab };
 updateHairline();
 selectTab(activeTab);
 poll();
+// Like NitroSense, show the active profile's lighting when the app opens.
+window.NitroScenario.restoreLighting().catch((error) => console.error("restoring lighting failed", error));
