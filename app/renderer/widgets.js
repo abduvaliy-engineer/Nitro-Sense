@@ -58,7 +58,7 @@
       if (!profile) return;
       triggerText.textContent = profile.name;
       modeValue.textContent = scenario.MODE_NAMES[live?.profile ?? profile.mode] ?? "--";
-      fanValue.textContent = scenario.FAN_NAMES[live?.fanMode?.mode ?? profile.fan.mode] ?? "--";
+      fanValue.textContent = scenario.FAN_NAMES[profile.fan.mode] ?? "--";
       effectValue.textContent = profile.effect ?? "--";
     }
 

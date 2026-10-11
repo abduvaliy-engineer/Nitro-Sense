@@ -14,10 +14,12 @@
 
   // NitroSense's built-in presets (getDefaultProfile / getGamingProfile / getQUIETProfile).
   // mode applies on AC, dcMode on battery (linuwu-sense only accepts Eco and Balanced on battery).
+  // fan.cpu/gpu are custom percentages; cpuAuto/gpuAuto hand a fan back to the firmware in Custom mode.
+  const DEFAULT_FAN = { mode: "auto", cpu: 30, gpu: 30, cpuAuto: true, gpuAuto: true };
   const PRESETS = [
-    { name: "Daily Use", mode: "balanced", dcMode: "balanced", fan: { mode: "auto", cpu: 30, gpu: 30 }, effect: "Wave" },
-    { name: "Gaming", mode: "balanced-performance", dcMode: "balanced", fan: { mode: "auto", cpu: 30, gpu: 30 }, effect: "Breathing" },
-    { name: "Quiet Occasion", mode: "quiet", dcMode: "balanced", fan: { mode: "auto", cpu: 30, gpu: 30 }, effect: "Static" },
+    { name: "Daily Use", mode: "balanced", dcMode: "balanced", fan: { ...DEFAULT_FAN }, effect: "Wave" },
+    { name: "Gaming", mode: "balanced-performance", dcMode: "balanced", fan: { ...DEFAULT_FAN }, effect: "Breathing" },
+    { name: "Quiet Occasion", mode: "quiet", dcMode: "balanced", fan: { ...DEFAULT_FAN }, effect: "Static" },
   ];
 
   let state = null;
@@ -34,16 +36,20 @@
     if (state) return state;
     loading ??= window.nitro.settings.get(KEY).catch(() => null).then((stored) => {
       state = stored?.profiles?.length ? stored : { active: 0, profiles: clone(PRESETS) };
-      for (const profile of state.profiles) profile.dcMode ??= "balanced";
+      for (const profile of state.profiles) {
+        profile.dcMode ??= "balanced";
+        profile.fan = { ...DEFAULT_FAN, ...profile.fan };
+      }
       emit();
       return state;
     });
     return loading;
   }
 
+  // linuwu-sense fan_speed "cpu,gpu": 0 = that fan on auto, 0,0 = auto, 100,100 = max.
   function fanSpeeds(fan) {
     if (fan.mode === "max") return [100, 100];
-    if (fan.mode === "custom") return [fan.cpu, fan.gpu];
+    if (fan.mode === "custom") return [fan.cpuAuto ? 0 : fan.cpu, fan.gpuAuto ? 0 : fan.gpu];
     return [0, 0];
   }
 
@@ -71,6 +77,18 @@
     }
   }
 
+  // Fan page: apply a fan setting and record it in the active profile. Like NitroSense, changes made on
+  // battery apply without being saved.
+  async function setFan(fan) {
+    await load();
+    if (!onBattery()) {
+      state.profiles[state.active].fan = { ...fan };
+      save();
+      emit();
+    }
+    await window.nitro.controls.setFanSpeed(...fanSpeeds(fan));
+  }
+
   // Mode page: switch the live mode and record it in the active profile (AC or battery slot).
   async function setMode(mode) {
     await load();
@@ -93,11 +111,17 @@
       profile[slot] = snapshot.profile;
       changed = true;
     }
-    const fanMode = snapshot.fanMode?.mode;
-    if (fanMode && profile.fan.mode !== fanMode) {
-      profile.fan.mode = fanMode;
-      if (fanMode === "custom") Object.assign(profile.fan, { cpu: snapshot.fanMode.cpu, gpu: snapshot.fanMode.gpu });
-      changed = true;
+    // Follow the driver only when its fans differ from what the profile asks for (e.g. Quiet/Eco forcing
+    // auto); "Custom with both fans on Auto" writes 0,0 and must stay Custom. Battery changes aren't saved.
+    const live = snapshot.fanMode;
+    if (live && !onBattery()) {
+      const [cpu, gpu] = fanSpeeds(profile.fan);
+      if (live.cpu !== cpu || live.gpu !== gpu) {
+        profile.fan = live.mode === "custom"
+          ? { ...profile.fan, mode: "custom", cpu: live.cpu || profile.fan.cpu, gpu: live.gpu || profile.fan.gpu, cpuAuto: !live.cpu, gpuAuto: !live.gpu }
+          : { ...profile.fan, mode: live.mode };
+        changed = true;
+      }
     }
     if (changed) {
       save();
@@ -153,9 +177,11 @@
     FAN_NAMES,
     PRESETS,
     LIMIT,
+    fanSpeeds,
     load,
     apply,
     setMode,
+    setFan,
     sync,
     onBattery,
     isFull,
