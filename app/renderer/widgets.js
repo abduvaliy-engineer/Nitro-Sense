@@ -264,7 +264,6 @@
     const content = el("div", "wi-update");
     body.append(content);
     let checking = false;
-    let installFailed = false;
 
     function render() {
       content.replaceChildren();
@@ -307,48 +306,99 @@
         block.append(empty);
       }
 
-      if (installFailed) block.append(el("span", "wi-update-error", "The update failed. Try again later."));
       const button = el("button", "pill-btn w260 wi-update-button", updates.length ? "Update All" : "Check Now");
       button.addEventListener("click", () => (updates.length ? confirmUpdate(updates[0]) : check()));
       content.append(block, button);
     }
 
+    // NitroSense's "Attention" confirmation (openUpdateConfirmDlg).
     function confirmUpdate(update) {
       window.NitroDialog.open({
         size: "468x200",
-        title: "Live Update",
+        title: "Attention",
         build(dialogBody, close) {
           const text = el("div", "scn-dialog-content");
           text.append(el("span", "scn-dialog-text",
-            `${update.name} will be downloaded and installed. NitroSense restarts when the update is done.`));
+            "Please note that the software will be temporarily unavailable during the update process. Ensure that the adapter is connected before initiating the update."));
           const footer = el("div", "ns-dialog-footer");
           const cancel = el("button", "pill-btn w156", "Cancel");
           cancel.addEventListener("click", close);
-          const confirm = el("button", "pill-btn w156", "Update");
-          confirm.addEventListener("click", () => {
+          const start = el("button", "pill-btn w156", "Start Now");
+          start.addEventListener("click", () => {
             close();
             install(update);
           });
-          footer.append(cancel, confirm);
+          footer.append(cancel, start);
           dialogBody.append(text, footer);
         },
       });
     }
 
-    // The app restarts itself when the update succeeds; a development checkout gets the release page instead.
-    async function install(update) {
-      checking = true;
-      installFailed = false;
-      render();
-      try {
-        const result = await window.nitro.updates.install(update.version);
-        if (result?.checkout) window.nitro.updates.open(update.url);
-      } catch (error) {
-        console.error("update failed", error);
-        installFailed = true;
-      }
-      checking = false;
-      render();
+    // NitroSense's update dialog (app-middle-dialog): progress while downloading and installing, then the
+    // result. The app restarts itself after a successful update.
+    function install(update) {
+      window.NitroDialog.open({
+        size: "468x300",
+        title: "Live Update",
+        build(dialogBody, close) {
+          const dialog = dialogBody.closest(".ns-dialog");
+          dialog.classList.add("lu-updating");
+          const content = el("div", "lu-content");
+          dialogBody.append(content);
+
+          const progress = el("div", "lu-progress");
+          const anim = el("div", "lu-anim");
+          const text = el("div", "lu-text");
+          const status = el("span", "lu-status", ` [1/ 1] ${update.name} downloading`);
+          text.append(el("span", "lu-title", "Updating, please wait"), status);
+          const alert = el("div", "lu-alert");
+          alert.append(el("span", "", "*Do not unplug adapter and run other applications during updating."));
+          // NitroSense keeps Cancel visible; an update that has started can't be undone here.
+          const cancel = el("button", "lu-cancel");
+          cancel.disabled = true;
+          cancel.append(el("span", "", "Cancel"));
+          progress.append(anim, text, alert, cancel);
+          content.append(progress);
+          window.lottie?.loadAnimation({
+            container: anim, renderer: "svg", loop: true, autoplay: true, path: `${ACER}/animation/loading72-NS.json`,
+          });
+
+          function result(ok, title, message) {
+            dialog.classList.remove("lu-updating");
+            const box = el("div", "lu-result");
+            const art = el("div", "lu-result-art");
+            const icon = el("img");
+            icon.src = `${ACER}/dialog/${ok ? "dialogue_finish" : "dialogue_warning"}.svg`;
+            icon.alt = "";
+            art.append(icon);
+            const words = el("div", "lu-result-text");
+            words.append(el("span", "lu-result-title", title), el("span", "lu-result-message", message));
+            box.append(art, words);
+            content.replaceChildren(box);
+            if (!ok) {
+              const footer = el("div", "ns-dialog-footer");
+              const done = el("button", "pill-btn w156", "Close");
+              done.addEventListener("click", close);
+              footer.append(done);
+              dialogBody.append(footer);
+            }
+          }
+
+          window.nitro.updates.onProgress?.((stage) => {
+            if (stage === "installing") status.textContent = ` [1/ 1] ${update.name} installing`;
+            if (stage === "finished") result(true, "All updates finished", "NitroSense restarts now to apply the update.");
+          });
+          window.nitro.updates.install(update.version).then((outcome) => {
+            if (outcome?.checkout) {
+              close();
+              window.nitro.updates.open(update.url);
+            }
+          }, (error) => {
+            console.error("update failed", error);
+            result(false, "All updates canceled or failed", "You can close this dialog to find the failed items and reinstall them.");
+          });
+        },
+      });
     }
 
     async function check() {

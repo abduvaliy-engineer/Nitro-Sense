@@ -52,7 +52,7 @@ function registerIpc() {
   ipcMain.handle("settings:get", (_e, key) => settings.get(key));
   ipcMain.handle("settings:set", (_e, key, value) => settings.set(key, value));
   ipcMain.handle("updates:check", () => updates.check(app.getVersion()));
-  ipcMain.handle("updates:install", (_e, version) => updates.install(version));
+  ipcMain.handle("updates:install", (e, version) => updates.install(version, (stage) => e.sender.send("updates:progress", stage)));
   ipcMain.handle("updates:open", (_e, url) => shell.openExternal(updates.isReleaseUrl(url) ? url : updates.RELEASES));
   ipcMain.handle("shortcuts:list", () => shortcuts.list());
   ipcMain.handle("shortcuts:launch", (_e, id) => shortcuts.launch(id));
