@@ -263,6 +263,11 @@
     const cardArea = el("div", "home-card-area");
     cardArea.append(cardWrap);
     root.append(top, cardArea);
+    // Artwork from the Microsoft Store build has NitroSense 5.0's taller frame (gauge and card share one
+    // 368×600 frame); 5.0's layout is used then, so the card sits inside it.
+    const frame = new Image();
+    frame.onload = () => root.classList.toggle("legacy", frame.naturalHeight > 400);
+    frame.src = `${ACER}/home/home_leftbg2.svg`;
 
     const animation = window.lottie?.loadAnimation({
       container: ring,

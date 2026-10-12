@@ -88,17 +88,27 @@ def main():
             entries.setdefault(target, []).append((inner, digest))
     missing = []
     for target, choices in entries.items():
-        for inner, digest in choices:
+        path = os.path.join(dest, target)
+        try:
+            with open(path, "rb") as existing:
+                have = hashlib.sha256(existing.read()).hexdigest()
+        except OSError:
+            have = None
+        # Never replace a file with a worse choice (an older NitroSense's version of it).
+        have_rank = next((rank for rank, (_, digest) in enumerate(choices) if digest == have), None)
+        for rank, (inner, digest) in enumerate(choices):
+            if have_rank is not None and have_rank <= rank:
+                break
             content = get(inner)
             if content is not None and hashlib.sha256(content).hexdigest() == digest:
-                path = os.path.join(dest, target)
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, "wb") as out:
                     out.write(content)
                 break
         else:
-            missing.append(target)
-    print(f"{len(entries) - len(missing)} of {len(entries)} NitroSense assets copied")
+            if have_rank is None:
+                missing.append(target)
+    print(f"{len(entries) - len(missing)} of {len(entries)} NitroSense assets in place")
     if missing:
         print("not found in this NitroSense version:", *missing[:10], sep="\n  ")
         sys.exit(2)
