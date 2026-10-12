@@ -7,6 +7,37 @@ kernel driver.
 > **Status: early development (v0.9.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
 > Arch Linux (Omarchy / Hyprland).
 
+![NitroSense for Linux — Home](docs/screenshots/home.png)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/mode.png" alt="Scenario → Mode"></td>
+    <td width="50%"><img src="docs/screenshots/fan.png" alt="Scenario → Fan Control"></td>
+  </tr>
+  <tr>
+    <td align="center">Scenario → Mode</td>
+    <td align="center">Scenario → Fan Control</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/lighting.png" alt="Scenario → Pulsar Lighting"></td>
+    <td><img src="docs/screenshots/lighting-area.png" alt="Area Lighting Control"></td>
+  </tr>
+  <tr>
+    <td align="center">Scenario → Pulsar Lighting</td>
+    <td align="center">Area Lighting Control (keyboard zones)</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/scenario-manager.png" alt="Scenario Manager with App Sync"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td align="center">Scenario Manager with App Sync</td>
+    <td></td>
+  </tr>
+</table>
+
+Screenshots: the Linux app on a Nitro ANV16S-41 (Hyprland), showing live sensor readings.
+
 ## Features
 
 | Area | What works |
@@ -107,7 +138,8 @@ app/
   vendor/                 three.js r125 and lottie-web (MIT, licenses included)
 data/                     udev rule, desktop entry, artwork manifest
 tools/                    artwork extraction and Microsoft Store download
-tests/                    lighting encoder byte checks (node tests/lighting-encode.js app)
+tests/                    lighting encoder and App Sync matching checks
+docs/screenshots/         README screenshots
 .github/workflows/        checks on every PR, release on merge into main
 install.sh                installer
 nitrosense/               first GTK prototype (superseded)
