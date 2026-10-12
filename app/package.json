@@ -1,6 +1,6 @@
 {
   "name": "nitrosense-linux",
-  "version": "0.9.1",
+  "version": "0.9.5",
   "private": true,
   "main": "main.js"
 }
