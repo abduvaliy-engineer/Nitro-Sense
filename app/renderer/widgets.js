@@ -264,6 +264,7 @@
     const content = el("div", "wi-update");
     body.append(content);
     let checking = false;
+    let installFailed = false;
 
     function render() {
       content.replaceChildren();
@@ -306,9 +307,48 @@
         block.append(empty);
       }
 
+      if (installFailed) block.append(el("span", "wi-update-error", "The update failed. Try again later."));
       const button = el("button", "pill-btn w260 wi-update-button", updates.length ? "Update All" : "Check Now");
-      button.addEventListener("click", () => (updates.length ? window.nitro.updates.open(updates[0].url) : check()));
+      button.addEventListener("click", () => (updates.length ? confirmUpdate(updates[0]) : check()));
       content.append(block, button);
+    }
+
+    function confirmUpdate(update) {
+      window.NitroDialog.open({
+        size: "468x200",
+        title: "Live Update",
+        build(dialogBody, close) {
+          const text = el("div", "scn-dialog-content");
+          text.append(el("span", "scn-dialog-text",
+            `${update.name} will be downloaded and installed. NitroSense restarts when the update is done.`));
+          const footer = el("div", "ns-dialog-footer");
+          const cancel = el("button", "pill-btn w156", "Cancel");
+          cancel.addEventListener("click", close);
+          const confirm = el("button", "pill-btn w156", "Update");
+          confirm.addEventListener("click", () => {
+            close();
+            install(update);
+          });
+          footer.append(cancel, confirm);
+          dialogBody.append(text, footer);
+        },
+      });
+    }
+
+    // The app restarts itself when the update succeeds; a development checkout gets the release page instead.
+    async function install(update) {
+      checking = true;
+      installFailed = false;
+      render();
+      try {
+        const result = await window.nitro.updates.install(update.version);
+        if (result?.checkout) window.nitro.updates.open(update.url);
+      } catch (error) {
+        console.error("update failed", error);
+        installFailed = true;
+      }
+      checking = false;
+      render();
     }
 
     async function check() {

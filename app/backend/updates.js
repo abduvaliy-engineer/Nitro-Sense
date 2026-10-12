@@ -1,3 +1,9 @@
+const fs = require("fs/promises");
+const os = require("os");
+const path = require("path");
+const { execFile } = require("child_process");
+const { app } = require("electron");
+
 const REPO = "abduvaliy-engineer/Nitro-Sense";
 const RELEASES = `https://github.com/${REPO}/releases`;
 
@@ -24,8 +30,54 @@ async function check(currentVersion) {
   return { updates: [{ name: release.name || `NitroSense ${version}`, version, url: release.html_url }] };
 }
 
+function run(command, args, timeout) {
+  return new Promise((resolve, reject) => {
+    execFile(command, args, { timeout, maxBuffer: 16 << 20 }, (error, stdout, stderr) => {
+      if (error) reject(new Error(`${path.basename(command)} failed: ${(stderr || stdout || error.message).trim().split("\n").pop()}`));
+      else resolve();
+    });
+  });
+}
+
+// Running from a git checkout (./install.sh --dev or electron .): updates come through git, not here.
+async function isCheckout() {
+  try {
+    await fs.access(path.join(app.getAppPath(), "..", ".git"));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// One-click update: download the release's source, run its installer in update mode, then restart.
+async function install(version) {
+  if (!/^\d+\.\d+\.\d+$/.test(String(version))) throw new Error("Invalid version");
+  if (await isCheckout()) return { checkout: true };
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nitrosense-update-"));
+  try {
+    const response = await fetch(`https://github.com/${REPO}/archive/refs/tags/v${version}.tar.gz`, {
+      headers: { "User-Agent": "NitroSense-Linux" },
+      signal: AbortSignal.timeout(120000),
+    });
+    if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
+    const archive = path.join(dir, "source.tar.gz");
+    await fs.writeFile(archive, Buffer.from(await response.arrayBuffer()));
+    await run("tar", ["-xzf", archive, "-C", dir], 60000);
+    const [source] = (await fs.readdir(dir, { withFileTypes: true })).filter((entry) => entry.isDirectory());
+    // Generous timeout: a new release may need NitroSense's artwork downloaded again.
+    await run("bash", [path.join(dir, source.name, "install.sh"), "--update"], 30 * 60000);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+  setTimeout(() => {
+    app.relaunch();
+    app.exit(0);
+  }, 500);
+  return { installed: true };
+}
+
 function isReleaseUrl(url) {
   return typeof url === "string" && url.startsWith(`${RELEASES}/`);
 }
 
-module.exports = { check, isReleaseUrl, RELEASES };
+module.exports = { check, install, isReleaseUrl, RELEASES };
