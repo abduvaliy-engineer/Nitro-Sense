@@ -26,8 +26,10 @@ ASSETS_SOURCE=""
 DEV=0
 DRIVER=1
 UNINSTALL=0
+ROOT_PHASE=""
 while [ $# -gt 0 ]; do
   case "$1" in
+    --root-phase) ROOT_PHASE=${2:?}; shift ;;  # internal: the root half, for user $2
     --assets) ASSETS_SOURCE=${2:?--assets needs a path}; shift ;;
     --dev) DEV=1 ;;
     --no-driver) DRIVER=0 ;;
@@ -41,7 +43,18 @@ done
 say() { printf '\033[1;38;5;208m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[1;31mxx\033[0m %s\n' "$*" >&2; exit 1; }
-as_root() { sudo "$@"; }
+# Inside the root phase as_root runs directly; the user half asks for root once to run that phase.
+as_root() { if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi; }
+run_root_phase() {
+  local args=(--root-phase "$USER")
+  [ "$DRIVER" -eq 0 ] && args+=(--no-driver)
+  [ "$UNINSTALL" -eq 1 ] && args+=(--uninstall)
+  if [ -t 0 ] && have sudo; then
+    sudo bash "$REPO/install.sh" "${args[@]}"
+  else
+    pkexec /usr/bin/env bash "$REPO/install.sh" "${args[@]}"
+  fi
+}
 ask() {
   local reply
   read -r -p "$1 [y/N] " reply </dev/tty || return 1
@@ -49,7 +62,7 @@ ask() {
 }
 have() { command -v "$1" >/dev/null 2>&1; }
 
-[ "$(id -u)" -ne 0 ] || die "Run this as your normal user; it asks for sudo when it needs root."
+[ -n "$ROOT_PHASE" ] || [ "$(id -u)" -ne 0 ] || die "Run this as your normal user; it asks for sudo when it needs root."
 [ "$(uname -m)" = x86_64 ] || die "Only x86_64 is supported."
 MODEL=$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)
 APP_DIR=$PREFIX/app
@@ -61,50 +74,125 @@ HYPR_CONF_BIND='bind = , XF86Presentation, exec, nitrosense'
 
 # ---------- uninstall ----------
 
+if [ -n "$ROOT_PHASE" ] && [ "$UNINSTALL" -eq 1 ]; then
+  rm -rf /etc/udev/rules.d/70-nitrosense.rules /etc/nitrosense
+  udevadm control --reload
+  exit 0
+fi
+
 if [ "$UNINSTALL" -eq 1 ]; then
   say "Removing NitroSense"
   rm -rf "$PREFIX" "$BIN/nitrosense" "$APPS/nitrosense.desktop"
   for file in "$HYPR_LUA" "$HYPR_CONF"; do
     [ -f "$file" ] && grep -vxF -e "$HYPR_LUA_BIND" -e "$HYPR_CONF_BIND" "$file" >"$file.tmp" && mv "$file.tmp" "$file"
   done
-  as_root rm -rf /etc/udev/rules.d/70-nitrosense.rules /etc/nitrosense
-  as_root udevadm control --reload
+  run_root_phase
   say "Done. linuwu-sense is still installed; remove it with: sudo dkms remove linuwu-sense/$LINUWU_VERSION --all"
   exit 0
 fi
 
-case "$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null)" in
+[ -n "$ROOT_PHASE" ] || case "$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null)" in
   *Acer*) ;;
   *) warn "This is not an Acer laptop; the controls will not work."; ask "Continue anyway?" || exit 1 ;;
 esac
 
-# ---------- packages ----------
+# ---------- root half: packages, driver, permissions (one sudo / pkexec prompt) ----------
 
-driver_installed() { modinfo linuwu_sense >/dev/null 2>&1; }
-NEED_DRIVER=0
-[ "$DRIVER" -eq 1 ] && ! driver_installed && NEED_DRIVER=1
+if [ -n "$ROOT_PHASE" ]; then
+  # ---------- packages ----------
 
-say "Installing packages"
-if have pacman; then
-  pkgs=(python git unzip)
-  pacman -Si electron43 >/dev/null 2>&1 && pkgs+=(electron43)
-  have hyprctl && pkgs+=(hyprpicker)
-  if [ "$NEED_DRIVER" -eq 1 ]; then
-    kernel_pkg=$(pacman -Qqo "/usr/lib/modules/$(uname -r)/vmlinuz" 2>/dev/null || echo linux)
-    pkgs+=(dkms base-devel "$kernel_pkg-headers")
+  driver_installed() { modinfo linuwu_sense >/dev/null 2>&1; }
+  NEED_DRIVER=0
+  [ "$DRIVER" -eq 1 ] && ! driver_installed && NEED_DRIVER=1
+
+  say "Installing packages"
+  if have pacman; then
+    pkgs=(python git unzip)
+    pacman -Si electron43 >/dev/null 2>&1 && pkgs+=(electron43)
+    have hyprctl && pkgs+=(hyprpicker)
+    if [ "$NEED_DRIVER" -eq 1 ]; then
+      kernel_pkg=$(pacman -Qqo "/usr/lib/modules/$(uname -r)/vmlinuz" 2>/dev/null || echo linux)
+      pkgs+=(dkms base-devel "$kernel_pkg-headers")
+    fi
+    as_root pacman -S --needed --noconfirm "${pkgs[@]}"
+  elif have apt-get; then
+    pkgs=(python3 git unzip curl)
+    [ "$NEED_DRIVER" -eq 1 ] && pkgs+=(dkms build-essential "linux-headers-$(uname -r)")
+    as_root apt-get install -y "${pkgs[@]}"
+  elif have dnf; then
+    pkgs=(python3 git unzip curl)
+    [ "$NEED_DRIVER" -eq 1 ] && pkgs+=(dkms gcc make "kernel-devel-$(uname -r)")
+    as_root dnf install -y "${pkgs[@]}"
+  else
+    warn "Unknown package manager: install python3, git, unzip, curl (and dkms + kernel headers for the driver)."
   fi
-  as_root pacman -S --needed --noconfirm "${pkgs[@]}"
-elif have apt-get; then
-  pkgs=(python3 git unzip curl)
-  [ "$NEED_DRIVER" -eq 1 ] && pkgs+=(dkms build-essential "linux-headers-$(uname -r)")
-  as_root apt-get install -y "${pkgs[@]}"
-elif have dnf; then
-  pkgs=(python3 git unzip curl)
-  [ "$NEED_DRIVER" -eq 1 ] && pkgs+=(dkms gcc make "kernel-devel-$(uname -r)")
-  as_root dnf install -y "${pkgs[@]}"
-else
-  warn "Unknown package manager: install python3, git, unzip, curl (and dkms + kernel headers for the driver)."
+
+  # ---------- linuwu-sense driver ----------
+
+  if [ "$NEED_DRIVER" -eq 1 ]; then
+    say "Building the linuwu-sense driver (DKMS, rebuilt on kernel updates)"
+    if have mokutil && mokutil --sb-state 2>/dev/null | grep -q enabled; then
+      warn "Secure Boot is on: the module must be signed with an enrolled key or it will not load."
+    fi
+    tmp=$(mktemp -d)
+    git clone -q "$LINUWU_REPO" "$tmp/linuwu"
+    git -C "$tmp/linuwu" checkout -q "$LINUWU_COMMIT"
+    # Recent kernels reject these fortified strncpy calls; the copies are length-bounded anyway.
+    sed -i 's/\bstrncpy(/memcpy(/g' "$tmp/linuwu/src/linuwu_sense.c"
+    cat > "$tmp/linuwu/dkms.conf" <<EOF
+  PACKAGE_NAME="linuwu-sense"
+  PACKAGE_VERSION="$LINUWU_VERSION"
+  BUILT_MODULE_NAME[0]="linuwu_sense"
+  BUILT_MODULE_LOCATION[0]="src"
+  DEST_MODULE_LOCATION[0]="/kernel/drivers/platform/x86"
+  MAKE[0]="make -C \$kernel_source_dir M=\$dkms_tree/\$PACKAGE_NAME/\$PACKAGE_VERSION/build modules"
+  CLEAN="make -C \$kernel_source_dir M=\$dkms_tree/\$PACKAGE_NAME/\$PACKAGE_VERSION/build clean"
+  AUTOINSTALL="yes"
+EOF
+    as_root rm -rf "/usr/src/linuwu-sense-$LINUWU_VERSION"
+    as_root cp -r "$tmp/linuwu" "/usr/src/linuwu-sense-$LINUWU_VERSION"
+    rm -rf "$tmp"
+    as_root dkms install "linuwu-sense/$LINUWU_VERSION"
+
+    # linuwu-sense replaces acer_wmi and loads at boot; it saves keyboard state when unloaded at shutdown.
+    echo "blacklist acer_wmi" | as_root tee /etc/modprobe.d/blacklist-acer_wmi.conf >/dev/null
+    echo "linuwu_sense" | as_root tee /etc/modules-load.d/linuwu_sense.conf >/dev/null
+    if [ -n "${LINUWU_OPTIONS[$MODEL]:-}" ] && [ ! -e /etc/modprobe.d/linuwu_sense.conf ]; then
+      echo "options linuwu_sense ${LINUWU_OPTIONS[$MODEL]}" | as_root tee /etc/modprobe.d/linuwu_sense.conf >/dev/null
+    fi
+    as_root install -m644 "/usr/src/linuwu-sense-$LINUWU_VERSION/linuwu_sense.service" /etc/systemd/system/linuwu_sense.service
+    as_root systemctl daemon-reload
+    as_root systemctl enable --now linuwu_sense.service
+    as_root modprobe -r acer_wmi 2>/dev/null || true
+    as_root modprobe linuwu_sense
+  elif [ "$DRIVER" -eq 1 ]; then
+    say "linuwu-sense is already installed"
+  fi
+
+  # ---------- permissions ----------
+
+  say "Granting the linuwu_sense group access to the controls"
+  as_root groupadd -f linuwu_sense
+  id -nG "$ROOT_PHASE" | grep -qw linuwu_sense || usermod -aG linuwu_sense "$ROOT_PHASE"
+  as_root install -m644 "$REPO/data/70-nitrosense.rules" /etc/udev/rules.d/70-nitrosense.rules
+  as_root udevadm control --reload
+  as_root udevadm trigger --action=bind /sys/devices/platform/acer-wmi 2>/dev/null || true
+  as_root udevadm trigger --subsystem-match=hidraw --action=add
+  [ -d /sys/module/linuwu_sense ] && as_root udevadm trigger --action=add /sys/module/linuwu_sense
+
+  # The CPU's rated maximum clock (SMBIOS type 4, max speed at offset 0x14) for the Home gauges.
+  max_mhz=$(as_root od -An -tu2 -j20 -N2 /sys/firmware/dmi/entries/4-0/raw 2>/dev/null | tr -d ' ' || true)
+  if [ -n "$max_mhz" ] && [ "$max_mhz" -gt 0 ]; then
+    as_root install -d /etc/nitrosense
+    echo "$max_mhz" | as_root tee /etc/nitrosense/cpu_max_mhz >/dev/null
+  fi
+  exit 0
 fi
+
+NEW_GROUP=0
+id -nG "$USER" | grep -qw linuwu_sense || NEW_GROUP=1
+say "Root access is needed once for packages, the driver and permissions"
+run_root_phase
 
 # Electron: the distribution's electron43, otherwise Electron's own build.
 if have electron43; then
@@ -120,70 +208,6 @@ else
     unzip -q "$tmp/electron.zip" -d "$PREFIX/electron"
     rm -rf "$tmp"
   fi
-fi
-
-# ---------- linuwu-sense driver ----------
-
-if [ "$NEED_DRIVER" -eq 1 ]; then
-  say "Building the linuwu-sense driver (DKMS, rebuilt on kernel updates)"
-  if have mokutil && mokutil --sb-state 2>/dev/null | grep -q enabled; then
-    warn "Secure Boot is on: the module must be signed with an enrolled key or it will not load."
-  fi
-  tmp=$(mktemp -d)
-  git clone -q "$LINUWU_REPO" "$tmp/linuwu"
-  git -C "$tmp/linuwu" checkout -q "$LINUWU_COMMIT"
-  # Recent kernels reject these fortified strncpy calls; the copies are length-bounded anyway.
-  sed -i 's/\bstrncpy(/memcpy(/g' "$tmp/linuwu/src/linuwu_sense.c"
-  cat > "$tmp/linuwu/dkms.conf" <<EOF
-PACKAGE_NAME="linuwu-sense"
-PACKAGE_VERSION="$LINUWU_VERSION"
-BUILT_MODULE_NAME[0]="linuwu_sense"
-BUILT_MODULE_LOCATION[0]="src"
-DEST_MODULE_LOCATION[0]="/kernel/drivers/platform/x86"
-MAKE[0]="make -C \$kernel_source_dir M=\$dkms_tree/\$PACKAGE_NAME/\$PACKAGE_VERSION/build modules"
-CLEAN="make -C \$kernel_source_dir M=\$dkms_tree/\$PACKAGE_NAME/\$PACKAGE_VERSION/build clean"
-AUTOINSTALL="yes"
-EOF
-  as_root rm -rf "/usr/src/linuwu-sense-$LINUWU_VERSION"
-  as_root cp -r "$tmp/linuwu" "/usr/src/linuwu-sense-$LINUWU_VERSION"
-  rm -rf "$tmp"
-  as_root dkms install "linuwu-sense/$LINUWU_VERSION"
-
-  # linuwu-sense replaces acer_wmi and loads at boot; it saves keyboard state when unloaded at shutdown.
-  echo "blacklist acer_wmi" | as_root tee /etc/modprobe.d/blacklist-acer_wmi.conf >/dev/null
-  echo "linuwu_sense" | as_root tee /etc/modules-load.d/linuwu_sense.conf >/dev/null
-  if [ -n "${LINUWU_OPTIONS[$MODEL]:-}" ] && [ ! -e /etc/modprobe.d/linuwu_sense.conf ]; then
-    echo "options linuwu_sense ${LINUWU_OPTIONS[$MODEL]}" | as_root tee /etc/modprobe.d/linuwu_sense.conf >/dev/null
-  fi
-  as_root install -m644 "/usr/src/linuwu-sense-$LINUWU_VERSION/linuwu_sense.service" /etc/systemd/system/linuwu_sense.service
-  as_root systemctl daemon-reload
-  as_root systemctl enable --now linuwu_sense.service
-  as_root modprobe -r acer_wmi 2>/dev/null || true
-  as_root modprobe linuwu_sense
-elif [ "$DRIVER" -eq 1 ]; then
-  say "linuwu-sense is already installed"
-fi
-
-# ---------- permissions ----------
-
-say "Granting the linuwu_sense group access to the controls"
-as_root groupadd -f linuwu_sense
-NEW_GROUP=0
-if ! id -nG "$USER" | grep -qw linuwu_sense; then
-  as_root usermod -aG linuwu_sense "$USER"
-  NEW_GROUP=1
-fi
-as_root install -m644 "$REPO/data/70-nitrosense.rules" /etc/udev/rules.d/70-nitrosense.rules
-as_root udevadm control --reload
-as_root udevadm trigger --action=bind /sys/devices/platform/acer-wmi 2>/dev/null || true
-as_root udevadm trigger --subsystem-match=hidraw --action=add
-[ -d /sys/module/linuwu_sense ] && as_root udevadm trigger --action=add /sys/module/linuwu_sense
-
-# The CPU's rated maximum clock (SMBIOS type 4, max speed at offset 0x14) for the Home gauges.
-max_mhz=$(as_root od -An -tu2 -j20 -N2 /sys/firmware/dmi/entries/4-0/raw 2>/dev/null | tr -d ' ' || true)
-if [ -n "$max_mhz" ] && [ "$max_mhz" -gt 0 ]; then
-  as_root install -d /etc/nitrosense
-  echo "$max_mhz" | as_root tee /etc/nitrosense/cpu_max_mhz >/dev/null
 fi
 
 # ---------- app ----------
@@ -270,7 +294,7 @@ fi
 
 if systemctl is-enabled nitro-key-detection.service >/dev/null 2>&1; then
   warn "DAMX's nitro-key-detection service also reacts to the NitroSense key."
-  ask "Disable it?" && as_root systemctl disable --now nitro-key-detection.service
+  [ -t 0 ] && ask "Disable it?" && as_root systemctl disable --now nitro-key-detection.service
 fi
 if systemctl is-active damx-daemon.service >/dev/null 2>&1; then
   warn "DAMX's daemon is running and also controls fans and keyboard lighting; use one app at a time."
