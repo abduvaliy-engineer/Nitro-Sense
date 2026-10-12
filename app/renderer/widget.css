@@ -380,6 +380,14 @@
 
 .wi-update-empty span { color: var(--color-80); }
 
+.wi-update-error {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-gb);
+  text-align: center;
+}
+
 .wi-update-line {
   display: flex;
   flex-direction: row;
