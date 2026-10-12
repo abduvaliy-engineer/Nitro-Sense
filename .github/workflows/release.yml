@@ -1,0 +1,25 @@
+name: Release
+
+# Every merge into main publishes the version in app/package.json; the app's Live Update picks it up.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./app/package.json').version")
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "v$version is already released"
+            exit 0
+          fi
+          gh release create "v$version" --target "$GITHUB_SHA" --title "NitroSense $version" --generate-notes
