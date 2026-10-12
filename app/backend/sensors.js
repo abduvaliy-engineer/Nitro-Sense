@@ -191,4 +191,4 @@ async function snapshot() {
   return { temps, fans, cpu, gpu, ram, profile, fanMode, power, modeKeyCycle };
 }
 
-module.exports = { snapshot };
+module.exports = { snapshot, readPower };

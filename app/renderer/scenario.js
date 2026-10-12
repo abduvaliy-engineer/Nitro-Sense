@@ -1,7 +1,11 @@
 // Scenario profiles (NitroSense electron-store "Scenario"): presets, active profile, apply and edit.
+// state.active = the applied profile; state.select = the one the user chose (App Sync applies a linked
+// profile temporarily and returns to it).
 (() => {
   const KEY = "scenario";
   const LIMIT = 15;
+  const APP_LIMIT = 12;
+  const LOW_BATTERY = 40;
 
   const MODE_NAMES = {
     "low-power": "Eco",
@@ -27,29 +31,53 @@
   // mode applies on AC, dcMode on battery (linuwu-sense only accepts Eco and Balanced on battery).
   // fan.cpu/gpu are custom percentages; cpuAuto/gpuAuto hand a fan back to the firmware in Custom mode.
   const DEFAULT_FAN = { mode: "auto", cpu: 30, gpu: 30, cpuAuto: true, gpuAuto: true };
+  // apps = App Sync's linked apps; appSync = whether linking is on for this profile.
+  const preset = (name, mode, effect) => ({
+    name, mode, dcMode: "balanced", fan: { ...DEFAULT_FAN }, lighting: defaultLighting(effect), apps: [], appSync: true,
+  });
   const PRESETS = [
-    { name: "Daily Use", mode: "balanced", dcMode: "balanced", fan: { ...DEFAULT_FAN }, lighting: defaultLighting("WAVE") },
-    { name: "Gaming", mode: "balanced-performance", dcMode: "balanced", fan: { ...DEFAULT_FAN }, lighting: defaultLighting("BREATHING") },
-    { name: "Quiet Occasion", mode: "quiet", dcMode: "balanced", fan: { ...DEFAULT_FAN }, lighting: defaultLighting("STATIC") },
+    preset("Daily Use", "balanced", "WAVE"),
+    preset("Gaming", "balanced-performance", "BREATHING"),
+    preset("Quiet Occasion", "quiet", "STATIC"),
   ];
 
   let state = null;
   let loading = null;
   let lastPower = null;
+  let lastApply = 0;
   const listeners = new Set();
 
-  const emit = () => listeners.forEach((listener) => listener(state));
+  // App Sync (main process) watches the linked apps of every profile.
+  let configureTimer = null;
+  function configureAppSync() {
+    clearTimeout(configureTimer);
+    configureTimer = setTimeout(() => {
+      const profiles = state.profiles.map(({ name, appSync, apps }) => ({ name, appSync, apps }));
+      window.nitro.appSync.configure({ active: state.active, select: state.select, profiles })
+        .catch((error) => console.error("app sync configure failed", error));
+    }, 100);
+  }
+
+  const emit = () => {
+    listeners.forEach((listener) => listener(state));
+    configureAppSync();
+  };
   const save = () => window.nitro.settings.set(KEY, state);
   const onBattery = () => lastPower?.ac === false;
+  // NitroSense locks the AC mode on AC power below 40 % battery: Quiet stays, everything else runs Balanced.
+  const lowBattery = () => !onBattery() && lastPower?.battery != null && lastPower.battery < LOW_BATTERY;
 
   async function load() {
     if (state) return state;
     loading ??= window.nitro.settings.get(KEY).catch(() => null).then((stored) => {
       state = stored?.profiles?.length ? stored : { active: 0, profiles: clone(PRESETS) };
+      state.select ??= state.active;
       for (const profile of state.profiles) {
         profile.dcMode ??= "balanced";
         profile.fan = { ...DEFAULT_FAN, ...profile.fan };
         profile.lighting ??= defaultLighting(profile.effect?.toUpperCase() ?? "WAVE");
+        profile.apps ??= [];
+        profile.appSync ??= true;
         delete profile.effect;
       }
       emit();
@@ -66,14 +94,17 @@
   }
 
   // linuwu-sense resets the fans to auto when the platform profile changes, so the mode goes first.
-  async function apply(index, { notify = true } = {}) {
+  // user: the user picked this profile (App Sync's temporary switches pass false and keep state.select).
+  async function apply(index, { notify = true, user = true } = {}) {
     await load();
     const profile = state.profiles[index];
     if (!profile) return;
     state.active = index;
+    if (user) state.select = index;
+    lastApply = Date.now();
     await save();
     emit();
-    const mode = onBattery() ? profile.dcMode : profile.mode;
+    const mode = liveMode(profile);
     try {
       await window.nitro.controls.setProfile(mode);
       await window.nitro.controls.setFanSpeed(...fanSpeeds(profile.fan));
@@ -83,6 +114,7 @@
     }
     // The main process holds this until the mode-change flash has played, as Windows does.
     window.nitro.lighting.apply(profile.lighting).catch((error) => console.error("applying lighting failed", error));
+    lastApply = Date.now();
     if (notify) {
       window.nitro.notify(
         `${profile.name} Enabled`,
@@ -139,6 +171,8 @@
   async function sync(snapshot) {
     lastPower = snapshot.power;
     if (!state) await load();
+    // A reading taken while a profile was being applied may still show the previous mode.
+    if (Date.now() - lastApply < 2500) return;
     const profile = state.profiles[state.active];
     if (!profile) return;
     let changed = false;
@@ -165,15 +199,60 @@
     }
   }
 
-  // ---------- editing (NitroSense ⋮ menu) ----------
+  // ---------- editing (NitroSense ⋮ menu and Scenario Manager; index = any profile) ----------
 
   const isFull = () => state.profiles.length >= LIMIT;
   const nameTaken = (name) => state.profiles.some((p) => p.name.replace(/\s/g, "") === name.replace(/\s/g, ""));
 
-  function duplicateName() {
-    const base = state.profiles[state.active].name;
+  function duplicateName(index = state.active) {
+    const base = state.profiles[index].name;
     for (let n = 1; n <= LIMIT; n++) if (!nameTaken(`${base} (${n})`)) return `${base} (${n})`;
     return base;
+  }
+
+  // The mode a profile runs right now: battery slot, or the AC mode under the low-battery lock.
+  function liveMode(profile) {
+    if (onBattery()) return profile.dcMode;
+    return lowBattery() && profile.mode !== "quiet" ? "balanced" : profile.mode;
+  }
+
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  // Scenario Manager edits: saved at once. On the applied profile only the changed parts go to the
+  // hardware, so a fan edit doesn't rewrite the mode or restart the keyboard lighting.
+  async function update(index, mutate) {
+    await load();
+    const profile = state.profiles[index];
+    if (!profile) return;
+    const before = clone(profile);
+    mutate(profile);
+    await save();
+    emit();
+    if (index !== state.active) return;
+    const mode = liveMode(profile);
+    const modeChanged = mode !== liveMode(before);
+    try {
+      if (modeChanged) await window.nitro.controls.setProfile(mode);
+      if (modeChanged || !same(fanSpeeds(before.fan), fanSpeeds(profile.fan))) {
+        await window.nitro.controls.setFanSpeed(...fanSpeeds(profile.fan));
+      }
+    } catch (error) {
+      console.error("applying profile change failed", error);
+    }
+    if (!same(before.lighting, profile.lighting)) {
+      window.nitro.lighting.apply(profile.lighting).catch((error) => console.error("applying lighting failed", error));
+    }
+  }
+
+  // App Sync links: an app belongs to one profile, so linking it here unlinks it everywhere else.
+  async function setApps(index, apps) {
+    await load();
+    const keys = new Set(apps.map((app) => app.key));
+    state.profiles.forEach((profile, i) => {
+      profile.apps = i === index ? clone(apps) : profile.apps.filter((app) => !keys.has(app.key));
+    });
+    await save();
+    emit();
   }
 
   async function add(name) {
@@ -182,37 +261,53 @@
     await apply(state.profiles.length - 1);
   }
 
-  async function rename(name) {
-    state.profiles[state.active].name = name;
+  async function rename(index, name) {
+    state.profiles[index].name = name;
     await save();
     emit();
   }
 
-  async function duplicate(name) {
+  // The copy gets no linked apps and is applied, like a new profile.
+  async function duplicate(index, name) {
     if (isFull()) return;
-    state.profiles.push({ ...clone(state.profiles[state.active]), name });
-    state.active = state.profiles.length - 1;
+    state.profiles.push({ ...clone(state.profiles[index]), name, apps: [] });
+    await apply(state.profiles.length - 1);
+  }
+
+  async function remove(index) {
+    if (state.profiles.length <= 1) return;
+    const wasActive = index === state.active;
+    state.profiles.splice(index, 1);
+    const shift = (i) => (i > index ? i - 1 : Math.min(i, state.profiles.length - 1));
+    state.select = shift(state.select);
+    if (wasActive) return apply(0);
+    state.active = shift(state.active);
     await save();
     emit();
   }
 
-  async function remove() {
-    if (state.profiles.length <= 1) return;
-    state.profiles.splice(state.active, 1);
-    await apply(0);
+  // "Restore Settings": a preset's settings under the same name, linked apps cleared.
+  async function restore(index, presetIndex) {
+    const { name } = state.profiles[index];
+    state.profiles[index] = { ...clone(PRESETS[presetIndex]), name };
+    if (index === state.active) return apply(index, { notify: false, user: false });
+    await save();
+    emit();
   }
 
-  async function restore(presetIndex) {
-    const { name } = state.profiles[state.active];
-    state.profiles[state.active] = { ...clone(PRESETS[presetIndex]), name };
-    await apply(state.active);
-  }
+  // App Sync: the linked app in front gets its profile; otherwise the user's own profile comes back.
+  window.nitro.appSync.onSwitch(async ({ index, power }) => {
+    if (power) lastPower = power;
+    await load();
+    if (index !== state.active && state.profiles[index]) apply(index, { notify: true, user: false });
+  });
 
   window.NitroScenario = {
     MODE_NAMES,
     FAN_NAMES,
     PRESETS,
     LIMIT,
+    APP_LIMIT,
     fanSpeeds,
     load,
     apply,
@@ -223,6 +318,9 @@
     restoreLighting,
     sync,
     onBattery,
+    lowBattery,
+    update,
+    setApps,
     isFull,
     nameTaken,
     duplicateName,

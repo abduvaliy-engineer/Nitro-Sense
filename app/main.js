@@ -5,6 +5,12 @@ const { registerIpc } = require("./backend/ipc");
 
 app.setName("NitroSense");
 
+// Like NitroSense, the app keeps running when its window closes (App Sync and the mode-change keyboard
+// flash keep working): --hidden starts it without a window (login autostart), --quit ends it.
+const startHidden = process.argv.includes("--hidden");
+let quitting = false;
+app.on("before-quit", () => { quitting = true; });
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1168,
@@ -20,12 +26,18 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       sandbox: true,
+      backgroundThrottling: false,
     },
   });
 
   win.on("maximize", () => win.webContents.send("window:maximized", true));
   win.on("unmaximize", () => win.webContents.send("window:maximized", false));
-  win.once("ready-to-show", () => win.show());
+  win.once("ready-to-show", () => startHidden || win.show());
+  win.on("close", (event) => {
+    if (quitting) return;
+    event.preventDefault();
+    win.hide();
+  });
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
   if (process.argv.includes("--dev")) watchForChanges(win);
 }
@@ -35,8 +47,9 @@ function createWindow() {
 function watchForChanges(win) {
   let timer = null;
   let restartPending = false;
+  // The window is showing again when this runs, so the relaunch must not start hidden.
   const restart = () => {
-    app.relaunch();
+    app.relaunch({ args: process.argv.slice(1).filter((arg) => arg !== "--hidden") });
     app.exit(0);
   };
   win.on("focus", () => restartPending && restart());
@@ -59,11 +72,13 @@ ipcMain.on("window:toggle-maximize", (e) => {
 ipcMain.on("window:close", (e) => BrowserWindow.fromWebContents(e.sender).close());
 registerIpc();
 
-// Like NitroSense, a second launch focuses the running window instead of opening another.
-if (!app.requestSingleInstanceLock()) {
+// Like NitroSense, a second launch shows the running window instead of opening another.
+if (!app.requestSingleInstanceLock() || process.argv.includes("--quit")) {
   app.quit();
 } else {
-  app.on("second-instance", () => {
+  app.on("second-instance", (_event, argv) => {
+    if (argv.includes("--quit")) return app.quit();
+    if (argv.includes("--hidden")) return;
     const win = BrowserWindow.getAllWindows()[0];
     if (!win) return;
     if (win.isMinimized()) win.restore();

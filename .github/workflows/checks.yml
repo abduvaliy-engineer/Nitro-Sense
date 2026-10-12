@@ -19,6 +19,8 @@ jobs:
           python3 -m py_compile tools/*.py app/backend/*.py
       - name: Lighting encoder
         run: node tests/lighting-encode.js app
+      - name: App Sync matching
+        run: node tests/appsync-match.js app
       - name: Version stays 0.x
         # 1.0.0 is reserved for the complete one-to-one NitroSense; until then the minor keeps counting (0.10, 0.11, ...).
         run: |
