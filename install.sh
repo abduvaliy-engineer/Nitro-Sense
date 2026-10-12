@@ -16,6 +16,7 @@ REPO=$(cd "$(dirname "$0")" && pwd)
 PREFIX=${XDG_DATA_HOME:-$HOME/.local/share}/nitrosense
 BIN=$HOME/.local/bin
 APPS=${XDG_DATA_HOME:-$HOME/.local/share}/applications
+AUTOSTART=${XDG_CONFIG_HOME:-$HOME/.config}/autostart
 ELECTRON_VERSION=43.6.0
 LINUWU_REPO=https://github.com/0x7375646F/Linuwu-Sense
 LINUWU_COMMIT=73a25ec243a44ba2b1703e8d0a76fa2735062506
@@ -85,7 +86,8 @@ fi
 
 if [ "$UNINSTALL" -eq 1 ]; then
   say "Removing NitroSense"
-  rm -rf "$PREFIX" "$BIN/nitrosense" "$APPS/nitrosense.desktop"
+  "$BIN/nitrosense" --quit 2>/dev/null || true
+  rm -rf "$PREFIX" "$BIN/nitrosense" "$APPS/nitrosense.desktop" "$AUTOSTART/nitrosense.desktop"
   for file in "$HYPR_LUA" "$HYPR_CONF"; do
     [ -f "$file" ] && grep -vxF -e "$HYPR_LUA_BIND" -e "$HYPR_CONF_BIND" "$file" >"$file.tmp" && mv "$file.tmp" "$file"
   done
@@ -299,6 +301,9 @@ else
 fi
 chmod +x "$BIN/nitrosense"
 install -m644 "$REPO/data/nitrosense.desktop" "$APPS/nitrosense.desktop"
+# Like NitroSense, it starts hidden at login so App Sync and the mode-change flash keep working.
+mkdir -p "$AUTOSTART"
+printf '[Desktop Entry]\nType=Application\nName=NitroSense\nExec=%s --hidden\nNoDisplay=true\n' "$BIN/nitrosense" >"$AUTOSTART/nitrosense.desktop"
 
 if [ -f "$HYPR_LUA" ]; then
   grep -q XF86Presentation "$HYPR_LUA" || { printf '\n%s\n' "$HYPR_LUA_BIND" >>"$HYPR_LUA"; say "NitroSense key bound in Hyprland"; }
