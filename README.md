@@ -4,7 +4,7 @@ Unofficial recreation of Acer's NitroSense control center for Acer Nitro laptops
 behave like NitroSense on Windows, and talks to the hardware through the [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense)
 kernel driver.
 
-> **Status: early development (v0.7.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
+> **Status: early development (v0.8.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
 > Arch Linux (Omarchy / Hyprland).
 
 ## Features
@@ -18,8 +18,8 @@ kernel driver.
 | Scenario → Pulsar Lighting | Keyboard RGB: Global effects (Static, Breathing, Neon, Wave, Ripple, Zoom, Snake, Disco) with brightness, speed, direction and a color wheel; Area mode with a color per keyboard zone; the keyboard flashes the mode color when the power mode changes |
 | Scenario profiles | Add, rename, duplicate, restore and remove profiles; applying one sets power mode, fans and lighting |
 
-Planned: Personal Settings (battery charge limit, USB charging, boot animation, LCD overdrive), the Monitoring page
-and an install script.
+Planned: Personal Settings (battery charge limit, USB charging, boot animation, LCD overdrive) and the Monitoring
+page.
 
 ### Keyboard lighting
 
@@ -33,26 +33,46 @@ Two kinds of keyboards are supported, picked automatically:
 The eyedropper uses `hyprpicker` when it is installed. DAMX also drives the keyboard, so use one app at a time for
 lighting.
 
-## Requirements
+## Install
 
-- An Acer Nitro laptop supported by **linuwu-sense** (installed with DKMS, module loaded).
-- **Electron** (developed with the system `electron43` on Arch).
-- The udev rule in `data/70-nitrosense.rules`, which gives the `linuwu_sense` group write access to the driver's
-  controls, the platform profile and the keyboard lighting (ENEK5130 hidraw or `four_zoned_kb`). Your user must be
-  in that group.
-- **python3** for ENEK5130 keyboard lighting.
-- **NitroSense artwork** in `app/assets/acer/` (icons, fonts, background, 3D models). These files belong to Acer and
-  are not part of this repository; the install script will take them from Acer's official NitroSense package.
+```sh
+git clone https://github.com/abduvaliy-engineer/Nitro-Sense.git
+cd Nitro-Sense
+./install.sh
+```
+
+Run it as your normal user; it asks for `sudo` when it needs root. It:
+
+1. Installs the packages: Electron (`electron43` on Arch, otherwise Electron's own build), python3, and DKMS
+   with kernel headers when the driver has to be built. Arch, Debian/Ubuntu and Fedora are supported.
+2. Builds the [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense) driver with DKMS if it is not
+   installed yet, so it is rebuilt on kernel updates, and replaces `acer_wmi` with it.
+3. Adds you to the `linuwu_sense` group and installs `data/70-nitrosense.rules`, so the app can use the
+   driver's controls and the keyboard lighting without root.
+4. Installs the app to `~/.local/share/nitrosense`, with a `nitrosense` launcher and a desktop entry, and binds
+   the NitroSense key in Hyprland.
+5. Adds NitroSense's artwork (see below).
+
+Log out and back in afterwards if the installer added you to the group. Other options: `--assets PATH`,
+`--dev` (run from the checkout with live reload), `--no-driver` and `--uninstall`.
+
+### NitroSense artwork
+
+The icons, fonts, backgrounds and 3D models belong to Acer, so they are not in this repository. The installer
+copies them from Acer's own NitroSense package and checks every file against `data/acer-assets.tsv`:
+
+- from a mounted Windows partition that has NitroSense installed, or
+- by downloading NitroSense (about 340 MB) from the Microsoft Store's servers. No Windows install or Microsoft
+  account is needed, and the download is deleted afterwards. The Store build is slightly older, so two images
+  differ a little from the newest NitroSense.
+- `./install.sh --assets PATH` takes a NitroSense `app.asar`, WindowsApps folder or `.msix`/`.msixbundle` instead.
 
 ## Running
 
-```sh
-cd app
-electron43 .          # normal start
-electron43 . --dev    # reloads the window when files change
-```
+Start NitroSense from your app launcher, with the NitroSense key, or by running `nitrosense`. It is
+single-instance: starting it again focuses the open window.
 
-The app is single-instance: starting it again focuses the open window.
+For development, run it from the checkout: `cd app && electron43 . --dev` reloads the window when files change.
 
 ## Project layout
 
@@ -62,7 +82,9 @@ app/
   backend/                sensors, controls (sysfs writes), lighting, settings, updates, shortcuts
   renderer/               UI: pages/, side panel, shared components
   vendor/                 three.js r125 and lottie-web (MIT, licenses included)
-data/                     udev rule and desktop entry
+data/                     udev rule, desktop entry, artwork manifest
+tools/                    artwork extraction and Microsoft Store download
+install.sh                installer
 nitrosense/               first GTK prototype (superseded)
 ```
 
