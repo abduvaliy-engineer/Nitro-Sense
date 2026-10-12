@@ -1,0 +1,29 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [dev]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Syntax
+        run: |
+          for file in $(git ls-files 'app/*.js' ':!app/vendor'); do node --check "$file"; done
+          bash -n install.sh
+          python3 -m py_compile tools/*.py app/backend/*.py
+      - name: Lighting encoder
+        run: node tests/lighting-encode.js app
+      - name: New version for a release
+        if: github.base_ref == 'main'
+        run: |
+          version=$(node -p "require('./app/package.json').version")
+          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+            echo "::error::v$version is already released; bump the version in app/package.json"
+            exit 1
+          fi

@@ -9,6 +9,7 @@
 #   ./install.sh --dev           run the app from this checkout with live reload instead of installing a copy
 #   ./install.sh --no-driver     skip building linuwu-sense
 #   ./install.sh --uninstall     remove the app, launcher and permissions (the driver stays)
+#   ./install.sh --update        used by the app's Live Update: no questions, root only when the system part changed
 set -euo pipefail
 
 REPO=$(cd "$(dirname "$0")" && pwd)
@@ -26,6 +27,7 @@ ASSETS_SOURCE=""
 DEV=0
 DRIVER=1
 UNINSTALL=0
+UPDATE=0
 ROOT_PHASE=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -34,7 +36,8 @@ while [ $# -gt 0 ]; do
     --dev) DEV=1 ;;
     --no-driver) DRIVER=0 ;;
     --uninstall) UNINSTALL=1 ;;
-    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --update) UPDATE=1 ;;
+    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
   shift
@@ -91,7 +94,7 @@ if [ "$UNINSTALL" -eq 1 ]; then
   exit 0
 fi
 
-[ -n "$ROOT_PHASE" ] || case "$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null)" in
+[ -n "$ROOT_PHASE" ] || [ "$UPDATE" -eq 1 ] || case "$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null)" in
   *Acer*) ;;
   *) warn "This is not an Acer laptop; the controls will not work."; ask "Continue anyway?" || exit 1 ;;
 esac
@@ -190,8 +193,17 @@ fi
 
 NEW_GROUP=0
 id -nG "$USER" | grep -qw linuwu_sense || NEW_GROUP=1
-say "Root access is needed once for packages, the driver and permissions"
-run_root_phase
+# An update only needs root when the system part is missing or changed.
+system_current() {
+  modinfo linuwu_sense >/dev/null 2>&1 && [ "$NEW_GROUP" -eq 0 ] && [ -e /etc/nitrosense/cpu_max_mhz ] \
+    && cmp -s "$REPO/data/70-nitrosense.rules" /etc/udev/rules.d/70-nitrosense.rules
+}
+if [ "$UPDATE" -eq 1 ] && system_current; then
+  say "Driver and permissions are up to date"
+else
+  say "Root access is needed once for packages, the driver and permissions"
+  run_root_phase
+fi
 
 # Electron: the distribution's electron43, otherwise Electron's own build.
 if have electron43; then
@@ -218,7 +230,12 @@ if [ "$DEV" -eq 0 ]; then
   rm -rf "$APP_DIR" && mkdir -p "$PREFIX"
   cp -a "$REPO/app" "$APP_DIR"
   if [ -d "$PREFIX/acer.keep" ]; then
-    [ -d "$APP_DIR/assets/acer" ] && rm -rf "$PREFIX/acer.keep" || mv "$PREFIX/acer.keep" "$APP_DIR/assets/acer"
+    if [ -d "$APP_DIR/assets/acer" ]; then
+      rm -rf "$PREFIX/acer.keep"
+    else
+      mkdir -p "$APP_DIR/assets"
+      mv "$PREFIX/acer.keep" "$APP_DIR/assets/acer"
+    fi
   fi
 fi
 

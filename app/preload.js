@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld("nitro", {
   },
   updates: {
     check: () => ipcRenderer.invoke("updates:check"),
+    install: (version) => ipcRenderer.invoke("updates:install", version),
     open: (url) => ipcRenderer.invoke("updates:open", url),
   },
   shortcuts: {

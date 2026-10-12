@@ -74,6 +74,16 @@ single-instance: starting it again focuses the open window.
 
 For development, run it from the checkout: `cd app && electron43 . --dev` reloads the window when files change.
 
+## Updates and releases
+
+Live Update in the side panel checks this repository's GitHub releases. **Update All** downloads the new release,
+runs `install.sh --update` and restarts NitroSense; it only asks for a password when the driver or permissions
+changed. A development checkout (`./install.sh --dev`) is not overwritten; it opens the release page instead.
+
+Development happens on the `dev` branch. Merging `dev` into `main` is a release: the Release workflow publishes
+the version in `app/package.json` as a GitHub release, and the Checks workflow refuses a release PR whose
+version was already released.
+
 ## Project layout
 
 ```
@@ -84,6 +94,8 @@ app/
   vendor/                 three.js r125 and lottie-web (MIT, licenses included)
 data/                     udev rule, desktop entry, artwork manifest
 tools/                    artwork extraction and Microsoft Store download
+tests/                    lighting encoder byte checks (node tests/lighting-encode.js app)
+.github/workflows/        checks on every PR, release on merge into main
 install.sh                installer
 nitrosense/               first GTK prototype (superseded)
 ```
