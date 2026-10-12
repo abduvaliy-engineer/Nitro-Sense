@@ -146,7 +146,6 @@ if [ -n "$ROOT_PHASE" ]; then
   BUILT_MODULE_LOCATION[0]="src"
   DEST_MODULE_LOCATION[0]="/kernel/drivers/platform/x86"
   MAKE[0]="make -C \$kernel_source_dir M=\$dkms_tree/\$PACKAGE_NAME/\$PACKAGE_VERSION/build modules"
-  CLEAN="make -C \$kernel_source_dir M=\$dkms_tree/\$PACKAGE_NAME/\$PACKAGE_VERSION/build clean"
   AUTOINSTALL="yes"
 EOF
     as_root rm -rf "/usr/src/linuwu-sense-$LINUWU_VERSION"
