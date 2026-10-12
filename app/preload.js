@@ -38,5 +38,15 @@ contextBridge.exposeInMainWorld("nitro", {
     apply: (lighting) => ipcRenderer.invoke("lighting:apply", lighting),
     pickColor: () => ipcRenderer.invoke("lighting:pickColor"),
   },
+  apps: {
+    list: () => ipcRenderer.invoke("apps:list"),
+    resolve: (refs) => ipcRenderer.invoke("apps:resolve", refs),
+    pickFile: () => ipcRenderer.invoke("apps:pickFile"),
+    refresh: () => ipcRenderer.invoke("apps:refresh"),
+  },
+  appSync: {
+    configure: (config) => ipcRenderer.invoke("appsync:configure", config),
+    onSwitch: (callback) => ipcRenderer.on("appsync:switch", (_e, change) => callback(change)),
+  },
   notify: (title, body) => ipcRenderer.invoke("notify", title, body),
 });

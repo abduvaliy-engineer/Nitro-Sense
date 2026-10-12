@@ -25,9 +25,11 @@ async function senseFile(name) {
   throw new Error("linuwu-sense controls are not available");
 }
 
+// Rewriting the current mode still notifies the kernel's listeners, so only real changes are written.
 async function setProfile(profile) {
   const choices = (await fs.readFile(PLATFORM_PROFILE_CHOICES, "utf8")).trim().split(/\s+/);
   if (!choices.includes(profile)) throw new Error(`Unsupported power mode: ${profile}`);
+  if ((await fs.readFile(PLATFORM_PROFILE, "utf8")).trim() === profile) return;
   await write(PLATFORM_PROFILE, profile);
 }
 

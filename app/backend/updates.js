@@ -16,18 +16,36 @@ function newer(a, b) {
   return false;
 }
 
-// Live Update on Linux: compare this app's version with the latest GitHub release.
-async function check(currentVersion) {
+// The latest release's tag, from the redirect of github.com/<repo>/releases/latest. Unlike the REST API
+// (60 requests an hour per address without a login) it has no rate limit. null = no release yet.
+async function latestFromRedirect() {
+  const response = await fetch(`https://github.com/${REPO}/releases/latest`, {
+    method: "HEAD",
+    redirect: "manual",
+    headers: { "User-Agent": "NitroSense-Linux" },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (response.status < 300 || response.status >= 400) throw new Error(`GitHub returned ${response.status}`);
+  const tag = /\/releases\/tag\/([^/?#]+)$/.exec(response.headers.get("location") ?? "")?.[1];
+  return tag ? { version: decodeURIComponent(tag).replace(/^v/, ""), url: `${RELEASES}/tag/${tag}` } : null;
+}
+
+async function latestFromApi() {
   const response = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
     headers: { Accept: "application/vnd.github+json", "User-Agent": "NitroSense-Linux" },
     signal: AbortSignal.timeout(10000),
   });
-  if (response.status === 404) return { updates: [] };
+  if (response.status === 404) return null;
   if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
   const release = await response.json();
-  const version = String(release.tag_name || "").replace(/^v/, "");
-  if (!version || !newer(version, currentVersion)) return { updates: [] };
-  return { updates: [{ name: release.name || `NitroSense ${version}`, version, url: release.html_url }] };
+  return { version: String(release.tag_name || "").replace(/^v/, ""), url: release.html_url, name: release.name };
+}
+
+// Live Update on Linux: compare this app's version with the latest GitHub release.
+async function check(currentVersion) {
+  const latest = await latestFromRedirect().catch(() => latestFromApi());
+  if (!latest?.version || !newer(latest.version, currentVersion)) return { updates: [] };
+  return { updates: [{ name: latest.name || `NitroSense ${latest.version}`, version: latest.version, url: latest.url }] };
 }
 
 function run(command, args, timeout) {

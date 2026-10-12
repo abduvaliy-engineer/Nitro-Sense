@@ -19,6 +19,16 @@ jobs:
           python3 -m py_compile tools/*.py app/backend/*.py
       - name: Lighting encoder
         run: node tests/lighting-encode.js app
+      - name: App Sync matching
+        run: node tests/appsync-match.js app
+      - name: Version stays 0.x
+        # 1.0.0 is reserved for the complete one-to-one NitroSense; until then the minor keeps counting (0.10, 0.11, ...).
+        run: |
+          version=$(node -p "require('./app/package.json').version")
+          case "$version" in
+            0.*) ;;
+            *) echo "::error::$version: NitroSense for Linux stays 0.x until it matches NitroSense one to one"; exit 1 ;;
+          esac
       - name: New version for a release
         if: github.base_ref == 'main'
         run: |

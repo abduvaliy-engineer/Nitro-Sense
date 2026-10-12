@@ -84,6 +84,12 @@
   background-image: url(../assets/acer/dialog/diglog_bg_468x468.svg);
 }
 
+.ns-dialog.size-468x560 {
+  width: 468px;
+  height: 560px;
+  background-image: url(../assets/acer/dialog/diglog_bg_468x560.svg);
+}
+
 .ns-dialog.size-364x468 {
   width: 364px;
   height: 468px;

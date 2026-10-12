@@ -1,0 +1,839 @@
+/* Scenario → Scenario Manager (NitroSense app-scenario-manager). */
+
+.sm-page {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.sm-inner {
+  display: flex;
+  width: 100%;
+  height: fit-content;
+  padding: 8px 16px;
+}
+
+.sm-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+}
+
+/* low-battery lock note above the card */
+.sm-warning {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  margin: 8px;
+}
+
+.sm-warning-text {
+  width: 100%;
+  padding: 8px;
+  background: #00000080;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-lb);
+  text-align: center;
+}
+
+.sm-card {
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  height: fit-content;
+  margin: 8px;
+  padding: 28px;
+}
+
+.sm-create-row { display: flex; width: 100%; }
+.sm-create-row span { font-size: 12px; line-height: 16px; }
+
+.sm-list-row {
+  display: flex;
+  margin: 20px 0 8px;
+}
+
+.sm-list-label {
+  display: flex;
+  flex: none;
+  justify-content: flex-start;
+  width: 336px;
+}
+
+.sm-list-label p,
+.sm-label {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: left;
+}
+
+.sm-note-box {
+  display: flex;
+  flex-grow: 1;
+  justify-content: flex-start;
+}
+
+.sm-note,
+.sm-narrow-note p {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-lb);
+  text-align: left;
+}
+
+.sm-note {
+  display: none;
+  margin-left: 8px;
+}
+
+.sm-body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* below 785 px: profile dropdown + ⋮ instead of the list */
+.sm-narrow {
+  display: flex;
+  margin-top: 8px;
+}
+
+.wi-dropdown.sm-dropdown {
+  flex: none;
+  width: 240px;
+  margin-top: 8px;
+}
+
+.sm-narrow .wi-dropdown.sm-dropdown { margin-top: 0; }
+.sm-dropdown .wi-dropdown-text { width: 188px; }
+.wi-dropdown.sm-dropdown:disabled { opacity: 0.4; pointer-events: none; }
+.sm-narrow-more { margin-left: 4px; }
+
+.sm-list-column {
+  display: none;
+  flex: 0 1 336px;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sm-list {
+  display: flex;
+  flex-direction: column;
+  height: 428px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* profile card: the orange tab marks the applied profile, the gradient the selected one */
+.sm-profile {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+}
+
+.sm-profile + .sm-profile { margin-top: 12px; }
+
+.sm-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 68px;
+  height: 8px;
+}
+
+.sm-profile-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 320px;
+  height: 76px;
+  background: url(../../assets/acer/scenario/scenario_listbg_normal.svg) center no-repeat;
+}
+
+.sm-profile-btn:hover { background-image: url(../../assets/acer/scenario/scenario_listbg_hover.svg); }
+.sm-profile-btn.selected { background-image: url(../../assets/acer/scenario/scenario_listbg_select.svg); }
+
+.sm-profile-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 10px 0 0 12px;
+}
+
+.sm-profile-name {
+  width: 280px;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--color-ff);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sm-profile-apps {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  height: 24px;
+  margin-top: 4px;
+}
+
+.sm-profile-app { height: 100%; }
+.sm-profile-app img,
+.sm-profile-app .as-fallback { width: 24px; height: 24px; }
+
+.sm-profile-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+}
+
+.sm-profile-none {
+  display: flex;
+  align-items: center;
+  height: 24px;
+}
+
+.sm-profile-none p {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+}
+
+.sm-profile-widget {
+  display: none;
+  flex: none;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sm-profile-btn:hover .sm-profile-widget,
+.sm-profile.menu-open .sm-profile-widget { display: flex; }
+
+.sm-profile-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  opacity: 0.35;
+}
+
+.sm-profile-menu:hover { opacity: 0.7; }
+.sm-profile-menu:active,
+.sm-profile.menu-open .sm-profile-menu { opacity: 1; }
+.sm-profile-menu img { width: 16px; height: 16px; }
+
+/* editor */
+.sm-right {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  margin-top: 8px;
+}
+
+.sm-narrow-note {
+  display: flex;
+  width: 100%;
+  height: 16px;
+}
+
+.sm-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  margin-top: 8px;
+  padding: 24px;
+  border: 2px solid #8034124d;
+}
+
+.sm-grid {
+  display: grid;
+  width: fit-content;
+  height: fit-content;
+}
+
+.sm-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.sm-field + .sm-field { margin-top: 24px; }
+
+.sm-radios {
+  position: relative;
+  display: flex;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.sm-radio-cell {
+  display: flex;
+  width: 50%;
+}
+
+.sm-radio {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.sm-radio span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+}
+
+.sm-radio:hover .ns-radio:not(.on) { background-image: url(../../assets/acer/btn/radiobtn_off_hover.svg); }
+
+.sm-effect-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.sm-effect-box {
+  display: flex;
+  align-items: center;
+  width: 240px;
+}
+
+.sm-effect-box .wi-dropdown.sm-dropdown { margin-top: 0; }
+
+/* App Sync */
+.sm-sync {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  width: 100%;
+  margin-top: 20px;
+  padding-top: 22px;
+  border-top: 2px solid #8034124d;
+}
+
+.sm-sync-head {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  height: 16px;
+}
+
+.sm-info img { width: 16px; height: 16px; pointer-events: none; }
+
+.sm-sync-controls {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.sm-switch-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 4px;
+}
+
+.sm-switch {
+  position: relative;
+  width: 40px;
+  height: 16px;
+  background: url(../../assets/acer/light/switchbtn_bg_uncheck.svg) center / contain no-repeat;
+  pointer-events: none;
+}
+
+.sm-switch.on { background-image: url(../../assets/acer/light/switchbtn_bg.svg); }
+
+.sm-switch-knob {
+  position: absolute;
+  inset: 0;
+}
+
+.sm-switch-knob::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 16px;
+  background: url(../../assets/acer/light/switchbtn_point_uncheck.svg) center / contain no-repeat;
+  transition: 0.4s;
+}
+
+.sm-switch.on .sm-switch-knob::before {
+  transform: translateX(20px);
+  background-image: url(../../assets/acer/light/switchbtn_point.svg);
+}
+
+.sm-sync-off {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 24px;
+}
+
+.sm-sync-off span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+  text-align: left;
+}
+
+.sm-tiles-box {
+  display: flex;
+  flex-grow: 1;
+  width: 100%;
+  height: fit-content;
+  margin-top: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.sm-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: fit-content;
+  height: fit-content;
+}
+
+.sm-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 108px;
+  padding: 8px;
+}
+
+.sm-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sm-add-btn:disabled { opacity: 0.1; }
+.sm-add-btn img { width: 48px; height: 48px; }
+
+.sm-add-label,
+.sm-tile-name p {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.sm-add-label { margin-top: 8px; }
+
+.sm-tile-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+}
+
+.sm-tile-remove img { width: 16px; height: 16px; }
+
+.sm-tile-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.sm-tile-icon {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.sm-tile-icon img,
+.sm-tile-icon .as-fallback { width: 48px; height: 48px; }
+
+.sm-tile-name {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* tutorial */
+.sm-tutorial-text {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+  text-align: left;
+}
+
+.sm-tutorial-steps {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding-top: 12px;
+  text-align: left;
+}
+
+.sm-tutorial-step {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.sm-tutorial-step + .sm-tutorial-step { margin-top: 28px; }
+.sm-tutorial-step img { flex: none; width: 20px; height: 16px; }
+.sm-tutorial-step span { margin-left: 8px; }
+
+.sm-tutorial-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 20px;
+  padding: 0 28px;
+}
+
+.sm-tutorial-note p {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+  text-align: left;
+}
+
+/* linked app without an icon */
+.as-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #8034124d;
+  font-size: 24px;
+  color: var(--color-ff);
+}
+
+.sm-profile-app .as-fallback { width: 24px; height: 24px; font-size: 13px; }
+
+/* "File Path Missing" */
+.sm-missing {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.sm-missing-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 328px;
+  min-height: 24px;
+  padding: 8px;
+  background: #8034124d;
+}
+
+.sm-missing-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+}
+
+.sm-missing-close img { width: 16px; height: 16px; }
+
+.sm-missing-box p {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sm-missing-item { display: flex; flex-direction: column; margin-top: 8px; }
+.sm-missing-item p:first-child { color: var(--color-ff); }
+.sm-missing-item p + p { margin-top: 4px; color: var(--color-80); }
+
+/* ---------- Add Apps to Link (468×560) ---------- */
+
+.ns-dialog.size-468x560 { padding-bottom: 16px; }
+
+.as-dialog {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 12px;
+  padding: 0 16px;
+}
+
+.as-search-row {
+  display: flex;
+  align-items: center;
+}
+
+.as-search {
+  display: flex;
+  height: 32px;
+  border: 1px solid #ff662433;
+  background: #00000033;
+}
+
+.as-search:hover { border-color: #ff662466; background: #00000066; }
+.as-search:focus-within { border-color: #ff662496; background: #00000099; }
+
+.as-search-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 30px;
+}
+
+.as-search-icon img { width: 12px; height: 12px; }
+
+.as-search-input {
+  display: flex;
+  width: 96px;
+}
+
+.as-search-input input {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  color: var(--color-ff);
+  user-select: text;
+  cursor: text;
+}
+
+.as-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+}
+
+.as-search-clear img,
+.as-refresh img { width: 16px; height: 16px; }
+.as-refresh img { width: 24px; height: 24px; }
+
+.as-refresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+}
+
+.as-menus {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 12px;
+}
+
+.wi-dropdown.as-menu { flex: none; width: 196px; }
+.as-menu .wi-dropdown-text { width: 144px; }
+
+.as-link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #8034124d;
+}
+
+.as-pick {
+  height: 24px;
+  opacity: 0.7;
+}
+
+.as-pick span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-gb);
+  text-underline-offset: 1px;
+}
+
+.as-pick:hover { opacity: 0.9; }
+.as-pick:hover span { text-decoration: underline; }
+.as-pick:active { opacity: 1; }
+
+.as-counter {
+  display: flex;
+  align-items: center;
+}
+
+.as-counter img { width: 10px; height: 8px; }
+
+.as-counter span {
+  margin-left: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+}
+
+.as-grid-box {
+  position: relative;
+  height: 328px;
+  margin-right: -8px;
+  padding: 12px 0;
+}
+
+.as-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  gap: 12px;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.as-cell { position: relative; }
+
+.as-tile {
+  position: relative;
+  width: 128px;
+  height: 108px;
+}
+
+.as-tile.selected { background: #8034124d; }
+.as-tile.hoverable:hover { background: #80341233; }
+
+.as-check,
+.as-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.as-check:not(.checked) img { visibility: hidden; }
+.as-check:disabled { opacity: 0.3; }
+
+.as-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.as-badge img { width: 12px; height: 12px; }
+
+.as-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 108px;
+}
+
+.as-icon-img { width: 48px; height: 48px; }
+
+.as-name {
+  margin-top: 8px;
+  padding: 0 8px;
+}
+
+.as-name p {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.as-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.as-spinner { width: 72px; height: 72px; }
+
+.as-footer { margin-top: 16px; }
+.as-footer .pill-btn + .pill-btn { margin-left: 8px; }
+
+/* ---------- breakpoints ---------- */
+
+@media (min-width: 785px) {
+  .sm-note { display: flex; }
+  .sm-narrow,
+  .sm-narrow-note { display: none; }
+  .sm-body { flex-direction: row; }
+  .sm-list-column { display: flex; }
+
+  .sm-right {
+    margin-top: 0;
+    margin-left: 8px;
+  }
+
+  .sm-panel { margin-top: 0; }
+}
+
+@media (min-width: 976px) {
+  .sm-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1036px) {
+  .sm-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1070px) {
+  .sm-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 40px;
+  }
+
+  .sm-field + .sm-field { margin-top: 24px; }
+  .sm-grid > .sm-field:nth-child(2) { margin-top: 0; }
+  .sm-effect-box { height: 32px; }
+}
+
+@media (min-width: 1168px) {
+  .sm-inner { width: fit-content; }
+  .sm-card { width: 1136px; }
+  .sm-warning-text { width: 752px; }
+  .sm-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}

@@ -4,8 +4,39 @@ Unofficial recreation of Acer's NitroSense control center for Acer Nitro laptops
 behave like NitroSense on Windows, and talks to the hardware through the [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense)
 kernel driver.
 
-> **Status: early development (v0.8.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
+> **Status: early development (v0.9.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
 > Arch Linux (Omarchy / Hyprland).
+
+![NitroSense for Linux — Home](docs/screenshots/home.png)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/mode.png" alt="Scenario → Mode"></td>
+    <td width="50%"><img src="docs/screenshots/fan.png" alt="Scenario → Fan Control"></td>
+  </tr>
+  <tr>
+    <td align="center">Scenario → Mode</td>
+    <td align="center">Scenario → Fan Control</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/lighting.png" alt="Scenario → Pulsar Lighting"></td>
+    <td><img src="docs/screenshots/lighting-area.png" alt="Area Lighting Control"></td>
+  </tr>
+  <tr>
+    <td align="center">Scenario → Pulsar Lighting</td>
+    <td align="center">Area Lighting Control (keyboard zones)</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/scenario-manager.png" alt="Scenario Manager with App Sync"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td align="center">Scenario Manager with App Sync</td>
+    <td></td>
+  </tr>
+</table>
+
+Screenshots: the Linux app on a Nitro ANV16S-41 (Hyprland), showing live sensor readings.
 
 ## Features
 
@@ -17,6 +48,7 @@ kernel driver.
 | Scenario → Fan Control | Auto / Max / Custom with per-fan speed and Auto toggle |
 | Scenario → Pulsar Lighting | Keyboard RGB: Global effects (Static, Breathing, Neon, Wave, Ripple, Zoom, Snake, Disco) with brightness, speed, direction and a color wheel; Area mode with a color per keyboard zone; the keyboard flashes the mode color when the power mode changes |
 | Scenario profiles | Add, rename, duplicate, restore and remove profiles; applying one sets power mode, fans and lighting |
+| Scenario Manager | Every profile in one list: edit its AC and battery mode, fans and lighting without applying it, plus **App Sync** — link apps to a profile and it is applied while that app is in front |
 
 Planned: Personal Settings (battery charge limit, USB charging, boot animation, LCD overdrive) and the Monitoring
 page.
@@ -32,6 +64,17 @@ Two kinds of keyboards are supported, picked automatically:
 
 The eyedropper uses `hyprpicker` when it is installed. DAMX also drives the keyboard, so use one app at a time for
 lighting.
+
+### App Sync
+
+Like NitroSense, App Sync applies a profile while one of its linked apps is in front and returns to the profile you
+picked when you switch to anything else (NitroSense's own window included), after the change has held for 3 seconds.
+Hyprland reports which window is in front; on other desktops the most recently started linked app that is running
+counts. Apps come from your desktop entries and Steam library, or any executable, AppImage or Windows `.exe` you pick.
+
+NitroSense keeps running in the background when you close its window, so App Sync and the mode-change keyboard flash
+keep working, and the installer starts it hidden at login. Open it again from the launcher or with the NitroSense key;
+quit it with `nitrosense --quit`.
 
 ## Install
 
@@ -82,7 +125,8 @@ changed. A development checkout (`./install.sh --dev`) is not overwritten; it op
 
 Development happens on the `dev` branch. Merging `dev` into `main` is a release: the Release workflow publishes
 the version in `app/package.json` as a GitHub release, and the Checks workflow refuses a release PR whose
-version was already released.
+version was already released. Versions stay `0.x` (0.9, 0.10, 0.11, ...) until the app matches NitroSense one to one;
+that release will be 1.0.0.
 
 ## Project layout
 
@@ -94,7 +138,8 @@ app/
   vendor/                 three.js r125 and lottie-web (MIT, licenses included)
 data/                     udev rule, desktop entry, artwork manifest
 tools/                    artwork extraction and Microsoft Store download
-tests/                    lighting encoder byte checks (node tests/lighting-encode.js app)
+tests/                    lighting encoder and App Sync matching checks
+docs/screenshots/         README screenshots
 .github/workflows/        checks on every PR, release on merge into main
 install.sh                installer
 nitrosense/               first GTK prototype (superseded)
