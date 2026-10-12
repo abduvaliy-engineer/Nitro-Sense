@@ -380,14 +380,6 @@
 
 .wi-update-empty span { color: var(--color-80); }
 
-.wi-update-error {
-  margin-top: 4px;
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--color-gb);
-  text-align: center;
-}
-
 .wi-update-line {
   display: flex;
   flex-direction: row;
@@ -576,3 +568,96 @@
   margin-left: 4px;
 }
 
+/* ---------- Live Update dialogs (NitroSense app-middle-dialog, 468×300) ---------- */
+
+.ns-dialog.lu-updating { padding-bottom: 0; }
+
+.ns-dialog.lu-updating .ns-dialog-header {
+  height: 36px;
+  visibility: hidden;
+}
+
+.lu-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px 16px;
+}
+
+.lu-progress,
+.lu-result {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.lu-anim { width: 72px; height: 72px; }
+
+.lu-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 58px;
+  margin-top: 20px;
+}
+
+.lu-title,
+.lu-result-title {
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--color-ff);
+}
+
+.lu-status {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  white-space: pre;
+}
+
+.lu-alert {
+  height: 32px;
+  margin-top: 8px;
+}
+
+.lu-alert span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-lb);
+}
+
+.lu-cancel {
+  margin-top: 4px;
+  padding: 8px;
+}
+
+.lu-cancel span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-gb);
+}
+
+.lu-cancel:disabled { opacity: 0.1; }
+
+.lu-result { justify-content: flex-start; }
+.lu-result-art img { width: 72px; height: 72px; }
+
+.lu-result-text {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.lu-result-message {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+  text-align: left;
+}

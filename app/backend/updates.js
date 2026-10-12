@@ -68,11 +68,13 @@ async function isCheckout() {
 }
 
 // One-click update: download the release's source, run its installer in update mode, then restart.
-async function install(version) {
+// progress(stage): "downloading", "installing", "finished".
+async function install(version, progress = () => {}) {
   if (!/^\d+\.\d+\.\d+$/.test(String(version))) throw new Error("Invalid version");
   if (await isCheckout()) return { checkout: true };
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nitrosense-update-"));
   try {
+    progress("downloading");
     const response = await fetch(`https://github.com/${REPO}/archive/refs/tags/v${version}.tar.gz`, {
       headers: { "User-Agent": "NitroSense-Linux" },
       signal: AbortSignal.timeout(120000),
@@ -81,16 +83,20 @@ async function install(version) {
     const archive = path.join(dir, "source.tar.gz");
     await fs.writeFile(archive, Buffer.from(await response.arrayBuffer()));
     await run("tar", ["-xzf", archive, "-C", dir], 60000);
+    progress("installing");
     const [source] = (await fs.readdir(dir, { withFileTypes: true })).filter((entry) => entry.isDirectory());
     // Generous timeout: a new release may need NitroSense's artwork downloaded again.
     await run("bash", [path.join(dir, source.name, "install.sh"), "--update"], 30 * 60000);
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }
+  progress("finished");
+  // Long enough for the "finished" dialog to be read.
+  // The window is showing (the user asked for the update), so the new version must not start hidden.
   setTimeout(() => {
-    app.relaunch();
+    app.relaunch({ args: process.argv.slice(1).filter((arg) => arg !== "--hidden") });
     app.exit(0);
-  }, 500);
+  }, 2500);
   return { installed: true };
 }
 
