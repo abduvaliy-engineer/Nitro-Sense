@@ -410,9 +410,12 @@
         if (!init()) return;
         host.prepend(renderer.domElement);
         if (mode) play(mode);
+        // A replay inside the 2-s lock is skipped: carry on with the animation the tab switch cut off,
+        // or draw its final pose again, so the avatar never stays on an intro frame.
+        if (animating) start();
+        else if (holder.children.length) renderer.render(scene, camera);
       },
       detach() {
-        animating = false;
         if (rafId) cancelAnimationFrame(rafId);
         rafId = 0;
         renderer?.domElement.remove();
