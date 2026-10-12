@@ -238,25 +238,31 @@
   let updateResult = null;
   let updatePromise = null;
 
+  // The saved result records the version that checked, so it's dropped after an update.
   function checkForUpdates() {
-    updatePromise ??= window.nitro.updates.check()
-      .then((result) => {
+    updatePromise ??= Promise.all([window.nitro.updates.check(), window.nitro.updates.version()])
+      .then(([result, version]) => {
         updateResult = result;
-        window.nitro.settings.set(UPDATE_CACHE_KEY, { time: Date.now(), result });
+        window.nitro.settings.set(UPDATE_CACHE_KEY, { time: Date.now(), version, result });
       }, (error) => {
         console.error("update check failed", error);
         updateResult = { updates: [], failed: true };
-        window.nitro.settings.set(UPDATE_CACHE_KEY, { time: Date.now(), result: updateResult });
+        window.nitro.updates.version().then((version) => {
+          window.nitro.settings.set(UPDATE_CACHE_KEY, { time: Date.now(), version, result: updateResult });
+        });
       })
       .finally(() => { updatePromise = null; });
     return updatePromise;
   }
 
-  // Automatic checks reuse a recent result; Check Now and refresh always ask GitHub.
+  // Automatic checks reuse a recent result from this version; Check Now and refresh always ask GitHub.
   async function cachedUpdateResult() {
-    const cached = await window.nitro.settings.get(UPDATE_CACHE_KEY).catch(() => null);
+    const [cached, version] = await Promise.all([
+      window.nitro.settings.get(UPDATE_CACHE_KEY).catch(() => null),
+      window.nitro.updates.version().catch(() => null),
+    ]);
     const maxAge = cached?.result?.failed ? RETRY_AFTER_FAILURE_MS : AUTO_CHECK_MS;
-    if (cached?.result && Date.now() - cached.time < maxAge) updateResult = cached.result;
+    if (cached?.result && cached.version === version && Date.now() - cached.time < maxAge) updateResult = cached.result;
     return updateResult;
   }
 

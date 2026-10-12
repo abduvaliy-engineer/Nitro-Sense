@@ -215,6 +215,14 @@
   padding: 0 24px;
 }
 
+/* NitroSense 5.0 frame (Microsoft Store artwork): a 300-px gauge half above a 300-px card half */
+.home-left.legacy .home-left-top { height: 300px; }
+.home-left.legacy .home-ring-box { margin-top: 36px; }
+.home-left.legacy .home-ring { width: 240px; height: 240px; }
+.home-left.legacy .home-card-area { padding: 16px 24px 0; }
+.home-left.legacy .home-card-wrap { width: 320px; margin-top: 0; }
+.home-left.legacy .home-card { width: 320px; }
+
 /* ---------- info card (same frame as Acer's Experience Zone card) ---------- */
 
 .home-card-wrap {

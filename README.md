@@ -4,7 +4,7 @@ Unofficial recreation of Acer's NitroSense control center for Acer Nitro laptops
 behave like NitroSense on Windows, and talks to the hardware through the [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense)
 kernel driver.
 
-> **Status: early development (v0.9.1).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
+> **Status: early development (v0.9.5).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
 > Arch Linux (Omarchy / Hyprland).
 
 ![NitroSense for Linux — Home](docs/screenshots/home.png)
@@ -106,8 +106,8 @@ copies them from Acer's own NitroSense package and checks every file against `da
 
 - from a mounted Windows partition that has NitroSense installed, or
 - by downloading NitroSense (about 340 MB) from the Microsoft Store's servers. No Windows install or Microsoft
-  account is needed, and the download is deleted afterwards. The Store build is slightly older, so two images
-  differ a little from the newest NitroSense.
+  account is needed, and the download is deleted afterwards. The Store build is NitroSense 5.0, so the Home
+  gauge frame and the Disco lighting icon look like NitroSense 5.0's.
 - `./install.sh --assets PATH` takes a NitroSense `app.asar`, WindowsApps folder or `.msix`/`.msixbundle` instead.
 
 ## Running
