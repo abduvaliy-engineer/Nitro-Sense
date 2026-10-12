@@ -82,7 +82,8 @@ changed. A development checkout (`./install.sh --dev`) is not overwritten; it op
 
 Development happens on the `dev` branch. Merging `dev` into `main` is a release: the Release workflow publishes
 the version in `app/package.json` as a GitHub release, and the Checks workflow refuses a release PR whose
-version was already released.
+version was already released. Versions stay `0.x` (0.9, 0.10, 0.11, ...) until the app matches NitroSense one to one;
+that release will be 1.0.0.
 
 ## Project layout
 
