@@ -205,8 +205,8 @@
     syncHead.append(el("span", "sm-label", "Enable App Sync"), info);
     const syncControls = el("div", "sm-sync-controls");
     const toggle = el("button", "sm-switch-button");
-    const switchTrack = el("div", "sm-switch");
-    switchTrack.append(el("span", "sm-switch-knob"));
+    const switchTrack = el("div", "ns-switch");
+    switchTrack.append(el("span", "ns-switch-knob"));
     toggle.append(switchTrack);
     toggle.addEventListener("click", () => edit((p) => { p.appSync = !p.appSync; }));
     const disabledLine = el("div", "sm-sync-off");

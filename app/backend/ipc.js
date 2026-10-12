@@ -60,7 +60,8 @@ function registerIpc() {
   ipcMain.handle("controls:setProfile", (_e, profile) => controls.setProfile(profile));
   ipcMain.handle("controls:setFanSpeed", (_e, cpu, gpu) => controls.setFanSpeed(cpu, gpu));
   ipcMain.handle("controls:setModeKeyCycle", (_e, cycle) => controls.setModeKeyCycle(Boolean(cycle)));
-  ipcMain.handle("controls:setBacklightTimeout", (_e, on) => controls.setBacklightTimeout(Boolean(on)));
+  ipcMain.handle("personal:read", () => controls.readPersonal());
+  ipcMain.handle("personal:set", (_e, name, value) => controls.setPersonal(String(name), Number(value)));
   ipcMain.handle("lighting:info", () => lighting.info());
   ipcMain.handle("lighting:apply", (_e, value) => lighting.apply(value));
   ipcMain.handle("lighting:pickColor", () => lighting.pickColor());

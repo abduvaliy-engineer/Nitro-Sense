@@ -1,0 +1,432 @@
+/* Personal Settings tab (NitroSense app-personal-settings). */
+
+.ps-scroll {
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.ps-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0 24px 40px;
+  color: var(--color-ff);
+}
+
+.ps-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  width: fit-content;
+}
+
+/* ---------- section menu ---------- */
+
+.ps-left {
+  position: sticky;
+  top: 16px;
+  display: none;
+  align-self: flex-start;
+}
+
+.ps-left-inner {
+  display: flex;
+  flex-direction: column;
+  width: 368px;
+}
+
+.ps-title {
+  height: 18px;
+  margin-bottom: 16px;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--color-ff);
+  text-align: left;
+}
+
+.ps-menu {
+  width: 100%;
+  padding: 20px 0;
+  background: #381200b3;
+}
+
+.ps-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  color: var(--color-80);
+}
+
+.ps-menu-item:hover { color: var(--color-c0); }
+.ps-menu-item.active { color: var(--color-ff); }
+
+.ps-menu-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 32px;
+}
+
+.ps-anchor {
+  width: 24px;
+  height: 16px;
+}
+
+.ps-anchor img {
+  display: none;
+  width: 24px;
+  height: 16px;
+}
+
+.ps-menu-item.active .ps-anchor img { display: block; }
+
+.ps-menu-label {
+  margin: 8px 0;
+  font-size: 12px;
+  line-height: 14.4px;
+}
+
+/* ---------- cards ---------- */
+
+.ps-right {
+  width: 100%;
+  padding-top: 16px;
+}
+
+.ps-right-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.ps-title-narrow { width: 100%; }
+
+.ps-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ps-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 28px;
+  scroll-margin-top: 60px;
+}
+
+.ps-card-head {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.ps-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--color-hb);
+}
+
+.ps-card-title img {
+  width: 20px;
+  height: 16px;
+}
+
+.ps-rule {
+  width: 100%;
+  height: 0;
+  margin: 8px 0 0;
+  border: 0;
+  border-top: 2px solid #8034124d;
+}
+
+.ps-rule-wide { margin: 20px 0; }
+.ps-rule-tight { margin: 8px 0; }
+
+.ps-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.ps-label,
+.ps-intro {
+  font-size: 12px;
+  line-height: 14.4px;
+  text-align: left;
+}
+
+.ps-label { color: var(--color-c0); }
+.ps-intro { color: var(--color-80); }
+.ps-gap4 { margin-bottom: 4px; }
+.ps-gap8 { margin-bottom: 8px; }
+.ps-backlight-label { margin-top: 24px; }
+
+/* Controls Linux can't drive yet: shown, but inert. */
+.ps-unavailable { opacity: 0.4; }
+.ps-unavailable > * { pointer-events: none; }
+
+.ps-switch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 4px;
+}
+
+.ps-switch-btn.bare { padding: 0; }
+.ps-switch-btn.boot { padding: 0 0 20px; }
+
+.ps-dropdown-row {
+  display: flex;
+  margin-top: 8px;
+}
+
+.wi-dropdown.ps-dropdown { width: 300px; }
+
+.ps-dropdown .wi-dropdown-text {
+  width: 140px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* ---------- GPU Operating ---------- */
+
+.ps-gpu-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 20px;
+}
+
+/* ---------- Battery & Charge ---------- */
+
+.ps-modes-title {
+  height: 16px;
+  margin-bottom: 16px;
+}
+
+.ps-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ps-mode-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+}
+
+.ps-mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ps-mode img {
+  width: 36px;
+  height: 36px;
+}
+
+.ps-mode-notes {
+  display: flex;
+  flex-direction: column;
+  padding-left: 72px;
+  font-size: 12px;
+  line-height: 14.4px;
+  color: var(--color-80);
+  text-align: left;
+}
+
+/* NitroSense's .textButton */
+.ps-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: fit-content;
+  margin-top: 20px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-gb);
+  opacity: 0.7;
+}
+
+.ps-link span { margin-right: 4px; }
+
+.ps-link img {
+  width: 12px;
+  height: 12px;
+}
+
+.ps-link:hover { opacity: 0.9; }
+.ps-link:active { opacity: 1; }
+.ps-link:hover span,
+.ps-link:active span { text-decoration: underline; }
+
+.ps-limit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 24px;
+}
+
+/* ---------- System Boot Effect ---------- */
+
+.ps-logo-block {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.ps-logo-block p {
+  font-size: 12px;
+  line-height: 16px;
+  text-align: left;
+}
+
+.ps-logo-title { color: var(--color-c0); }
+
+.ps-logo-texts {
+  display: flex;
+  flex-direction: column;
+}
+
+.ps-logo-text {
+  margin-top: 4px;
+  color: var(--color-80);
+}
+
+.ps-logo-note {
+  margin-top: 8px;
+  color: var(--color-4c);
+}
+
+.ps-logo-wrap {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.ps-logo {
+  position: relative;
+  width: 328px;
+  height: 216px;
+  margin-top: 8px;
+}
+
+.ps-logo-frame {
+  display: block;
+  width: 328px;
+  height: 216px;
+}
+
+.ps-logo-screen {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  left: 0;
+  width: 128px;
+  height: 72px;
+  margin: auto;
+}
+
+.ps-logo-screen img {
+  display: block;
+  max-width: 100%;
+  max-height: 72px;
+  margin: auto;
+  background: #000;
+}
+
+.ps-logo-browse {
+  position: absolute;
+  right: 0;
+  bottom: 48px;
+  left: 0;
+  width: 36px;
+  height: 24px;
+  margin: auto;
+}
+
+.ps-logo-browse img {
+  display: block;
+  width: 36px;
+  height: 24px;
+}
+
+.ps-logo-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  width: 100%;
+}
+
+.ps-logo-bar-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin: 8px;
+}
+
+.ps-logo-reset-box {
+  display: flex;
+  width: fit-content;
+}
+
+.ps-logo-reset-box.hide-reset { opacity: 0; }
+
+.ps-logo-reset {
+  display: flex;
+  height: 16px;
+}
+
+.ps-logo-reset img {
+  width: 16px;
+  height: 16px;
+}
+
+.ps-logo-reset p {
+  width: 100%;
+  margin-left: 4px;
+  padding-top: 2px;
+  color: var(--color-4c);
+}
+
+.ps-logo-full {
+  width: 16px;
+  height: 16px;
+}
+
+.ps-logo-full img {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- widths (NitroSense RWDm 785, RWDl 1168) ---------- */
+
+@media (min-width: 785px) {
+  .ps-row { width: 100%; }
+  .ps-left { display: flex; }
+  .ps-right { padding-top: 50px; }
+  .ps-right-inner { align-items: stretch; }
+  .ps-title-narrow { display: none; }
+  .ps-card { max-width: 752px; }
+}
+
+@media (min-width: 1168px) {
+  .ps-row { width: auto; }
+  .ps-right { width: 752px; }
+}

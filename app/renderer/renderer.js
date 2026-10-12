@@ -28,12 +28,13 @@ function placeholderPage(name) {
   };
 }
 
-function selectTab(name) {
+// options go to the page's mount (Personal Settings takes { focus: section }).
+function selectTab(name, options) {
   activePage?.unmount?.();
   activeTab = name;
   renderTabs();
   activePage = (window.NitroPages?.[name] ?? placeholderPage(name));
-  activePage.mount(content);
+  activePage.mount(content, options);
   if (lastSnapshot) activePage.update?.(lastSnapshot);
 }
 
