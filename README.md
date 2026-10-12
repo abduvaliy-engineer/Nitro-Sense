@@ -104,7 +104,8 @@ Log out and back in afterwards if the installer added you to the group. Other op
 The icons, fonts, backgrounds and 3D models belong to Acer, so they are not in this repository. The installer
 copies them from Acer's own NitroSense package and checks every file against `data/acer-assets.tsv`:
 
-- from a mounted Windows partition that has NitroSense installed, or
+- from NitroSense installed on Windows (the newest artwork): during its password prompt the installer mounts
+  Windows drives read-only for a moment, or uses one that is already mounted, or
 - by downloading NitroSense (about 340 MB) from the Microsoft Store's servers. No Windows install or Microsoft
   account is needed, and the download is deleted afterwards. The Store build is NitroSense 5.0, so the Home
   gauge frame and the Disco lighting icon look like NitroSense 5.0's.
