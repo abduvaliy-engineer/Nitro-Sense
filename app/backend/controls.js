@@ -1,4 +1,5 @@
 const fs = require("fs/promises");
+const path = require("path");
 
 const PLATFORM_PROFILE = "/sys/firmware/acpi/platform_profile";
 const PLATFORM_PROFILE_CHOICES = "/sys/firmware/acpi/platform_profile_choices";
@@ -44,8 +45,45 @@ async function setModeKeyCycle(cycle) {
   await write("/sys/module/linuwu_sense/parameters/cycle_gaming_thermal_profile", cycle ? "Y" : "N");
 }
 
-async function setBacklightTimeout(on) {
-  await write(await senseFile("backlight_timeout"), on ? 1 : 0);
+// Personal Settings: the linuwu-sense attributes and the values each accepts.
+const PERSONAL = {
+  battery_limiter: [0, 1], // 1 = charge to 80 % (Optimized Battery Charging)
+  usb_charging: [0, 10, 20, 30], // power-off USB charging, stopping at that battery level; 0 = off
+  lcd_override: [0, 1], // LCD Overdrive
+  backlight_timeout: [0, 1], // keyboard backlight off after 30 s
+  boot_animation_sound: [0, 1],
+};
+
+// NitroSense's GPU Operating mode, from the GPU that drives the laptop panel (read only: linuwu-sense has no
+// MUX control). null when no panel connector is visible.
+async function gpuMode() {
+  for (const connector of await fs.readdir("/sys/class/drm").catch(() => [])) {
+    const card = /^(card\d+)-eDP-/.exec(connector)?.[1];
+    if (!card) continue;
+    const driver = path.basename(await fs.readlink(`/sys/class/drm/${card}/device/driver`).catch(() => ""));
+    return /^(nvidia|nouveau)$/.test(driver) ? "dgpu" : "optimus";
+  }
+  return null;
 }
 
-module.exports = { write, senseFile, setProfile, setFanSpeed, setModeKeyCycle, setBacklightTimeout };
+// Current values; an attribute this model lacks reads as null.
+async function readPersonal() {
+  const values = {};
+  for (const name of Object.keys(PERSONAL)) {
+    try {
+      const value = parseInt(await fs.readFile(await senseFile(name), "utf8"), 10);
+      values[name] = Number.isNaN(value) ? null : value;
+    } catch {
+      values[name] = null;
+    }
+  }
+  values.gpu_mode = await gpuMode();
+  return values;
+}
+
+async function setPersonal(name, value) {
+  if (!PERSONAL[name]?.includes(value)) throw new Error(`Unsupported setting: ${name} = ${value}`);
+  await write(await senseFile(name), value);
+}
+
+module.exports = { write, senseFile, setProfile, setFanSpeed, setModeKeyCycle, readPersonal, setPersonal };

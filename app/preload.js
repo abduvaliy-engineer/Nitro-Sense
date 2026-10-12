@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld("nitro", {
   updates: {
     check: () => ipcRenderer.invoke("updates:check"),
     version: () => ipcRenderer.invoke("updates:version"),
+    checkout: () => ipcRenderer.invoke("updates:checkout"),
     install: (version) => ipcRenderer.invoke("updates:install", version),
     onProgress: (callback) => ipcRenderer.on("updates:progress", (_e, stage) => callback(stage)),
     open: (url) => ipcRenderer.invoke("updates:open", url),
@@ -33,7 +34,10 @@ contextBridge.exposeInMainWorld("nitro", {
     setProfile: (profile) => ipcRenderer.invoke("controls:setProfile", profile),
     setFanSpeed: (cpu, gpu) => ipcRenderer.invoke("controls:setFanSpeed", cpu, gpu),
     setModeKeyCycle: (cycle) => ipcRenderer.invoke("controls:setModeKeyCycle", cycle),
-    setBacklightTimeout: (on) => ipcRenderer.invoke("controls:setBacklightTimeout", on),
+  },
+  personal: {
+    read: () => ipcRenderer.invoke("personal:read"),
+    set: (name, value) => ipcRenderer.invoke("personal:set", name, value),
   },
   lighting: {
     info: () => ipcRenderer.invoke("lighting:info"),

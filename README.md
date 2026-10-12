@@ -4,7 +4,7 @@ Unofficial recreation of Acer's NitroSense control center for Acer Nitro laptops
 behave like NitroSense on Windows, and talks to the hardware through the [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense)
 kernel driver.
 
-> **Status: early development (v0.9.6).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
+> **Status: early development (v0.10.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
 > Arch Linux (Omarchy / Hyprland).
 
 ![NitroSense for Linux — Home](docs/screenshots/home.png)
@@ -28,11 +28,11 @@ kernel driver.
   </tr>
   <tr>
     <td><img src="docs/screenshots/scenario-manager.png" alt="Scenario Manager with App Sync"></td>
-    <td></td>
+    <td><img src="docs/screenshots/personal-settings.png" alt="Personal Settings"></td>
   </tr>
   <tr>
     <td align="center">Scenario Manager with App Sync</td>
-    <td></td>
+    <td align="center">Personal Settings</td>
   </tr>
 </table>
 
@@ -49,9 +49,10 @@ Screenshots: the Linux app on a Nitro ANV16S-41 (Hyprland), showing live sensor 
 | Scenario → Pulsar Lighting | Keyboard RGB: Global effects (Static, Breathing, Neon, Wave, Ripple, Zoom, Snake, Disco) with brightness, speed, direction and a color wheel; Area mode with a color per keyboard zone; the keyboard flashes the mode color when the power mode changes |
 | Scenario profiles | Add, rename, duplicate, restore and remove profiles; applying one sets power mode, fans and lighting |
 | Scenario Manager | Every profile in one list: edit its AC and battery mode, fans and lighting without applying it, plus **App Sync** — link apps to a profile and it is applied while that app is in front |
+| Personal Settings | Battery charge mode (Optimized = 80 % limit), power-off USB charging with its 10 / 20 / 30 % limit, LCD overdrive, keyboard backlight off after 30 seconds, boot animation & sound |
 
-Planned: Personal Settings (battery charge limit, USB charging, boot animation, LCD overdrive) and the Monitoring
-page.
+GPU Operating, Bluelight Shield™, Sticky keys and Boot Logo Customization are shown greyed out: Linux has no backend
+for them yet. Planned: the Monitoring page.
 
 ### Keyboard lighting
 

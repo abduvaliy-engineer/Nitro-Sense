@@ -354,37 +354,6 @@
   padding: 4px;
 }
 
-.sm-switch {
-  position: relative;
-  width: 40px;
-  height: 16px;
-  background: url(../../assets/acer/light/switchbtn_bg_uncheck.svg) center / contain no-repeat;
-  pointer-events: none;
-}
-
-.sm-switch.on { background-image: url(../../assets/acer/light/switchbtn_bg.svg); }
-
-.sm-switch-knob {
-  position: absolute;
-  inset: 0;
-}
-
-.sm-switch-knob::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 20px;
-  height: 16px;
-  background: url(../../assets/acer/light/switchbtn_point_uncheck.svg) center / contain no-repeat;
-  transition: 0.4s;
-}
-
-.sm-switch.on .sm-switch-knob::before {
-  transform: translateX(20px);
-  background-image: url(../../assets/acer/light/switchbtn_point.svg);
-}
-
 .sm-sync-off {
   display: flex;
   align-items: center;
