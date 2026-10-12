@@ -42,12 +42,13 @@
 
   const EDIT = {
     create: { title: "New Scenario Profile", confirm: "Create", initial: () => "" },
-    rename: { title: "Rename", confirm: "Save", initial: () => scenario.state.profiles[scenario.state.active].name },
-    duplicate: { title: "Duplicate", confirm: "Create", initial: () => scenario.duplicateName() },
+    rename: { title: "Rename", confirm: "Save", initial: (index) => scenario.state.profiles[index].name },
+    duplicate: { title: "Duplicate", confirm: "Create", initial: (index) => scenario.duplicateName(index) },
     remove: { title: "Remove Scenario Profile", confirm: "Remove" },
   };
 
-  function editDialog(kind) {
+  // index: the profile acted on (the applied one from the ⋮ menu; any card in the Scenario Manager).
+  function editDialog(kind, index = scenario.state.active) {
     const spec = EDIT[kind];
     window.NitroDialog.open({
       size: "468x200",
@@ -58,9 +59,9 @@
           close();
           const name = input?.value.trim();
           if (kind === "create") scenario.add(name);
-          else if (kind === "rename") scenario.rename(name);
-          else if (kind === "duplicate") scenario.duplicate(name);
-          else scenario.remove();
+          else if (kind === "rename") scenario.rename(index, name);
+          else if (kind === "duplicate") scenario.duplicate(index, name);
+          else scenario.remove(index);
         });
         confirm.classList.add("ns-dialog-confirm");
         let input = null;
@@ -73,7 +74,7 @@
           input = el("input");
           input.maxLength = 32;
           input.spellcheck = false;
-          input.value = spec.initial();
+          input.value = spec.initial(index);
           box.append(input);
           content.append(box);
           const validate = () => {
@@ -90,7 +91,7 @@
     });
   }
 
-  function restoreDialog() {
+  function restoreDialog(index = scenario.state.active) {
     let choice = 0;
     window.NitroDialog.open({
       size: "468x468",
@@ -134,7 +135,7 @@
 
         content.append(label, trigger, rows);
         render();
-        const restore = pill("Restore", () => { close(); scenario.restore(choice); });
+        const restore = pill("Restore", () => { close(); scenario.restore(index, choice); });
         restore.classList.add("ns-dialog-confirm");
         body.append(content, footer([restore, pill("Cancel", close)]));
       },
@@ -166,6 +167,7 @@
   // ---------- frame ----------
 
   let activeSub = "Mode";
+  let previousSub = "Mode";
   let pendingSub = null;
   let parts = null;
   let lastSnapshot = null;
@@ -212,7 +214,7 @@
         { label: "Rename", onSelect: () => editDialog("rename") },
         { label: "Duplicate", disabled: scenario.isFull(), onSelect: () => editDialog("duplicate") },
         { divider: true },
-        { label: "Restore", onSelect: restoreDialog },
+        { label: "Restore", onSelect: () => restoreDialog() },
         { label: "Remove", disabled: state.profiles.length <= 1, onSelect: () => editDialog("remove") },
       ], { width: 160 });
     });
@@ -220,7 +222,10 @@
     const manager = el("button", "scn-btn scn-manager");
     manager.setAttribute("aria-label", "open scenario manager");
     manager.append(icon(`${ACER}/scenario/system_scenario_manager.svg`), el("span", "", "Scenario Manager"));
-    manager.addEventListener("click", () => selectSub("Scenario_Manager"));
+    manager.addEventListener("click", () => {
+      selectSub("Scenario_Manager");
+      window.NitroScenarioPages.Scenario_Manager?.firstOpen?.();
+    });
 
     const info = el("button", "scn-info custom-btn");
     info.setAttribute("aria-label", "open scenario manager introduction");
@@ -272,7 +277,9 @@
           button.hidden = tab.id === "Pulsar_Lighting" && !lightingSupported();
         }
       },
-      showBack(title, ariaLabel, onBack) {
+      // manager: the taller Scenario Manager header instead of the Area Lighting one.
+      showBack(title, ariaLabel, onBack, { manager = false } = {}) {
+        backRow.classList.toggle("manager", manager);
         backTitle.textContent = title;
         back.setAttribute("aria-label", ariaLabel);
         back.onclick = onBack;
@@ -294,6 +301,11 @@
     if (!parts) return;
     parts.page?.unmount?.();
     parts.tabs.showTabs();
+    // The Scenario Manager hides the profile bar and puts a back arrow where the sub-tabs were.
+    const manager = id === "Scenario_Manager";
+    if (manager && activeSub !== id) previousSub = activeSub;
+    parts.top.root.hidden = manager;
+    if (manager) parts.tabs.showBack("Scenario Manager", "back to previous page", () => selectSub(previousSub), { manager: true });
     activeSub = id;
     parts.tabs.render();
     const page = window.NitroScenarioPages?.[id] ?? placeholder(id === "Scenario_Manager" ? "Scenario Manager" : id.replace("_", " "));
@@ -316,6 +328,8 @@
       parts = { top, tabs, container: pageContainer, page: null };
       window.NitroLighting.load().then(() => parts?.tabs.render());
       // NitroSense always lands on Mode when the Scenario tab is opened from the header.
+      activeSub = "Mode";
+      previousSub = "Mode";
       selectSub(pendingSub ?? "Mode");
       pendingSub = null;
     },
@@ -336,11 +350,14 @@
     showTabs: () => parts?.tabs.showTabs(),
   };
 
-  // Widget rows and Details open a specific sub-tab.
+  // Widget rows and Details open a specific sub-tab (staying in the open Scenario tab when possible).
   window.NitroScenarioNav = {
     open(id) {
+      if (parts) return selectSub(id);
       pendingSub = id;
       window.NitroApp?.selectTab("Scenario");
     },
   };
+
+  window.NitroScenarioDialogs = { edit: editDialog, restore: restoreDialog };
 })();

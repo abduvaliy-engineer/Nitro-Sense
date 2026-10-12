@@ -124,6 +124,11 @@
   padding: 0 24px;
 }
 
+.scn-back-row.manager {
+  height: 42px;
+  margin: 4px 0 0;
+}
+
 .scn-back { width: 20px; height: 16px; }
 .scn-back img { width: 20px; height: 16px; }
 

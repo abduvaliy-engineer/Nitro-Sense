@@ -6,6 +6,8 @@ const updates = require("./updates");
 const shortcuts = require("./shortcuts");
 const controls = require("./controls");
 const lighting = require("./lighting");
+const apps = require("./apps");
+const appsync = require("./appsync");
 const { Settings } = require("./settings");
 
 const PLATFORM_PROFILE = "/sys/firmware/acpi/platform_profile";
@@ -41,6 +43,10 @@ function watchPlatformProfile() {
 function registerIpc() {
   watchPlatformProfile();
   const settings = new Settings(app.getPath("userData"));
+  apps.init(settings);
+  appsync.init((change) => {
+    for (const win of BrowserWindow.getAllWindows()) win.webContents.send("appsync:switch", change);
+  });
   ipcMain.handle("sensors:snapshot", () => sensors.snapshot());
   ipcMain.handle("system:info", () => system.info());
   ipcMain.handle("settings:get", (_e, key) => settings.get(key));
@@ -57,6 +63,11 @@ function registerIpc() {
   ipcMain.handle("lighting:info", () => lighting.info());
   ipcMain.handle("lighting:apply", (_e, value) => lighting.apply(value));
   ipcMain.handle("lighting:pickColor", () => lighting.pickColor());
+  ipcMain.handle("apps:list", () => apps.list());
+  ipcMain.handle("apps:resolve", (_e, refs) => apps.resolve(refs));
+  ipcMain.handle("apps:pickFile", (e) => apps.pickFile(BrowserWindow.fromWebContents(e.sender)));
+  ipcMain.handle("apps:refresh", () => apps.refresh());
+  ipcMain.handle("appsync:configure", (_e, config) => appsync.configure(config));
   ipcMain.handle("notify", (_e, title, body) => {
     if (Notification.isSupported()) new Notification({ title: String(title), body: String(body) }).show();
   });
