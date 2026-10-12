@@ -106,8 +106,8 @@ copies them from Acer's own NitroSense package and checks every file against `da
 
 - from a mounted Windows partition that has NitroSense installed, or
 - by downloading NitroSense (about 340 MB) from the Microsoft Store's servers. No Windows install or Microsoft
-  account is needed, and the download is deleted afterwards. The Store build is slightly older, so two images
-  differ a little from the newest NitroSense.
+  account is needed, and the download is deleted afterwards. The Store build is NitroSense 5.0, so the Home
+  gauge frame and the Disco lighting icon look like NitroSense 5.0's.
 - `./install.sh --assets PATH` takes a NitroSense `app.asar`, WindowsApps folder or `.msix`/`.msixbundle` instead.
 
 ## Running
