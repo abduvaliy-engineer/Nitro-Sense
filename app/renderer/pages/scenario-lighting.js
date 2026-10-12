@@ -210,7 +210,7 @@
     const linkRow = el("div", "lt-link-row");
     const link = el("button", "lt-link");
     link.append(el("span", "", "Backlight off after 30 seconds"), icon(`${ACER}/light/ic_textlink_arrow.svg`));
-    link.addEventListener("click", () => window.NitroApp?.selectTab("Personal Settings"));
+    link.addEventListener("click", () => window.NitroApp?.selectTab("Personal Settings", { focus: "Keyboard" }));
     linkRow.append(link);
     linkCard.append(linkRow);
     const resetCard = el("div", "ns-card lt-side-card");

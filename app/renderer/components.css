@@ -328,3 +328,36 @@
 .ns-slider:not(.disabled) .ns-slider-thumb:hover { background-image: url(../assets/acer/fan/slider_point_hover.svg); }
 .ns-slider:not(.disabled):active .ns-slider-thumb { background-image: url(../assets/acer/fan/slider_point_click.svg); }
 .ns-slider.disabled { pointer-events: none; }
+
+/* ---------- switch (.switch-button) ---------- */
+
+.ns-switch {
+  position: relative;
+  width: 40px;
+  height: 16px;
+  background: url(../assets/acer/light/switchbtn_bg_uncheck.svg) center / contain no-repeat;
+  pointer-events: none;
+}
+
+.ns-switch.on { background-image: url(../assets/acer/light/switchbtn_bg.svg); }
+
+.ns-switch-knob {
+  position: absolute;
+  inset: 0;
+}
+
+.ns-switch-knob::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 16px;
+  background: url(../assets/acer/light/switchbtn_point_uncheck.svg) center / contain no-repeat;
+  transition: 0.4s;
+}
+
+.ns-switch.on .ns-switch-knob::before {
+  transform: translateX(20px);
+  background-image: url(../assets/acer/light/switchbtn_point.svg);
+}
