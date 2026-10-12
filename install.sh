@@ -30,9 +30,11 @@ DRIVER=1
 UNINSTALL=0
 UPDATE=0
 ROOT_PHASE=""
+STAGE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root-phase) ROOT_PHASE=${2:?}; shift ;;  # internal: the root half, for user $2
+    --stage) STAGE=${2:?}; shift ;;              # internal: where the root half puts Windows' NitroSense
     --assets) ASSETS_SOURCE=${2:?--assets needs a path}; shift ;;
     --dev) DEV=1 ;;
     --no-driver) DRIVER=0 ;;
@@ -53,6 +55,7 @@ run_root_phase() {
   local args=(--root-phase "$USER")
   [ "$DRIVER" -eq 0 ] && args+=(--no-driver)
   [ "$UNINSTALL" -eq 1 ] && args+=(--uninstall)
+  [ -n "$STAGE" ] && args+=(--stage "$STAGE")
   if [ -t 0 ] && have sudo; then
     sudo bash "$REPO/install.sh" "${args[@]}"
   else
@@ -65,6 +68,17 @@ ask() {
   [[ $reply =~ ^[Yy] ]]
 }
 have() { command -v "$1" >/dev/null 2>&1; }
+
+# Prints the first NitroSense package folder under the given mount points, if any.
+find_package() {
+  local dir asar
+  for dir in "$@"; do
+    for asar in "$dir"/Program\ Files/WindowsApps/*NitroSense*/app/resources/app.asar; do
+      [ -f "$asar" ] && { echo "${asar%/app/resources/app.asar}"; return 0; }
+    done
+  done
+  return 0
+}
 
 [ -n "$ROOT_PHASE" ] || [ "$(id -u)" -ne 0 ] || die "Run this as your normal user; it asks for sudo when it needs root."
 [ "$(uname -m)" = x86_64 ] || die "Only x86_64 is supported."
@@ -190,11 +204,37 @@ EOF
     as_root install -d /etc/nitrosense
     echo "$max_mhz" | as_root tee /etc/nitrosense/cpu_max_mhz >/dev/null
   fi
+
+  # NitroSense installed on Windows has the newest artwork. Unmounted Windows drives are mounted read-only
+  # in a private folder for a moment; its app.asar goes to the stage folder for the user half.
+  if [ -n "$STAGE" ]; then
+    say "Looking for NitroSense on Windows drives"
+    while read -r dev fstype mountpoint; do
+      [ "$fstype" = ntfs ] && [ -z "$mountpoint" ] || continue
+      mnt=$(mktemp -d /run/nitrosense-windows.XXXXXX)
+      if mount -o ro "$dev" "$mnt" 2>/dev/null || mount -t ntfs3 -o ro "$dev" "$mnt" 2>/dev/null; then
+        package=$(find_package "$mnt")
+        if [ -n "$package" ]; then
+          mkdir -p "$STAGE/app/resources"
+          cp -r "$package/app/resources/app.asar" "$STAGE/app/resources/"
+          [ -d "$package/app/resources/app.asar.unpacked" ] && cp -r "$package/app/resources/app.asar.unpacked" "$STAGE/app/resources/"
+          chown -R "$ROOT_PHASE": "$STAGE"
+        fi
+        umount "$mnt"
+      fi
+      rmdir "$mnt"
+      [ -f "$STAGE/app/resources/app.asar" ] && break
+    done < <(lsblk -rpno NAME,FSTYPE,MOUNTPOINT)
+  fi
   exit 0
 fi
 
 NEW_GROUP=0
 id -nG "$USER" | grep -qw linuwu_sense || NEW_GROUP=1
+if [ "$UPDATE" -eq 0 ] && [ -z "$ASSETS_SOURCE" ]; then
+  STAGE=$(mktemp -d)
+  trap 'rm -rf "$STAGE"' EXIT
+fi
 # An update only needs root when the system part is missing or changed.
 system_current() {
   modinfo linuwu_sense >/dev/null 2>&1 && [ "$NEW_GROUP" -eq 0 ] && [ -e /etc/nitrosense/cpu_max_mhz ] \
@@ -255,28 +295,21 @@ extract_assets() {
   python3 -I "$REPO/tools/extract-acer-assets.py" "$1" "$REPO/data/acer-assets.tsv" "$APP_DIR/assets/acer"
 }
 
-# Prints the first NitroSense package folder under the given mount points, if any.
-find_package() {
-  local dir asar
-  for dir in "$@"; do
-    for asar in "$dir"/Program\ Files/WindowsApps/*NitroSense*/app/resources/app.asar; do
-      [ -f "$asar" ] && { echo "${asar%/app/resources/app.asar}"; return 0; }
-    done
-  done
-  return 0
-}
-
 if [ -n "$ASSETS_SOURCE" ]; then
   say "Copying NitroSense artwork from $ASSETS_SOURCE"
   extract_assets "$ASSETS_SOURCE"
-elif assets_complete; then
-  say "NitroSense artwork is already in place"
 else
-  # A Windows install on this laptop has the newest NitroSense; otherwise fetch it from the Microsoft Store.
-  package=$(find_package /run/media/"$USER"/* /media/"$USER"/* /mnt /mnt/*)
-  if [ -n "$package" ]; then
-    say "Copying NitroSense artwork from the Windows partition"
-    extract_assets "$package"
+  # NitroSense on Windows (picked up during the root step, or on a mounted drive) is the newest version;
+  # whatever it doesn't provide comes from Acer's package in the Microsoft Store.
+  windows=""
+  [ -n "$STAGE" ] && [ -f "$STAGE/app/resources/app.asar" ] && windows=$STAGE
+  [ -n "$windows" ] || windows=$(find_package /run/media/"$USER"/* /media/"$USER"/* /mnt /mnt/*)
+  if [ -n "$windows" ]; then
+    say "Copying NitroSense artwork from Windows"
+    extract_assets "$windows" >/dev/null || true
+  fi
+  if assets_complete; then
+    say "NitroSense artwork is in place"
   else
     say "Downloading Acer's NitroSense from the Microsoft Store for its artwork (about 340 MB)"
     tmp=$(mktemp -d)
