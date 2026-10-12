@@ -77,6 +77,13 @@ function updateHairline() {
 
 window.NitroApp = { selectTab };
 
+// Early development: the running version in the corner ("dev" when it runs from a git checkout).
+Promise.all([window.nitro.updates.version(), window.nitro.updates.checkout().catch(() => false)])
+  .then(([version, checkout]) => {
+    document.getElementById("app-version").textContent = `v${version}${checkout ? " dev" : ""}`;
+  })
+  .catch((error) => console.error("reading the version failed", error));
+
 updateHairline();
 selectTab(activeTab);
 poll();

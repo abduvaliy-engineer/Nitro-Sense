@@ -104,4 +104,4 @@ function isReleaseUrl(url) {
   return typeof url === "string" && url.startsWith(`${RELEASES}/`);
 }
 
-module.exports = { check, install, isReleaseUrl, RELEASES };
+module.exports = { check, install, isCheckout, isReleaseUrl, RELEASES };

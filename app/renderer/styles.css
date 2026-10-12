@@ -182,6 +182,17 @@ button {
 .maximized .glyph-max { display: none; }
 .maximized .glyph-restore { display: block; }
 
+/* Early development: which version is running. */
+.app-version {
+  position: fixed;
+  bottom: 8px;
+  left: 12px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+  pointer-events: none;
+}
+
 /* ---------- content ---------- */
 
 #content {
