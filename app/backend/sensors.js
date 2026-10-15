@@ -5,6 +5,9 @@ const { execFile } = require("child_process");
 const HWMON = "/sys/class/hwmon";
 const CPUS = "/sys/devices/system/cpu";
 const PCI = "/sys/bus/pci/devices";
+const NET = "/sys/class/net";
+const NVIDIA_GPUS = "/proc/driver/nvidia/gpus";
+const UDEV_DMI = "/run/udev/data/+dmi:id";
 const PLATFORM_PROFILE = "/sys/firmware/acpi/platform_profile";
 const FAN_SPEED = ["/sys/devices/platform/acer-wmi/nitro_sense/fan_speed", "/sys/devices/platform/acer-wmi/predator_sense/fan_speed"];
 
@@ -19,6 +22,15 @@ async function read(file) {
 async function readInt(file) {
   const value = parseInt(await read(file), 10);
   return Number.isNaN(value) ? null : value;
+}
+
+async function exists(file) {
+  try {
+    await fs.access(file);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function findHwmon(name) {
@@ -51,10 +63,27 @@ async function readTemps() {
   };
 }
 
+// count = fan tachometers on the EC (1 on single-fan models, where it is the CPU fan).
+let fanCount;
+
 async function readFans() {
   const { acer } = await hwmonPaths();
-  if (!acer) return { cpu: null, gpu: null };
-  return { cpu: await readInt(path.join(acer, "fan1_input")), gpu: await readInt(path.join(acer, "fan2_input")) };
+  if (!acer) return { cpu: null, gpu: null, count: 0 };
+  fanCount ??= (await exists(path.join(acer, "fan2_input"))) ? 2 : (await exists(path.join(acer, "fan1_input"))) ? 1 : 0;
+  return {
+    cpu: await readInt(path.join(acer, "fan1_input")),
+    gpu: await readInt(path.join(acer, "fan2_input")),
+    count: fanCount,
+  };
+}
+
+let cpuName;
+
+async function readCpuName() {
+  if (cpuName === undefined) {
+    cpuName = (await read("/proc/cpuinfo"))?.match(/^model name\s*:\s*(.+)$/m)?.[1].trim() || null;
+  }
+  return cpuName;
 }
 
 let lastStat = null;
@@ -81,7 +110,7 @@ async function readCpu() {
   }
   const frequency = freqs.length ? Math.round(freqs.reduce((a, b) => a + b, 0) / freqs.length / 1000) : null;
   cpuMax ??= await readCpuMax();
-  return { frequency, usage, maxFrequency: cpuMax };
+  return { frequency, usage, maxFrequency: cpuMax, name: await readCpuName() };
 }
 
 // NitroSense scales the CPU gauge to the SMBIOS "Max Speed" (root-only to read), which install.sh
@@ -121,17 +150,28 @@ function nvidiaSmi() {
   });
 }
 
+// The driver's model name ("NVIDIA GeForce RTX 5050 Laptop GPU", the name Windows shows). Like nvidia-smi it is only
+// read while the dGPU is awake, then kept.
+let gpuName = null;
+
+async function readNvidiaName(dir) {
+  if (gpuName) return gpuName;
+  const info = await read(path.join(NVIDIA_GPUS, path.basename(dir), "information"));
+  gpuName = info?.match(/^Model:\s*(.+)$/m)?.[1].trim() || null;
+  return gpuName;
+}
+
 async function readGpu() {
   const gpu = await findGpu();
-  if (!gpu) return { frequency: null, usage: null, active: false };
+  if (!gpu) return { frequency: null, usage: null, active: false, name: null };
 
   if (gpu.vendor === "nvidia") {
     // Never wake a suspended dGPU just to read its clock.
     if ((await read(path.join(gpu.dir, "power", "runtime_status"))) !== "active") {
-      return { frequency: 0, usage: 0, maxFrequency: null, active: false };
+      return { frequency: 0, usage: 0, maxFrequency: null, active: false, name: gpuName };
     }
-    const sample = await nvidiaSmi();
-    return sample ? { ...sample, active: true } : { frequency: null, usage: null, maxFrequency: null, active: true };
+    const [sample, name] = await Promise.all([nvidiaSmi(), readNvidiaName(gpu.dir)]);
+    return sample ? { ...sample, active: true, name } : { frequency: null, usage: null, maxFrequency: null, active: true, name };
   }
 
   const sclk = (await read(path.join(gpu.dir, "pp_dpm_sclk")))?.split("\n").find((l) => l.includes("*"));
@@ -139,18 +179,62 @@ async function readGpu() {
     frequency: sclk ? parseInt(sclk.split(":")[1], 10) : null,
     usage: await readInt(path.join(gpu.dir, "gpu_busy_percent")),
     active: true,
+    name: null,
   };
 }
 
+// systemd-udev's dmi_memory_id copies the SMBIOS memory devices into a world-readable udev record (dmidecode needs root).
+let ramFrequency;
+
+async function readRamFrequency() {
+  if (ramFrequency === undefined) {
+    const record = (await read(UDEV_DMI)) ?? "";
+    const speeds = (key) => [...record.matchAll(new RegExp(`^E:MEMORY_DEVICE_\\d+_${key}=(\\d+)$`, "gm"))]
+      .map((match) => Number(match[1])).filter(Boolean);
+    ramFrequency = speeds("CONFIGURED_SPEED_MTS")[0] ?? speeds("SPEED_MTS")[0] ?? null;
+  }
+  return ramFrequency;
+}
+
 async function readRam() {
-  const info = await read("/proc/meminfo");
-  if (!info) return { usage: null, used: null, total: null };
+  const [info, frequency] = await Promise.all([read("/proc/meminfo"), readRamFrequency()]);
+  if (!info) return { usage: null, used: null, total: null, frequency };
   const kb = (key) => parseInt(info.match(new RegExp(`^${key}:\\s+(\\d+)`, "m"))?.[1], 10);
   const total = kb("MemTotal");
   const available = kb("MemAvailable");
-  if (!total || Number.isNaN(available)) return { usage: null, used: null, total: null };
+  if (!total || Number.isNaN(available)) return { usage: null, used: null, total: null, frequency };
   const used = total - available;
-  return { usage: Math.round((used / total) * 1000) / 10, used: used * 1024, total: total * 1024 };
+  return { usage: Math.round((used / total) * 1000) / 10, used: used * 1024, total: total * 1024, frequency };
+}
+
+// Download/upload in kilobits per second since the previous snapshot, per adapter kind like Windows reports them.
+// Only physical adapters count (a device link); Wi-Fi ones have a wireless/phy80211 entry.
+let lastNet = null;
+
+async function readNetwork() {
+  const now = Date.now();
+  const counters = new Map();
+  for (const name of await fs.readdir(NET).catch(() => [])) {
+    const dir = path.join(NET, name);
+    if (!(await exists(path.join(dir, "device")))) continue;
+    const wifi = (await exists(path.join(dir, "wireless"))) || (await exists(path.join(dir, "phy80211")));
+    if (!wifi && (await read(path.join(dir, "type"))) !== "1") continue;
+    const rx = await readInt(path.join(dir, "statistics", "rx_bytes"));
+    const tx = await readInt(path.join(dir, "statistics", "tx_bytes"));
+    if (rx !== null && tx !== null) counters.set(name, { kind: wifi ? "wifi" : "ethernet", rx, tx });
+  }
+  const rates = { ethernet: { download: 0, upload: 0 }, wifi: { download: 0, upload: 0 } };
+  const seconds = lastNet ? (now - lastNet.time) / 1000 : 0;
+  if (seconds > 0) {
+    for (const [name, current] of counters) {
+      const before = lastNet.counters.get(name);
+      if (!before) continue;
+      rates[current.kind].download += (Math.max(0, current.rx - before.rx) * 8) / 1000 / seconds;
+      rates[current.kind].upload += (Math.max(0, current.tx - before.tx) * 8) / 1000 / seconds;
+    }
+  }
+  lastNet = { time: now, counters };
+  return rates;
 }
 
 // linuwu-sense echoes the last written "cpu,gpu" percentages: 0,0 = auto, 100,100 = max.
@@ -184,11 +268,11 @@ async function readModeKeyCycle() {
 }
 
 async function snapshot() {
-  const [temps, fans, cpu, gpu, ram, profile, fanMode, power, modeKeyCycle] = await Promise.all([
+  const [temps, fans, cpu, gpu, ram, profile, fanMode, power, modeKeyCycle, network] = await Promise.all([
     readTemps(), readFans(), readCpu(), readGpu(), readRam(), read(PLATFORM_PROFILE), readFanMode(), readPower(),
-    readModeKeyCycle(),
+    readModeKeyCycle(), readNetwork(),
   ]);
-  return { temps, fans, cpu, gpu, ram, profile, fanMode, power, modeKeyCycle };
+  return { temps, fans, cpu, gpu, ram, profile, fanMode, power, modeKeyCycle, network };
 }
 
 module.exports = { snapshot, readPower };
