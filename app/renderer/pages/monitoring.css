@@ -1,0 +1,297 @@
+/* Monitoring tab (NitroSense app-monitor + app-monitoring-line-chart). Breakpoint RWDl 1168. */
+
+.mon-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  padding: 16px 24px 32px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.mon-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.mon-title-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 24px;
+}
+
+.mon-title {
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--color-ff);
+  text-align: left;
+}
+
+.mon-cards {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.mon-left {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.mon-left > :not([hidden]) ~ :not([hidden]) { margin-top: 16px; }
+
+.mon-right {
+  display: flex;
+  width: 100%;
+  margin-top: 16px;
+}
+
+/* ---------- cards ---------- */
+
+.mon-card {
+  display: flex;
+  flex-direction: column;
+  height: 264px;
+  padding: 28px 28px 12px;
+}
+
+.mon-system {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: fit-content;
+  padding: 28px;
+}
+
+.mon-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.mon-main {
+  width: 100%;
+  text-align: left;
+}
+
+.mon-system-main { width: 100%; }
+
+.mon-name,
+.mon-caption {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.mon-name { color: var(--color-80); }
+.mon-caption { color: var(--color-c0); text-align: left; }
+
+.mon-system-title {
+  font-size: 20px;
+  line-height: 24px;
+  color: var(--color-c0);
+  text-align: right;
+}
+
+.mon-range {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-4c);
+  text-align: right;
+}
+
+.mon-range-min,
+.mon-range-max { margin: 0 8px; }
+.mon-range-max-edge { margin-left: 8px; }
+
+/* Right-hand readouts (w-19 grow): title, big value, unit. */
+.mon-side {
+  flex-grow: 1;
+  width: 76px;
+  color: var(--color-ff);
+  text-align: right;
+}
+
+.mon-side-title {
+  font-size: 20px;
+  line-height: 24px;
+  color: var(--color-c0);
+}
+
+.mon-big {
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 700;
+}
+
+.mon-big.temp { color: var(--color-nb); }
+.mon-big.usage { color: var(--color-lig); }
+
+.mon-unit {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+}
+
+.mon-stats {
+  display: flex;
+  flex-direction: row;
+  margin-top: 4px;
+  text-align: left;
+}
+
+.mon-stats.tight { margin-top: 2px; }
+
+.mon-stat { width: 140px; }
+
+.mon-stat-label {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-c0);
+}
+
+.mon-stat-value { margin-top: 4px; }
+.mon-stat-value.mt2 { margin-top: 8px; }
+
+.mon-value {
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 700;
+  color: var(--color-ff);
+}
+
+.mon-stat-unit {
+  margin: 0 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-80);
+}
+
+.mon-info {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+}
+
+.mon-info img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+/* NitroSense's .custom_btn:disabled. */
+.mon-info:disabled,
+.mon-info:disabled:hover { opacity: 0.1; }
+
+.mon-idle {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-lb);
+  text-align: right;
+}
+
+.mon-sections {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 16px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.mon-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.mon-section-title {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-hb);
+  text-align: left;
+  border-bottom: 1px solid var(--color-gd);
+}
+
+/* ---------- line chart ---------- */
+
+.mon-chart-box {
+  width: 100%;
+  height: 100px;
+}
+
+.mon-chart {
+  position: relative;
+  background: url(../../assets/acer/monitor/monitor_tablebg.svg) bottom / contain repeat-x;
+}
+
+.mon-chart-plot {
+  height: 100px;
+  padding-top: 1px;
+  overflow: hidden;
+}
+
+.mon-chart-plot svg {
+  display: block;
+  pointer-events: none;
+}
+
+.mon-chart-line {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: silver;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.mon-chart-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 52px;
+  border-radius: 6px;
+  background: linear-gradient(0deg, #181818 0%, #323232 100%);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  transform: translate(var(--pos-x, -41px), -52px);
+}
+
+.mon-chart-tip .time { color: var(--color-80); }
+.mon-chart-tip .temp { color: var(--color-nb); }
+.mon-chart-tip .usage { color: var(--color-lig); }
+.mon-chart-tip .idle { color: var(--color-ff); }
+
+/* ---------- widths (NitroSense RWDl 1168) ---------- */
+
+@media (min-width: 1168px) {
+  .mon-inner { align-items: center; }
+  .mon-title-row { width: 1136px; }
+
+  .mon-cards {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .mon-cards > :not([hidden]) ~ :not([hidden]) { margin-left: 16px; }
+  .mon-left { width: auto; }
+  .mon-card { width: 560px; }
+
+  .mon-right {
+    width: auto;
+    margin-top: 0;
+  }
+
+  .mon-system { width: 560px; }
+}
