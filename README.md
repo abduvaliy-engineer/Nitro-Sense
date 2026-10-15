@@ -4,7 +4,7 @@ Unofficial recreation of Acer's NitroSense control center for Acer Nitro laptops
 behave like NitroSense on Windows, and talks to the hardware through the [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense)
 kernel driver.
 
-> **Status: early development (v0.11.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
+> **Status: early development (v0.11.5).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
 > Arch Linux (Omarchy / Hyprland).
 
 ![NitroSense for Linux — Home](docs/screenshots/home.png)
@@ -56,10 +56,10 @@ Screenshots: the Linux app on a Nitro ANV16S-41 (Hyprland), showing live sensor 
 | Scenario profiles | Add, rename, duplicate, restore and remove profiles; applying one sets power mode, fans and lighting |
 | Scenario Manager | Every profile in one list: edit its AC and battery mode, fans and lighting without applying it, plus **App Sync** — link apps to a profile and it is applied while that app is in front |
 | Personal Settings | Battery charge mode (Optimized = 80 % limit), power-off USB charging with its 10 / 20 / 30 % limit, LCD overdrive, keyboard backlight off after 30 seconds, boot animation & sound |
-| Monitoring | GPU, CPU and system temperature charts (GPU and CPU with usage), with min / max and a readout under the pointer; fan speeds, clocks, RAM speed and usage, Ethernet and Wi-Fi download / upload rates |
+| Monitoring | GPU, CPU and system temperature charts (GPU and CPU with usage), with min / max and a readout under the pointer; fan speeds, clocks, RAM speed and usage, Ethernet and Wi-Fi download / upload rates; CPU Details, a btop-style view of every logical CPU (mini 2-minute usage chart, usage and clock) under a 2-minute temperature / usage chart with total usage, average clock, temperature and load average (our own design: NitroSense's dialog only lists the clocks) |
 
-GPU Operating, Bluelight Shield™, Sticky keys, Boot Logo Customization and the Monitoring page's CPU details are
-shown greyed out: they don't work on Linux yet. Checkup, App Center and Experience Zone are not built yet.
+GPU Operating, Bluelight Shield™, Sticky keys and Boot Logo Customization are shown greyed out: they don't work on
+Linux yet. Checkup, App Center and Experience Zone are not built yet.
 
 ### Keyboard lighting
 
