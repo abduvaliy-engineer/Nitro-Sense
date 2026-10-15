@@ -176,9 +176,10 @@
     const valueClass = gpu ? "mon-stat-value" : "mon-stat-value mt2";
     const fan = stat("Fan speed", "RPM", valueClass);
     const frequency = stat("Frequency", "MHz", valueClass);
+    let details = null;
     if (!gpu) {
-      // NitroSense opens a "CPU Details" dialog with every core's clock here; not built yet.
-      const details = el("button", "mon-info custom-btn");
+      // NitroSense's CPU Details button; it opens our own per-CPU monitor.
+      details = el("button", "mon-info custom-btn");
       details.setAttribute("aria-label", "open cpu detail dialog");
       details.disabled = true;
       details.title = LINUX_LATER;
@@ -186,6 +187,7 @@
       image.src = `${ACER}/scenario/ic_infomation.svg`;
       image.alt = "";
       details.append(image);
+      details.addEventListener("click", openCoreDialog);
       frequency.line.append(details);
     }
     const stats = el("div", "mon-stats");
@@ -199,7 +201,7 @@
       idle.hidden = true;
       root.append(idle);
     }
-    return { root, chart, name, temp, usage, range, fan, frequency, idle };
+    return { root, chart, name, temp, usage, range, fan, frequency, idle, details };
   }
 
   function section(title, ...stats) {
@@ -246,6 +248,153 @@
     const root = el("div", "ns-card mon-system");
     root.append(el("p", "mon-system-title", "System"), el("p", "mon-caption", "Temperature"), row);
     return { root, chart, temp, range, fan, fanSection, ramFrequency, ramUsage, ramRatio, net };
+  }
+
+  // ---------- CPU Details dialog: our own per-CPU monitor (btop-style; NitroSense's only lists clocks) ----------
+
+  // Two minutes of usage per logical CPU (one sample per poll), recorded on every poll so the graphs are full when
+  // the dialog opens. Keyed by CPU number, so a CPU going offline doesn't shift the others' history.
+  const CORE_SAMPLES = 60;
+  const coreHistory = new Map();
+
+  function recordCores(cores = []) {
+    const seen = new Set();
+    for (const { id, usage } of cores) {
+      seen.add(id);
+      if (!coreHistory.has(id)) coreHistory.set(id, new Array(CORE_SAMPLES).fill(null));
+      push(coreHistory.get(id), usage);
+    }
+    for (const id of coreHistory.keys()) if (!seen.has(id)) coreHistory.delete(id);
+  }
+
+  // Small version of the Monitoring line chart, sized to its box: the samples (0-100, null = 0) span the width,
+  // oldest on the left; one 1px line per series over its gradient fill, temperature first so usage draws on top.
+  function miniChart(className, colors) {
+    const id = `mon-chart-${chartId++}`;
+    const root = el("div", className);
+    const plot = svg("svg", { width: "100%", height: "100%", preserveAspectRatio: "none" });
+    const defs = svg("defs");
+    plot.append(defs);
+    const layers = colors.map((color, n) => {
+      const peak = svg("stop", { "stop-color": `${color}4d` });
+      const gradient = svg("linearGradient", { id: `${id}-grad${n}`, gradientTransform: "rotate(90)" });
+      gradient.append(svg("stop", { offset: "0%", "stop-color": `${color}4d` }), peak, svg("stop", { offset: "100%", "stop-color": `${color}00` }));
+      const fill = svg("path", { fill: "white" });
+      const mask = svg("mask", { id: `${id}-mask${n}` });
+      mask.append(fill);
+      defs.append(gradient, mask);
+      const area = svg("rect", { x: 0, y: 0, fill: `url(#${id}-grad${n})`, mask: `url(#${id}-mask${n})` });
+      const stroke = svg("path", { fill: "transparent", stroke: color });
+      plot.append(area, stroke);
+      return { peak, fill, area, stroke };
+    });
+    root.append(plot);
+
+    function draw(...series) {
+      const box = root.getBoundingClientRect();
+      const width = Math.floor(box.width);
+      const height = Math.floor(box.height);
+      if (!width || !height) return;
+      plot.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      series.forEach((data, n) => {
+        const layer = layers[n];
+        const values = (data.length ? data : [0, 0]).map((v) => Math.min(100, Math.max(0, v ?? 0)));
+        const last = Math.max(1, values.length - 1);
+        // 100 % sits 1px below the top so the line stays visible.
+        const points = values.map((v, i) => `${Math.round((i * width * 10) / last) / 10},${Math.round((height - ((height - 1) * v) / 100) * 10) / 10}`);
+        layer.stroke.setAttribute("d", `M${points.join("L")}`);
+        layer.fill.setAttribute("d", `M0,${height}L${points.join("L")}L${width},${height}Z`);
+        layer.area.setAttribute("width", width);
+        layer.area.setAttribute("height", height);
+        layer.peak.setAttribute("offset", `${100 - Math.floor(Math.max(0, ...values))}%`);
+      });
+    }
+    return { root, draw };
+  }
+
+  let lastSnapshot = null;
+  let coreDialog = null;
+
+  // One row per logical CPU: "CPU #n", its usage graph, usage and clock. Every other physical core is shaded, so
+  // the two threads of a core read as a pair.
+  function coreRow({ id, core }) {
+    const row = el("div", core % 2 === 0 ? "mon-cd-row shade" : "mon-cd-row");
+    const graph = miniChart("mon-cd-graph", [ORANGE]);
+    const usage = el("span", "mon-cd-usage", "--");
+    const clock = el("span", "mon-cd-clock", "--");
+    row.append(el("span", "mon-cd-label", `CPU #${id + 1}`), graph.root, usage, clock);
+    return { id, row, graph, usage, clock };
+  }
+
+  const percent = (value) => (value === null || value === undefined ? "--" : `${value}%`);
+
+  function renderCores() {
+    if (!coreDialog || !lastSnapshot) return;
+    const d = coreDialog;
+    const s = lastSnapshot;
+    const cores = s.cpu.cores ?? [];
+    // Rebuilt when CPUs go offline or come back (NitroSense's own dialog freezes instead).
+    const layout = cores.map((c) => `${c.id}:${c.core}`).join(",");
+    if (layout !== d.layout) {
+      d.layout = layout;
+      d.rows = cores.map(coreRow);
+      d.list.replaceChildren(...d.rows.map((r) => r.row));
+    }
+    d.name.textContent = s.cpu.name ?? "--";
+    d.total.draw(history.cpuTemp.slice(-CORE_SAMPLES), history.cpuUsage.slice(-CORE_SAMPLES));
+    // Like the Monitoring cards: usage in amber, temperature in red, so these two also label the chart's lines.
+    d.usage.textContent = percent(s.cpu.usage);
+    d.clock.textContent = s.cpu.frequency ? `${s.cpu.frequency}MHz` : "--";
+    d.temp.textContent = s.temps.cpu ? `${s.temps.cpu}°C` : "--";
+    d.load.textContent = s.cpu.load?.every(Number.isFinite) ? s.cpu.load.map((v) => v.toFixed(2)).join(" ") : "--";
+    cores.forEach((c, i) => {
+      const r = d.rows[i];
+      r.usage.textContent = percent(c.usage);
+      r.usage.classList.toggle("hot", c.usage >= 90);
+      r.clock.textContent = c.frequency === null ? "--" : `${c.frequency}MHz`;
+      r.graph.draw(coreHistory.get(c.id) ?? []);
+    });
+  }
+
+  function openCoreDialog() {
+    if (coreDialog) return;
+    // Laid out like a Monitoring card: device name, then "Temperature / Usage" over the chart.
+    const name = el("p", "mon-name mon-cd-name", "--");
+    const caption = el("div", "mon-cd-caption");
+    caption.append(el("p", "mon-caption", "Temperature / Usage"), el("p", "mon-cd-span", "Last 2 min"));
+    const head = el("div", "mon-cd-head");
+    head.append(name, caption);
+    const total = miniChart("mon-cd-total", [RED, ORANGE]);
+    const stats = el("div", "mon-cd-stats");
+    const stat = (label, valueClass = "") => {
+      const value = el("span", `mon-cd-stat-value ${valueClass}`.trim(), "--");
+      const item = el("span", "mon-cd-stat");
+      item.append(el("span", "mon-cd-stat-label", label), value);
+      stats.append(item);
+      return value;
+    };
+    const usage = stat("Total", "usage");
+    const clock = stat("Avg");
+    const temp = stat("Temp", "temp");
+    const load = stat("Load");
+    const list = el("div", "mon-cores");
+    coreDialog = { name, total, usage, clock, temp, load, list, layout: null, rows: [] };
+    coreDialog.handle = window.NitroDialog.open({
+      size: "468x560",
+      title: "CPU Details",
+      build(body, close) {
+        const inner = el("div", "wi-setup");
+        inner.append(head, total.root, stats, el("div", "mon-cd-rule"), list);
+        const done = el("button", "pill-btn w156", "Close");
+        done.setAttribute("aria-label", "close");
+        done.addEventListener("click", close);
+        const footer = el("div", "ns-dialog-footer");
+        footer.append(done);
+        body.append(inner, footer);
+      },
+      onClose() { coreDialog = null; },
+    });
+    renderCores();
   }
 
   // ---------- values (NitroSense's getGpuData / temperatureConvert / valueConvert / getCeil rules) ----------
@@ -302,6 +451,13 @@
     cpu.frequency.value.textContent = dash(s.cpu.frequency);
     cpu.fan.root.hidden = singleFan;
     cpu.range.set(...range("cpuTemp"));
+    // The CPU Details button works when the kernel reports anything per CPU.
+    lastSnapshot = s;
+    const hasCores = (s.cpu.cores ?? []).some((c) => c.frequency !== null || c.usage !== null);
+    cpu.details.disabled = !hasCores;
+    if (hasCores) cpu.details.removeAttribute("title");
+    else cpu.details.title = LINUX_LATER;
+    renderCores();
 
     system.temp.textContent = dash(s.temps.system);
     system.range.set(...range("sysTemp"));
@@ -354,9 +510,12 @@
     },
     collect(snapshot) {
       record(snapshot);
+      recordCores(snapshot.cpu.cores);
       rememberGpuName(snapshot.gpu.name);
     },
     unmount() {
+      // Like NitroSense's dialogs, leaving the page closes it.
+      coreDialog?.handle.close();
       for (const card of Object.values(parts ?? {})) card.chart.destroy();
       parts = null;
     },
