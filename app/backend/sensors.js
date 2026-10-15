@@ -86,31 +86,82 @@ async function readCpuName() {
   return cpuName;
 }
 
-let lastStat = null;
+// Busy share since the previous poll for each /proc/stat "cpu" line ("" = all CPUs, "0", "1", ...).
+const lastStat = new Map();
+
+function busyShare(label, fields) {
+  const idle = fields[3] + (fields[4] || 0);
+  const total = fields.reduce((sum, v) => sum + v, 0);
+  const last = lastStat.get(label);
+  lastStat.set(label, { idle, total });
+  if (!last || total <= last.total) return null;
+  return Math.min(100, Math.max(0, Math.round((1 - (idle - last.idle) / (total - last.total)) * 100)));
+}
 
 async function readCpu() {
-  const line = (await read("/proc/stat"))?.split("\n")[0];
   let usage = null;
-  if (line) {
-    const fields = line.split(/\s+/).slice(1).map(Number);
-    const idle = fields[3] + (fields[4] || 0);
-    const total = fields.reduce((sum, v) => sum + v, 0);
-    if (lastStat && total > lastStat.total) {
-      usage = Math.round((1 - (idle - lastStat.idle) / (total - lastStat.total)) * 100);
-    }
-    lastStat = { idle, total };
+  const perCpu = new Map();
+  for (const line of ((await read("/proc/stat")) ?? "").split("\n")) {
+    const match = /^cpu(\d*)\s+(.*)$/.exec(line);
+    if (!match) continue;
+    const share = busyShare(match[1], match[2].trim().split(/\s+/).map(Number));
+    if (match[1] === "") usage = share;
+    else perCpu.set(Number(match[1]), share);
   }
 
-  const entries = (await fs.readdir(CPUS).catch(() => [])).filter((e) => /^cpu\d+$/.test(e));
-  const freqs = [];
-  for (const cpu of entries) {
-    const dir = path.join(CPUS, cpu, "cpufreq");
-    const khz = (await readInt(path.join(dir, "cpuinfo_avg_freq"))) ?? (await readInt(path.join(dir, "scaling_cur_freq")));
-    if (khz) freqs.push(khz);
-  }
-  const frequency = freqs.length ? Math.round(freqs.reduce((a, b) => a + b, 0) / freqs.length / 1000) : null;
+  // One entry per online logical CPU in CPU order (the CPU Details rows): its clock, rounded up like NitroSense,
+  // its usage and its physical core (0, 1, ... in order of appearance). null where a read fails. The card's
+  // average clock comes from the same reads.
+  const ids = await onlineCpus();
+  const khz = await Promise.all(ids.map(async (id) => {
+    const dir = path.join(CPUS, `cpu${id}`, "cpufreq");
+    return (await readInt(path.join(dir, "cpuinfo_avg_freq"))) ?? (await readInt(path.join(dir, "scaling_cur_freq")));
+  }));
+  const coreOf = await physicalCores(ids);
+  const cores = ids.map((id, i) => ({
+    id,
+    frequency: khz[i] ? Math.ceil(khz[i] / 1000) : null,
+    usage: perCpu.get(id) ?? null,
+    core: coreOf[i],
+  }));
+  const measured = khz.filter(Boolean);
+  const frequency = measured.length ? Math.ceil(measured.reduce((a, b) => a + b, 0) / measured.length / 1000) : null;
+  const load = (await read("/proc/loadavg"))?.split(/\s+/).slice(0, 3).map(Number) ?? null;
   cpuMax ??= await readCpuMax();
-  return { frequency, usage, maxFrequency: cpuMax, name: await readCpuName() };
+  return { frequency, cores, usage, load, maxFrequency: cpuMax, name: await readCpuName() };
+}
+
+// Threads of one physical core share a sibling list ("0-1"). Read again only when the set of online CPUs changes.
+let coreCache = { key: null, cores: [] };
+
+async function physicalCores(ids) {
+  const key = ids.join(",");
+  if (coreCache.key === key) return coreCache.cores;
+  const order = new Map();
+  const cores = [];
+  for (const id of ids) {
+    const topology = path.join(CPUS, `cpu${id}`, "topology");
+    const siblings = (await read(path.join(topology, "core_cpus_list")))
+      ?? (await read(path.join(topology, "thread_siblings_list"))) ?? String(id);
+    if (!order.has(siblings)) order.set(siblings, order.size);
+    cores.push(order.get(siblings));
+  }
+  coreCache = { key, cores };
+  return cores;
+}
+
+// "0-3,5,8-15" -> [0, 1, 2, 3, 5, 8, ...]. Offline CPUs have no readable clock, so they are left out.
+async function onlineCpus() {
+  const ids = [];
+  for (const part of ((await read(path.join(CPUS, "online"))) ?? "").split(",")) {
+    const [first, last] = part.split("-").map((v) => parseInt(v, 10));
+    if (Number.isNaN(first)) continue;
+    for (let id = first; id <= (Number.isNaN(last) ? first : last); id++) ids.push(id);
+  }
+  if (ids.length) return ids;
+  // readdir is lexical (cpu1, cpu10, cpu11 ... cpu2), so sort the numbers.
+  return (await fs.readdir(CPUS).catch(() => []))
+    .filter((entry) => /^cpu\d+$/.test(entry)).map((entry) => Number(entry.slice(3))).sort((a, b) => a - b);
 }
 
 // NitroSense scales the CPU gauge to the SMBIOS "Max Speed" (root-only to read), which install.sh
