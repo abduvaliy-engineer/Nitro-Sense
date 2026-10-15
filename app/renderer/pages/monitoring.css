@@ -273,6 +273,111 @@
 .mon-chart-tip .usage { color: var(--color-lig); }
 .mon-chart-tip .idle { color: var(--color-ff); }
 
+/* ---------- CPU Details dialog: our own per-CPU monitor (468x560, content 420 x 456) ---------- */
+
+.mon-cd-head {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.mon-cd-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-cd-caption {
+  display: flex;
+  justify-content: space-between;
+}
+
+.mon-cd-span { color: var(--color-80); }
+
+/* The Monitoring chart's background art, stretched to the box. */
+.mon-cd-total,
+.mon-cd-graph {
+  background: url(../../assets/acer/monitor/monitor_tablebg.svg) center / 100% 100% no-repeat;
+}
+
+.mon-cd-total svg,
+.mon-cd-graph svg {
+  display: block;
+  pointer-events: none;
+}
+
+.mon-cd-total {
+  flex: none;
+  width: 100%;
+  height: 64px;
+  margin-top: 4px;
+}
+
+.mon-cd-stats {
+  display: flex;
+  flex: none;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.mon-cd-stat-label {
+  margin-right: 6px;
+  color: var(--color-80);
+}
+
+.mon-cd-stat-value { color: var(--color-ff); }
+.mon-cd-stat-value.usage { color: var(--color-lig); }
+.mon-cd-stat-value.temp { color: var(--color-nb); }
+
+.mon-cd-rule {
+  flex: none;
+  height: 1px;
+  margin: 8px 0;
+  background: #ffffff1a;
+}
+
+.mon-cores {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* "CPU #16" (56.8px) | usage graph | "100%" (35.9px) | "4627MHz" (61.9px) */
+.mon-cd-row {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) 40px 64px;
+  column-gap: 8px;
+  align-items: center;
+  height: 20px;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.mon-cd-row.shade { background: #ffffff08; }
+
+.mon-cd-label { color: var(--color-80); }
+
+.mon-cd-graph {
+  width: 100%;
+  height: 16px;
+}
+
+.mon-cd-usage,
+.mon-cd-clock {
+  text-align: right;
+  color: var(--color-c0);
+}
+
+.mon-cd-usage.hot { color: var(--color-nb); }
+
 /* ---------- widths (NitroSense RWDl 1168) ---------- */
 
 @media (min-width: 1168px) {
