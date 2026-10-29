@@ -134,8 +134,9 @@ changed. A development checkout (`./install.sh --dev`) is not overwritten; it op
 
 Development happens on the `dev` branch. Merging `dev` into `main` is a release: the Release workflow publishes
 the version in `app/package.json` as a GitHub release, and the Checks workflow refuses a release PR whose
-version was already released. Versions stay `0.x` (0.9, 0.10, 0.11, ...) until the app matches NitroSense one to one;
-that release will be 1.0.0.
+version was already released. Versions stay `0.x` (0.9, 0.10, 0.11, ...) until the app is complete: every NitroSense
+feature that can work on Linux works, and Windows-only ones don't count (see
+[decision 0004](docs/adr/0004-windows-only-features-not-required.md)). That release will be 1.0.0.
 
 ## Project layout
 
@@ -148,9 +149,11 @@ app/
 data/                     udev rule, desktop entry, artwork manifest
 tools/                    artwork extraction and Microsoft Store download
 tests/                    lighting encoder and App Sync matching checks
+docs/adr/                 decision records: why things are built the way they are
 docs/screenshots/         README screenshots
 .github/workflows/        checks on every PR, release on merge into main
 install.sh                installer
+GLOSSARY.md               the words this project uses
 nitrosense/               first GTK prototype (superseded)
 ```
 
