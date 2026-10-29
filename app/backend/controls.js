@@ -54,16 +54,37 @@ const PERSONAL = {
   boot_animation_sound: [0, 1],
 };
 
-// NitroSense's GPU Operating mode, from the GPU that drives the laptop panel (read only: linuwu-sense has no
-// MUX control). null when no panel connector is visible.
-async function gpuMode() {
+// GPU Operating: linuwu-sense's gpu_mode reads 0 Optimus, 1 NVIDIA GPU only or 2 Automatic Selection, and takes
+// 0 or 1. The firmware switches at the next boot.
+const GPU_MODES = [0, 1];
+
+// Without gpu_mode in the driver: the mode from the GPU that drives the connected laptop panel (in NVIDIA GPU only
+// mode the AMD panel connector stays listed, disconnected). null when no panel is connected.
+async function panelGpuMode() {
   for (const connector of await fs.readdir("/sys/class/drm").catch(() => [])) {
     const card = /^(card\d+)-eDP-/.exec(connector)?.[1];
     if (!card) continue;
+    const status = await fs.readFile(`/sys/class/drm/${connector}/status`, "utf8").catch(() => "");
+    if (status.trim() !== "connected") continue;
     const driver = path.basename(await fs.readlink(`/sys/class/drm/${card}/device/driver`).catch(() => ""));
-    return /^(nvidia|nouveau)$/.test(driver) ? "dgpu" : "optimus";
+    return /^(nvidia|nouveau)$/.test(driver) ? 1 : 0;
   }
   return null;
+}
+
+async function readGpuMode() {
+  try {
+    const mode = parseInt(await fs.readFile(await senseFile("gpu_mode"), "utf8"), 10);
+    if ([0, 1, 2].includes(mode)) return { mode, settable: true };
+  } catch {
+    // this linuwu-sense has no gpu_mode
+  }
+  return { mode: await panelGpuMode(), settable: false };
+}
+
+async function setGpuMode(mode) {
+  if (!GPU_MODES.includes(mode)) throw new Error(`Unsupported GPU mode: ${mode}`);
+  await write(await senseFile("gpu_mode"), mode);
 }
 
 // Current values; an attribute this model lacks reads as null.
@@ -77,7 +98,9 @@ async function readPersonal() {
       values[name] = null;
     }
   }
-  values.gpu_mode = await gpuMode();
+  const gpu = await readGpuMode();
+  values.gpu_mode = gpu.mode;
+  values.gpu_mode_settable = gpu.settable;
   return values;
 }
 
@@ -86,4 +109,4 @@ async function setPersonal(name, value) {
   await write(await senseFile(name), value);
 }
 
-module.exports = { write, senseFile, setProfile, setFanSpeed, setModeKeyCycle, readPersonal, setPersonal };
+module.exports = { write, senseFile, setProfile, setFanSpeed, setModeKeyCycle, readPersonal, setPersonal, setGpuMode };
