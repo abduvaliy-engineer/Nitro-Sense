@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="320" height="76" viewBox="0 0 320 76">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.5" x2="0.5" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#ff6624"/>
+      <stop offset="1" stop-color="#8c2e00"/>
+    </linearGradient>
+  </defs>
+  <g id="scenario_listbg_hover" transform="translate(-132 -244)">
+    <path id="profileshape" d="M4407.8,2604.877l12-8h252v76h-320v-68Z" transform="translate(-4219.804 -2352.877)" fill-rule="evenodd" opacity="0.3" fill="url(#linear-gradient)"/>
+    <g id="deco" opacity="0.2">
+      <path id="p5" d="M4370.8,2704l-12,8h4l12-8Z" transform="translate(-4162.804 -2460)" fill="#ff6624" fill-rule="evenodd" opacity="0.6"/>
+      <path id="p4" d="M4370.8,2704l-12,8h4l12-8Z" transform="translate(-4152.804 -2460)" fill="#ff6624" fill-rule="evenodd" opacity="0.5"/>
+      <path id="p3" d="M4370.8,2704l-12,8h4l12-8Z" transform="translate(-4142.804 -2460)" fill="#ff6624" fill-rule="evenodd" opacity="0.4"/>
+      <path id="p2" d="M4370.8,2704l-12,8h4l12-8Z" transform="translate(-4132.804 -2460)" fill="#ff6624" fill-rule="evenodd" opacity="0.3"/>
+      <path id="p1" d="M4370.8,2704l-12,8h4l12-8Z" transform="translate(-4122.804 -2460)" fill="#ff6624" fill-rule="evenodd" opacity="0.2"/>
+    </g>
+  </g>
+</svg>

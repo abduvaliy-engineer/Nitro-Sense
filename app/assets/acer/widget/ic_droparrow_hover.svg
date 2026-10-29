@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="24" viewBox="0 0 40 24">
+  <g id="ic_droparrow_hover" transform="translate(-464 -106)">
+    <path id="downbg" d="M483,106h21v24H464Z" fill="#803412" opacity="0.501"/>
+    <path id="arrow" d="M491,121l-5-6h10Z" fill="#fff" opacity="0.702"/>
+  </g>
+</svg>

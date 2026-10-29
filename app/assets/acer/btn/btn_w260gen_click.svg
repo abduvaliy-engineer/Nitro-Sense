@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="260" height="32" viewBox="0 0 260 32">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.5" x2="0.5" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#ff6624"/>
+      <stop offset="1" stop-color="#803412"/>
+    </linearGradient>
+  </defs>
+  <g id="btn_w260gen_click" transform="translate(-796 -570)">
+    <path id="_260x32" data-name="260x32" d="M804,570h244l8,10v12l-8,10H804l-8-10V580Z" fill="url(#linear-gradient)"/>
+    <path id="framee" d="M1048,570H804l-8,10v12l8,10h244l8-10V580Zm6,21.649-7.48,9.351H805.48L798,591.649v-11.3L805.48,571h241.039l7.48,9.351Z" fill="#ff9666"/>
+    <path id="linedeco" d="M1044.014,599l6.423-8h1.57l-6.422,8ZM799.993,581l6.423-8h1.57l-6.422,8Z" fill="#ff9666"/>
+  </g>
+</svg>

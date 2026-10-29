@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="12" height="16" viewBox="0 0 12 16">
+  <g id="ic_menuaroow_left" transform="translate(1906 422) rotate(180)">
+    <path id="rightlarge" d="M1894,422l4.5-8-4.5-8,12,8Z" fill="#fff" opacity="0.5"/>
+    <path id="right" d="M1897.983,408.656l3.006,5.344-3.006,5.344L1906,414Z" fill="#fff"/>
+  </g>
+</svg>

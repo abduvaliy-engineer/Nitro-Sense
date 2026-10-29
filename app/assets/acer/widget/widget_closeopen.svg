@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+  <g id="widget_closeopen" transform="translate(32 34) rotate(180)">
+    <rect id="_32" data-name="32" width="36" height="36" transform="translate(-4 -2)" fill="#fff" opacity="0"/>
+    <path id="shape_widget" d="M17,18h8v2H17Zm-2,4H27V16H15Zm2-12h8v2H17Zm-2,4H27V8H15ZM0,11l7,5V6ZM9,0V22h4V20H11V2h2V0Zm8,2h8V4H17ZM15,6H27V0H15Z" transform="translate(-3 5)" fill="#fff"/>
+  </g>
+</svg>

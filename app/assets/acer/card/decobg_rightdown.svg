@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="52" height="36" viewBox="0 0 52 36">
+  <g id="decobg_rightdown" transform="translate(-900 -520)">
+    <rect id="area" width="52" height="36" transform="translate(900 520)" fill="#fff" opacity="0"/>
+    <path id="rightdown2" d="M900,552h23.972L948,535.981V520Z" fill="#803412" opacity="0.102"/>
+    <path id="rightdown1" d="M924,552h11.986L948,543.99V536Z" fill="#ff6624" opacity="0.149"/>
+  </g>
+</svg>

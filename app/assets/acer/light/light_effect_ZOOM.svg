@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <g id="light_effect_zoom" transform="translate(-196)">
+    <path id="_40" data-name="40" d="M0,0H40V40H0Z" transform="translate(196)" fill="#fff" opacity="0"/>
+    <g id="Icon" transform="translate(-2609.553 -5138.893)">
+      <path id="Path_46" data-name="Path 46" d="M2830.51,5146.168l-4.956-2.862-13.427,7.751-.074.042v15.589l8.543,4.931,4.958,2.862,13.424-7.75.075-.043V5151.1Zm7.326,5.634v14.183l-12.282,7.093-12.284-7.093V5151.8l12.284-7.093Z" fill="#fff"/>
+      <path id="Path_47" data-name="Path 47" d="M2820.819,5156.161l2.576-1.487v-1.4l-3.793,2.188v6.872l3.793,2.188v-1.4l-2.576-1.487Z" fill="#fff"/>
+      <path id="Path_48" data-name="Path 48" d="M2830.287,5161.626l-2.576,1.487v1.4l3.793-2.188v-6.872l-3.793-2.188v1.4l2.576,1.487Z" fill="#fff"/>
+      <path id="Path_49" data-name="Path 49" d="M2833.512,5163.488l-3.225,1.862v2.112l4.981-2.875.074-.042v-11.3l-5.055-2.918v2.112l3.225,1.862Z" fill="#fff"/>
+      <path id="Path_50" data-name="Path 50" d="M2817.594,5154.3l3.226-1.862v-2.112l-4.981,2.875-.074.042v11.3l5.055,2.917v-2.112l-3.226-1.862Z" fill="#fff"/>
+      <path id="Path_51" data-name="Path 51" d="M2828.468,5157.211l-2.915-1.684-2.915,1.684v3.365l2.915,1.683,2.915-1.683Zm-.757.436v2.493l-2.158,1.247-2.158-1.247v-2.493l2.158-1.247Z" fill="#fff"/>
+    </g>
+  </g>
+</svg>

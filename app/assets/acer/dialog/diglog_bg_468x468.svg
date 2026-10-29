@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="468" height="468" viewBox="0 0 468 468">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.5" x2="0.5" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#b43c00" stop-opacity="0.149"/>
+      <stop offset="0.502" stop-color="#b43c00" stop-opacity="0.078"/>
+      <stop offset="1" stop-color="#b43c00" stop-opacity="0.149"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x2="0.994" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#ffaa48" stop-opacity="0"/>
+      <stop offset="0.534" stop-color="#ffaa48" stop-opacity="0.502"/>
+      <stop offset="1" stop-color="#ffaa48" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <g id="diglog_bg_468x468" transform="translate(-2108 -193)">
+    <path id="bgblack" d="M3704.233,2495.773l-36-24h-380v325.2l6,7.8v70l-6,7.8v57.2h448l20-25v-419Z" transform="translate(-1180.233 -2278.773)" fill-rule="evenodd"/>
+    <path id="bggradien" d="M3704.233,2495.773l-36-24h-380v325.2l6,7.8v70l-6,7.8v57.2h448l20-25v-419Z" transform="translate(-1180.233 -2278.773)" fill-rule="evenodd" fill="url(#linear-gradient)"/>
+    <path id="frame" d="M3728.233,2512.773l-36-24h-380v325.2l6,7.8v70l-6,7.8v57.2h448l20-25v-419Zm50,418.3-18.961,23.7H3314.233v-54.519l6-7.8v-71.362l-6-7.8V2490.773h377.4l36,24h50.606Z" transform="translate(-1204.233 -2295.773)" fill="#ff6624" fill-rule="evenodd" opacity="0.2"/>
+    <path id="decoline_top" d="M3862.233,2665.773l12,8h4l-12-8Zm10,0,12,8h4l-12-8Zm-92,0,3,2h56l9,6h20l-12-8Zm136,0h-4l12,8h4Zm-34,0,12,8h4l-12-8Zm20,0,12,8h4l-12-8Zm-10,0,12,8h4l-12-8Z" transform="translate(-1430.233 -2466.773)" fill-rule="evenodd" fill="url(#linear-gradient-2)"/>
+    <path id="decoline_left" d="M3781.54,2685.189l-2-2.385v60l2-2.385Z" transform="translate(-1671.54 -2155.805)" fill="#ff6624" fill-rule="evenodd" opacity="0.5"/>
+  </g>
+</svg>

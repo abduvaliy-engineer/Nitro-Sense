@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12">
+  <g id="widget_scen_arrow" transform="translate(-1873 -174)">
+    <path id="_12x12" data-name="12x12" d="M0,0H12V12H0Z" transform="translate(1873 174)" fill="#fff" opacity="0"/>
+    <path id="arrow" d="M901,2946.48l-6-4v2l3,2h0l-3,2v2l6-4Z" transform="translate(982 -2766.48)" fill="#fff"/>
+  </g>
+</svg>

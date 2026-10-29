@@ -1,0 +1,9 @@
+<svg id="light_effectbtn_select" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="188" height="40" viewBox="0 0 188 40">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.519" y1="1" x2="0.481" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#8c2e00"/>
+      <stop offset="1" stop-color="#ff6624"/>
+    </linearGradient>
+  </defs>
+  <rect id="_188x40" data-name="188x40" width="188" height="40" fill="url(#linear-gradient)"/>
+</svg>

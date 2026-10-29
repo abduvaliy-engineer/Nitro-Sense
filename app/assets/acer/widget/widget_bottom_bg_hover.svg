@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="312" height="32" viewBox="0 0 312 32">
+  <g id="widget_bottom_bg_hover" transform="translate(-1589 -272)">
+    <path id="shape" d="M1027.3,3059.08h-216l-12-8h-72v-24h312v24Z" transform="translate(861.699 -2755.08)" fill="#ff761a" fill-rule="evenodd" opacity="0.2"/>
+    <path id="shapeline" d="M729,2993h312v2H729Z" transform="translate(860 -2721)" fill="#ff761a" fill-rule="evenodd" opacity="0.503"/>
+  </g>
+</svg>
