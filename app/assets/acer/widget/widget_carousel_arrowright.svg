@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="24" viewBox="0 0 16 24">
+  <g id="widget_carousel_arrowright" transform="translate(1878 430) rotate(180)" opacity="0.7">
+    <path id="shape_right" d="M1894,430l6-12-6-12,16,12Z" transform="translate(3772 836) rotate(180)" fill="#fff"/>
+  </g>
+</svg>

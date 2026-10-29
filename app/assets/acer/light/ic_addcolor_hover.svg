@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <g id="ic_addcolor_hover" transform="translate(-1100 -274)">
+    <circle id="bg" cx="8" cy="8" r="8" transform="translate(1100 274)" fill="#fff" opacity="0.4"/>
+    <path id="addplus" d="M1107,286v-3h-3v-2h3v-3h2v3h3v2h-3v3Z" fill="#fff" opacity="0.8"/>
+  </g>
+</svg>

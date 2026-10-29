@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <g id="light_effect_static" transform="translate(-196)">
+    <path id="_40" data-name="40" d="M0,0H40V40H0Z" transform="translate(196)" fill="#fff" opacity="0"/>
+    <g id="icon" transform="translate(480.596 59.745)">
+      <path id="Path_11" data-name="Path 11" d="M-264.521-55.29l-.074-.043-13.427,7.751-.074.043V-31.95L-264.67-24.2l.075.042,13.425-7.75.074-.043V-47.539Zm12.21,22.637L-264.6-25.56l-12.285-7.093V-46.836l12.285-7.093,12.284,7.093Z" fill="#fff"/>
+      <path id="Path_12" data-name="Path 12" d="M-273.649-42.56l8.979,5.185.074.042,9.053-5.227-8.979-5.185-.074-.042Z" fill="#fff"/>
+      <path id="Path_13" data-name="Path 13" d="M-273.5-35.2l9.054,5.227v-4.947l-9.054-5.227Z" fill="#fff"/>
+      <path id="Path_14" data-name="Path 14" d="M-255.69-35.2v-5.259l-4.351,7.771Z" fill="#fff"/>
+    </g>
+  </g>
+</svg>

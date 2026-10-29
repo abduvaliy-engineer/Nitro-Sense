@@ -85,7 +85,7 @@ async function install(version, progress = () => {}) {
     await run("tar", ["-xzf", archive, "-C", dir], 60000);
     progress("installing");
     const [source] = (await fs.readdir(dir, { withFileTypes: true })).filter((entry) => entry.isDirectory());
-    // Generous timeout: a new release may need NitroSense's artwork downloaded again.
+    // Allow time for system packages and a driver build when needed.
     await run("bash", [path.join(dir, source.name, "install.sh"), "--update"], 30 * 60000);
   } finally {
     await fs.rm(dir, { recursive: true, force: true });

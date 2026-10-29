@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="176" height="64" viewBox="0 0 176 64">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.56" y1="1" x2="0.44" gradientUnits="objectBoundingBox">
+      <stop offset="0"/>
+      <stop offset="1" stop-color="#1e1e1e"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="0.692" x2="0.308" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0.051"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-3" x1="0.692" x2="0.308" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0.059"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-4" x1="0.56" y1="1" x2="0.44" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#141414"/>
+      <stop offset="1" stop-color="#2e2e2e"/>
+    </linearGradient>
+  </defs>
+  <g id="light_controlbtn_normal" transform="translate(-584 -224)">
+    <rect id="_176x64" data-name="176x64" width="176" height="64" transform="translate(584 224)" opacity="0.8" fill="url(#linear-gradient)"/>
+    <g id="cor2">
+      <path id="graa" d="M664,288h47.944L760,255.963V224Z" fill="url(#linear-gradient-2)"/>
+    </g>
+    <g id="cor1">
+      <path id="graa-2" data-name="graa" d="M664,288h96V224Z" fill="url(#linear-gradient-3)"/>
+    </g>
+    <path id="frame" d="M584,224v64H760V224Zm174,62H586V234.681L599.021,226H758Z" fill="url(#linear-gradient-4)"/>
+  </g>
+</svg>

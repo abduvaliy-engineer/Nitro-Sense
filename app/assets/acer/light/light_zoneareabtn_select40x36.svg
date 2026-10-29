@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="36" viewBox="0 0 40 36">
+  <g id="light_zoneareabtn_select" transform="translate(-82 -43)">
+    <path id="zonebg" d="M5,0H33a6,6,0,0,1,6,6V30a6,6,0,0,1-6,6H5a6,6,0,0,1-6-6V6A6,6,0,0,1,5,0Z" transform="translate(83 43)" fill="#323232"/>
+    <path id="frame" d="M2372,2684.258h-28a6,6,0,0,0-6,6v24a6,6,0,0,0,6,6h28a6,6,0,0,0,6-6v-24A6,6,0,0,0,2372,2684.258Zm-2,24a4,4,0,0,0-4,4v6h-22a4,4,0,0,1-4-4v-24a4,4,0,0,1,4-4h28a4,4,0,0,1,4,4v18Z" transform="translate(-2255.997 -2641.258)" fill="#fff" fill-rule="evenodd"/>
+    <path id="v" d="M2344.372,2706.742l-4.657,4.657-1.828-1.828-1.414,1.414,3.243,3.243,6.071-6.071Z" transform="translate(-2225.129 -2637.571)" fill="#ff6624" fill-rule="evenodd"/>
+  </g>
+</svg>

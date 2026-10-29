@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="20" height="16" viewBox="0 0 20 16">
+  <defs>
+    <linearGradient id="linear-gradient" y1="0.5" x2="1" y2="0.5" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#803412" stop-opacity="0"/>
+      <stop offset="1" stop-color="#803412"/>
+    </linearGradient>
+  </defs>
+  <path id="dialog_item" d="M3841,2752h14l6,8-6,8h-14Z" transform="translate(-3841 -2752)" fill-rule="evenodd" fill="url(#linear-gradient)"/>
+</svg>

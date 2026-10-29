@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <g id="header_widget" opacity="1.0">
+    <rect id="_32" data-name="32" width="32" height="32" fill="#fff" opacity="0"/>
+    <path id="shape_widget" d="M2102.693,651.411h12v-6h-12Zm2-4h8v2h-8Zm-2-18v6h12v-6Zm10,4h-8v-2h8Zm-10,10h12v-6h-12Zm2-4h8v2h-8Zm-8-10v22h4v-2h-2v-18h2v-2h-4Z" transform="translate(-2089.693 -624.411)" fill="#fff" fill-rule="evenodd"/>
+  </g>
+</svg>

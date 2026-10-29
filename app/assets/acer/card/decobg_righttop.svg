@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 24 36">
+  <g id="decobg_righttop" transform="translate(-928 -320)">
+    <rect id="area" width="24" height="36" transform="translate(928 320)" fill="#fff" opacity="0"/>
+    <path id="righttop" d="M932,326l-2,2h14v24l2,2V326Z" fill="#ff6624" opacity="0.2"/>
+  </g>
+</svg>

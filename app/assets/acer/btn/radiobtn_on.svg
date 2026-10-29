@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="16" viewBox="0 0 20 16">
+  <g id="radiobtn_on" transform="translate(-538 -202)">
+    <path id="bg" d="M552,202l6,8-6,8h-8l-6-8,6-8Z" fill="#381200"/>
+    <path id="frame1" d="M552,202h-8l-6,8,6,8h8l6-8Zm-.5,15h-7l-5.25-7,5.25-7h7l5.25,7Z" fill="#ff6624" opacity="0.351"/>
+    <path id="centerpioint" d="M546,214l-3-4,3-4h4l3,4-3,4Z" fill="#ff6624"/>
+  </g>
+</svg>

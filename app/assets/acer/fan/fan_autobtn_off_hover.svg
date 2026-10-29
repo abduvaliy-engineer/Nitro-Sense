@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="20" viewBox="0 0 100 20">
+  <g id="fan_autobtn_off_hover" transform="translate(-814 -508)">
+    <path id="btnbg" d="M906,508l8,10-8,10H822l-8-10,8-10Z" fill="#fff" opacity="0.1"/>
+    <path id="frame" d="M906,508H822l-8,10,8,10h84l8-10Zm-.481,19H822.48l-7.2-9,7.2-9h83.039l7.2,9Z" fill="gray"/>
+  </g>
+</svg>
