@@ -1,0 +1,4 @@
+<svg id="header_support" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <rect id="_32" data-name="32" width="32" height="32" fill="#fff" opacity="0"/>
+  <path id="shape_support" d="M3346.617,4239.255a10,10,0,0,0-20,0,2,2,0,0,0-2,2v4a2,2,0,0,0,2,2h2a2,2,0,0,0,2-2v-4a2,2,0,0,0-2-2,8,8,0,0,1,16,0,2,2,0,0,0-2,2v4a2,2,0,0,0,2,2v1a2,2,0,0,1-2,2h-3a1,1,0,0,0-1-1h-4a1,1,0,0,0-1,1v2a1,1,0,0,0,1,1h4a1,1,0,0,0,1-1h3a4,4,0,0,0,4-4v-1a2,2,0,0,0,2-2v-4A2,2,0,0,0,3346.617,4239.255Zm-18,6h-2v-4h2Zm18,0h-2v-4h2Z" transform="translate(-3320.617 -4225.255)" fill="#fff" fill-rule="evenodd"/>
+</svg>

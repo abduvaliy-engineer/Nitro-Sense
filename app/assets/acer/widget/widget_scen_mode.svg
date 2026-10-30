@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <g id="widget_scen_mode" transform="translate(-1601 -164)">
+    <path id="_32x32" data-name="32x32" d="M0,0H32V32H0Z" transform="translate(1601 164)" fill="#fff" opacity="0"/>
+    <path id="icon" d="M790,2917h8v-8h-8Zm2-6h4v4h-4Zm8-12v8h8v-8Zm0,18h8v-8h-8Zm2-6h4v4h-4Zm-12-4h8v-8h-8Zm2-6h4v4h-4Z" transform="translate(818 -2728)" fill="#fff" fill-rule="evenodd" opacity="0.5"/>
+  </g>
+</svg>

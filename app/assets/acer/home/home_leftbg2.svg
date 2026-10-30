@@ -1,0 +1,24 @@
+<svg id="home_leftbg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="368" height="356.002" viewBox="0 0 368 356.002">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.004" y1="0.5" x2="0.99" y2="0.298" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#ff6624" stop-opacity="0"/>
+      <stop offset="0.499" stop-color="#ffaa48"/>
+      <stop offset="1" stop-color="#ff6624" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="0.5" y1="1" x2="0.5" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#ff6624"/>
+      <stop offset="0.004" stop-color="#ff6624"/>
+      <stop offset="0.507" stop-color="#ffaa48"/>
+      <stop offset="1" stop-color="#ff6624"/>
+      <stop offset="1" stop-color="#00c8ec"/>
+    </linearGradient>
+  </defs>
+  <path id="bgbg" d="M2313,17h108l24,15.979h220v151.8l-20,25.966V299.1l20,25.967V373H2357l-60-47.938V32.979Z" transform="translate(-2297 -17)" fill-rule="evenodd" opacity="0.7"/>
+  <path id="framee" d="M1176,342h108l24,16h220V510l-20,26v88l20,26v48H1220l-60-48V358Zm-14,307.04L1220.7,696H1526v-45.32l-20-26V535.319l20-26V360H1307.394l-24-16H1176.828L1162,358.828Z" transform="translate(-1160 -342)" fill="#ff6624" opacity="0.2"/>
+  <path id="decoo" d="M140,0l12,8h76l-3-2H169l-9-6Zm-6,0-4,0,12,8h4L134,0ZM124,0l-4,0,12,8h4L124,0ZM114,0l-4,0,12,8h4L114,0ZM104,0l-4,0,12,8h4L104,0ZM94,0,90,0l12,8h4L94,0ZM84,0,80,0,92,8h4L84,0ZM70,0,82,8h4L74,0ZM64,0,60,0,72,8h4L64,0ZM54,0,50,0,62,8h4L54,0ZM44,0,40,0,52,8h4L44,0ZM34,0,30,0,42,8h4L34,0ZM24,0,20,0,32,8h4L24,0ZM10,0,22,8h4L14,0ZM4,0,0,0,12,8h4L4,0Z" transform="translate(362 8.001) rotate(180)" fill="url(#linear-gradient)"/>
+  <path id="cornerframe" d="M2498,625V777.235l26,21.03V805l-30-24V621Z" transform="translate(-2494 -473)" fill="#803412" fill-rule="evenodd"/>
+  <path id="corneroutt" d="M2490.626,737.025h-19.977l-20.023-16.019V705.024Z" transform="translate(-2450.626 -381.024)" fill="#803412" fill-rule="evenodd" opacity="0.4"/>
+  <path id="cornerr" d="M44,0H0L8,8H36l6-6H90l2-2ZM0,7l8,8V12L0,4Zm0,7,8,8V19L0,11Z" transform="translate(362.001 350) rotate(180)" fill="#ff6624" opacity="0.149"/>
+  <path id="lightbar" d="M1184,263.439V270l-20,26v88l20,26v6.561l-24-31.2V294.64Z" transform="translate(-816 -102)" fill="url(#linear-gradient-2)"/>
+  <path id="line60" d="M1522,134l-2-2v60l2-2Z" transform="translate(-1514 -100)" fill="#ff6624" opacity="0.302"/>
+</svg>

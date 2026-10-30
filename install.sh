@@ -4,8 +4,7 @@
 #
 #   ./install.sh                 install or update
 #   ./install.sh --assets PATH   take the artwork from NitroSense's app.asar, its WindowsApps folder or a
-#                                .msix/.appx/.msixbundle/.appxbundle (default: a mounted Windows partition,
-#                                else Acer's package from the Microsoft Store)
+#                                .msix/.appx/.msixbundle/.appxbundle (default: bundled artwork)
 #   ./install.sh --dev           run the app from this checkout with live reload instead of installing a copy
 #   ./install.sh --no-driver     skip building linuwu-sense
 #   ./install.sh --uninstall     remove the app, launcher and permissions (the driver stays)
@@ -33,17 +32,15 @@ DRIVER=1
 UNINSTALL=0
 UPDATE=0
 ROOT_PHASE=""
-STAGE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root-phase) ROOT_PHASE=${2:?}; shift ;;  # internal: the root half, for user $2
-    --stage) STAGE=${2:?}; shift ;;              # internal: where the root half puts Windows' NitroSense
     --assets) ASSETS_SOURCE=${2:?--assets needs a path}; shift ;;
     --dev) DEV=1 ;;
     --no-driver) DRIVER=0 ;;
     --uninstall) UNINSTALL=1 ;;
     --update) UPDATE=1 ;;
-    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
   shift
@@ -58,7 +55,6 @@ run_root_phase() {
   local args=(--root-phase "$USER")
   [ "$DRIVER" -eq 0 ] && args+=(--no-driver)
   [ "$UNINSTALL" -eq 1 ] && args+=(--uninstall)
-  [ -n "$STAGE" ] && args+=(--stage "$STAGE")
   if [ -t 0 ] && have sudo; then
     sudo bash "$REPO/install.sh" "${args[@]}"
   else
@@ -81,17 +77,6 @@ driver_outdated() {
   else
     grep -qF 'M=$dkms_tree/$PACKAGE_NAME/$PACKAGE_VERSION/build modules' "$LINUWU_SRC/dkms.conf"
   fi
-}
-
-# Prints the first NitroSense package folder under the given mount points, if any.
-find_package() {
-  local dir asar
-  for dir in "$@"; do
-    for asar in "$dir"/Program\ Files/WindowsApps/*NitroSense*/app/resources/app.asar; do
-      [ -f "$asar" ] && { echo "${asar%/app/resources/app.asar}"; return 0; }
-    done
-  done
-  return 0
 }
 
 [ -n "$ROOT_PHASE" ] || [ "$(id -u)" -ne 0 ] || die "Run this as your normal user; it asks for sudo when it needs root."
@@ -269,36 +254,14 @@ EOF
     echo "$max_mhz" | as_root tee /etc/nitrosense/cpu_max_mhz >/dev/null
   fi
 
-  # NitroSense installed on Windows has the newest artwork. Unmounted Windows drives are mounted read-only
-  # in a private folder for a moment; its app.asar goes to the stage folder for the user half.
-  if [ -n "$STAGE" ]; then
-    say "Looking for NitroSense on Windows drives"
-    while read -r dev fstype mountpoint; do
-      [ "$fstype" = ntfs ] && [ -z "$mountpoint" ] || continue
-      mnt=$(mktemp -d /run/nitrosense-windows.XXXXXX)
-      if mount -o ro "$dev" "$mnt" 2>/dev/null || mount -t ntfs3 -o ro "$dev" "$mnt" 2>/dev/null; then
-        package=$(find_package "$mnt")
-        if [ -n "$package" ]; then
-          mkdir -p "$STAGE/app/resources"
-          cp -r "$package/app/resources/app.asar" "$STAGE/app/resources/"
-          [ -d "$package/app/resources/app.asar.unpacked" ] && cp -r "$package/app/resources/app.asar.unpacked" "$STAGE/app/resources/"
-          chown -R "$ROOT_PHASE": "$STAGE"
-        fi
-        umount "$mnt"
-      fi
-      rmdir "$mnt"
-      [ -f "$STAGE/app/resources/app.asar" ] && break
-    done < <(lsblk -rpno NAME,FSTYPE,MOUNTPOINT)
-  fi
   exit 0
 fi
 
+# Fail before changing the system if this checkout/release is incomplete.
+python3 -I "$REPO/tools/check-acer-assets.py" "$REPO/data/acer-assets.tsv" "$REPO/app/assets/acer"
+
 NEW_GROUP=0
 id -nG "$USER" | grep -qw linuwu_sense || NEW_GROUP=1
-if [ "$UPDATE" -eq 0 ] && [ -z "$ASSETS_SOURCE" ]; then
-  STAGE=$(mktemp -d)
-  trap 'rm -rf "$STAGE"' EXIT
-fi
 # An update only needs root when the system part is missing or changed.
 system_current() {
   modinfo linuwu_sense >/dev/null 2>&1 && ! { [ "$DRIVER" -eq 1 ] && driver_outdated; } && [ "$NEW_GROUP" -eq 0 ] \
@@ -331,61 +294,19 @@ fi
 
 if [ "$DEV" -eq 0 ]; then
   say "Installing the app to $APP_DIR"
-  # Keep artwork extracted by an earlier run.
-  [ -d "$APP_DIR/assets/acer" ] && mv "$APP_DIR/assets/acer" "$PREFIX/acer.keep"
   rm -rf "$APP_DIR" && mkdir -p "$PREFIX"
   cp -a "$REPO/app" "$APP_DIR"
-  if [ -d "$PREFIX/acer.keep" ]; then
-    if [ -d "$APP_DIR/assets/acer" ]; then
-      rm -rf "$PREFIX/acer.keep"
-    else
-      mkdir -p "$APP_DIR/assets"
-      mv "$PREFIX/acer.keep" "$APP_DIR/assets/acer"
-    fi
-  fi
 fi
 
 # ---------- NitroSense artwork ----------
 
-assets_complete() {
-  local target
-  while IFS=$'\t' read -r target _; do
-    [[ -z $target || $target == \#* ]] && continue
-    [ -f "$APP_DIR/assets/acer/$target" ] || return 1
-  done <"$REPO/data/acer-assets.tsv"
-}
-
-extract_assets() {
-  python3 -I "$REPO/tools/extract-acer-assets.py" "$1" "$REPO/data/acer-assets.tsv" "$APP_DIR/assets/acer"
-}
-
+# Optional local artwork override; installation never contacts Microsoft Store.
 if [ -n "$ASSETS_SOURCE" ]; then
   say "Copying NitroSense artwork from $ASSETS_SOURCE"
-  extract_assets "$ASSETS_SOURCE"
-else
-  # NitroSense on Windows (picked up during the root step, or on a mounted drive) is the newest version;
-  # whatever it doesn't provide comes from Acer's package in the Microsoft Store.
-  windows=""
-  [ -n "$STAGE" ] && [ -f "$STAGE/app/resources/app.asar" ] && windows=$STAGE
-  [ -n "$windows" ] || windows=$(find_package /run/media/"$USER"/* /media/"$USER"/* /mnt /mnt/*)
-  if [ -n "$windows" ]; then
-    say "Copying NitroSense artwork from Windows"
-    extract_assets "$windows" >/dev/null || true
-  fi
-  if assets_complete; then
-    say "NitroSense artwork is in place"
-  else
-    say "Downloading Acer's NitroSense from the Microsoft Store for its artwork (about 340 MB)"
-    tmp=$(mktemp -d)
-    if python3 -I "$REPO/tools/fetch-nitrosense.py" "$tmp/NitroSense.msix"; then
-      extract_assets "$tmp/NitroSense.msix"
-    else
-      warn "The download failed. Run again later, or point the installer at a NitroSense package:"
-      warn "  ./install.sh --assets <NitroSense .msixbundle / .appx / app.asar>"
-    fi
-    rm -rf "$tmp"
-  fi
+  python3 -I "$REPO/tools/extract-acer-assets.py" "$ASSETS_SOURCE" "$REPO/data/acer-assets.tsv" "$APP_DIR/assets/acer"
 fi
+python3 -I "$REPO/tools/check-acer-assets.py" "$REPO/data/acer-assets.tsv" "$APP_DIR/assets/acer"
+say "Bundled NitroSense artwork is in place"
 
 # ---------- launcher, desktop entry, NitroSense key ----------
 

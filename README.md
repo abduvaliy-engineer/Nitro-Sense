@@ -117,22 +117,22 @@ Run it as your normal user; it asks for `sudo` when it needs root. It:
    driver's controls and the keyboard lighting without root.
 4. Installs the app to `~/.local/share/nitrosense`, with a `nitrosense` launcher and a desktop entry, and binds
    the NitroSense key on Hyprland and GNOME (see below).
-5. Adds NitroSense's artwork (see below).
+5. Verifies the bundled NitroSense artwork (see below).
 
 Log out and back in afterwards if the installer added you to the group. Other options: `--assets PATH`,
 `--dev` (run from the checkout with live reload), `--no-driver` and `--uninstall`.
 
 ### NitroSense artwork
 
-The icons, fonts, backgrounds and 3D models belong to Acer, so they are not in this repository. The installer
-copies them from Acer's own NitroSense package and checks every file against `data/acer-assets.tsv`:
+The app includes all 172 required artwork files: icons, fonts, backgrounds, animations and 3D models.
+Fresh installs and updates use this bundled artwork without downloading a Microsoft Store package or
+searching Windows drives. The installer verifies every file against `data/acer-assets.tsv` before changing
+the system; CI and release checks also reject missing or modified artwork.
 
-- from NitroSense installed on Windows (the newest artwork): during its password prompt the installer mounts
-  Windows drives read-only for a moment, or uses one that is already mounted, or
-- by downloading NitroSense (about 340 MB) from the Microsoft Store's servers. No Windows install or Microsoft
-  account is needed, and the download is deleted afterwards. The Store build is NitroSense 5.0, so the Home
-  gauge frame and the Disco lighting icon look like NitroSense 5.0's.
-- `./install.sh --assets PATH` takes a NitroSense `app.asar`, WindowsApps folder or `.msix`/`.msixbundle` instead.
+The artwork belongs to Acer. `./install.sh --assets PATH` optionally imports verified artwork from a local
+NitroSense `app.asar`, WindowsApps folder or `.msix`/`.msixbundle`. Maintainers can use the tools in `tools/`
+to refresh the bundle, then run `python3 tools/check-acer-assets.py data/acer-assets.tsv app/assets/acer`.
+System packages, Electron and the Linux driver may still require internet access during installation.
 
 ### NitroSense key
 
@@ -176,8 +176,8 @@ app/
   renderer/               UI: pages/, side panel, shared components
   vendor/                 three.js r125 and lottie-web (MIT, licenses included)
 data/                     udev rule, desktop entry, artwork manifest
-tools/                    artwork extraction and Microsoft Store download
-tests/                    lighting encoder and App Sync matching checks
+tools/                    artwork verification, extraction and maintainer download tools
+tests/                    artwork verifier, lighting encoder and App Sync matching checks
 docs/screenshots/         README screenshots
 .github/workflows/        checks on every PR, release on merge into main
 install.sh                installer

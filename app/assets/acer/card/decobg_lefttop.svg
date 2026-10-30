@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="16" viewBox="0 0 240 16">
+  <g id="decobg_lefttop" transform="translate(-584 -320)">
+    <rect id="area" width="240" height="16" transform="translate(584 320)" fill="#fff" opacity="0"/>
+    <path id="lefttop" d="M650,324l-12,8h4l12-8Zm10,0-12,8h4l12-8Zm-30,0-12,8h4l12-8Zm-10,0-12,8h4l12-8Zm-20,0-12,8h4l12-8Zm70,0-12,8h4l12-8Zm-60,0-12,8h4l12-8Zm30,0-12,8h4l12-8Zm70,0-12,8h4l12-8Zm10,0-12,8h4l12-8Zm10,0-12,8h4l12-8Zm-30,0-12,8h4l12-8Zm-10,0-12,8h4l12-8Zm-10,0-12,8h4l12-8Zm60,0-12,8h20l9-6h56l3-2Z" fill="#ff6624" opacity="0.149"/>
+  </g>
+</svg>

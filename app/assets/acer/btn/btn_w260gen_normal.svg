@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="32" viewBox="0 0 260 32">
+  <g id="btn_w260gen_normal" transform="translate(-796 -570)">
+    <path id="_260x32" data-name="260x32" d="M804,570h244l8,10v12l-8,10H804l-8-10V580Z" fill="#803412" opacity="0.302"/>
+    <path id="framee" d="M1048,570H804l-8,10v12l8,10h244l8-10V580Zm6,21.649-7.48,9.351H805.48L798,591.649v-11.3L805.48,571h241.039l7.48,9.351Z" fill="#803412"/>
+    <path id="linedeco" d="M1044.014,599l6.423-8h1.57l-6.422,8ZM799.993,581l6.423-8h1.57l-6.422,8Z" fill="#803412"/>
+  </g>
+</svg>

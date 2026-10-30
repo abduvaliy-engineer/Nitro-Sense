@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="156" height="32" viewBox="0 0 156 32">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.5" x2="0.5" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#ff6624"/>
+      <stop offset="1" stop-color="#803412"/>
+    </linearGradient>
+  </defs>
+  <g id="btn_w156gen_click" transform="translate(-796 -570)">
+    <path id="_156x32" data-name="156x32" d="M804,570H944l8,10v12l-8,10H804l-8-10V580Z" fill="url(#linear-gradient)"/>
+    <path id="framee" d="M944,570H804l-8,10v12l8,10H944l8-10V580Zm6,21.649L942.519,601H805.48L798,591.649v-11.3L805.48,571H942.519l7.48,9.351Z" fill="#ff9666"/>
+    <path id="linedeco" d="M940.014,599l6.422-8h1.57l-6.423,8ZM799.993,581l6.423-8h1.57l-6.422,8Z" fill="#ff9666"/>
+  </g>
+</svg>

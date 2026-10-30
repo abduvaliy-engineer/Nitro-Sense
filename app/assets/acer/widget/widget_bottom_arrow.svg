@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12">
+  <g id="widget_bottom_arrow" transform="translate(-1873 -174)">
+    <path id="_12x12" data-name="12x12" d="M0,0H12V12H0Z" transform="translate(1873 174)" fill="#fff" opacity="0"/>
+    <path id="arrow2" d="M948,2917l6-4-6-4v2l1.5,1H944v2h5.5l-1.5,1Z" transform="translate(929 -2733)" fill="#fff" fill-rule="evenodd"/>
+  </g>
+</svg>
