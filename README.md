@@ -66,8 +66,9 @@ Update widgets' Details are greyed out too, until their pages are built.
 
 On laptops with a MUX switch, GPU Operating switches between Optimus and NVIDIA GPU only, and like NitroSense it
 restarts the computer to apply the change. It needs linuwu-sense's `gpu_mode` file, which is waiting to be
-merged upstream ([linuwu-sense #154](https://github.com/0x7375646F/Linuwu-Sense/pull/154)); without it the card shows
-the current mode greyed out.
+merged upstream ([linuwu-sense #154](https://github.com/0x7375646F/Linuwu-Sense/pull/154)). Until then the installer
+builds linuwu-sense from [our fork](https://github.com/abduvaliy-engineer/Linuwu-Sense/tree/gpu-mode-pinned), which
+is upstream plus only that patch. With a linuwu-sense you installed yourself, the card shows the current mode greyed out.
 
 In NVIDIA GPU only mode the laptop panel gets a new connector name (`eDP-2` instead of `eDP-1`), so a `preferred`
 monitor rule falls back to 60 Hz. On Hyprland, ask for the highest refresh rate instead: `monitor = , highrr, auto, 1`
@@ -109,7 +110,9 @@ Run it as your normal user; it asks for `sudo` when it needs root. It:
 1. Installs the packages: Electron (`electron43` on Arch, otherwise Electron's own build), python3, and DKMS
    with kernel headers when the driver has to be built. Arch, Debian/Ubuntu and Fedora are supported.
 2. Builds the [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense) driver with DKMS if it is not
-   installed yet, so it is rebuilt on kernel updates, and replaces `acer_wmi` with it.
+   installed yet, so it is rebuilt on kernel updates, and replaces `acer_wmi` with it. A driver the installer built
+   before is updated when the version it builds changes (the new one loads after a restart); a linuwu-sense you
+   installed another way is left alone.
 3. Adds you to the `linuwu_sense` group and installs `data/70-nitrosense.rules`, so the app can use the
    driver's controls and the keyboard lighting without root.
 4. Installs the app to `~/.local/share/nitrosense`, with a `nitrosense` launcher and a desktop entry, and binds
