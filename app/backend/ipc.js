@@ -54,6 +54,7 @@ function registerIpc() {
   ipcMain.handle("updates:check", () => updates.check(app.getVersion()));
   ipcMain.handle("updates:version", () => app.getVersion());
   ipcMain.handle("updates:checkout", () => updates.isCheckout());
+  ipcMain.handle("updates:packaged", () => updates.packaged());
   ipcMain.handle("updates:install", (e, version) => updates.install(version, (stage) => e.sender.send("updates:progress", stage)));
   ipcMain.handle("updates:open", (_e, url) => shell.openExternal(updates.isReleaseUrl(url) ? url : updates.RELEASES));
   ipcMain.handle("shortcuts:list", () => shortcuts.list());
