@@ -89,6 +89,45 @@ HYPR_LUA=$HOME/.config/hypr/bindings.lua
 HYPR_CONF=$HOME/.config/hypr/hyprland.conf
 HYPR_LUA_BIND='o.bind("XF86Presentation", "NitroSense", { launch = "nitrosense" })'
 HYPR_CONF_BIND='bind = , XF86Presentation, exec, nitrosense'
+GNOME_KEYS=org.gnome.settings-daemon.plugins.media-keys
+GNOME_BIND=/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/nitrosense/
+
+# GNOME: the NitroSense key as a custom shortcut (Settings -> Keyboard -> Custom Shortcuts) under our own path, so
+# uninstalling removes only ours.
+gnome_schema() { have gsettings && grep -qxF "$GNOME_KEYS" <<<"$(gsettings list-schemas 2>/dev/null)"; }
+gnome_session() { case ":${XDG_CURRENT_DESKTOP:-}:" in *:GNOME:*) gnome_schema ;; *) return 1 ;; esac; }
+gnome_paths() { gsettings get "$GNOME_KEYS" custom-keybindings | grep -o "'[^']*'" | tr -d "'" || true; }
+gnome_set_paths() { gsettings set "$GNOME_KEYS" custom-keybindings "[$(sed "/./!d; s/.*/'&'/" | paste -sd, -)]"; }
+
+gnome_bind() {
+  local paths path schema=$GNOME_KEYS.custom-keybinding:$GNOME_BIND
+  paths=$(gnome_paths)
+  grep -qxF "$GNOME_BIND" <<<"$paths" && return 0
+  for path in $paths; do
+    if [ "$(gsettings get "$GNOME_KEYS.custom-keybinding:$path" binding)" = "'XF86Presentation'" ]; then
+      warn "The NitroSense key already has a GNOME shortcut, so it was left as it is."
+      return 0
+    fi
+  done
+  if grep -qF "'XF86Presentation'" <<<"$(gsettings list-recursively)"; then
+    warn "The NitroSense key is already used by a GNOME setting, so it was left as it is."
+    return 0
+  fi
+  gsettings set "$schema" name "NitroSense" &&
+    gsettings set "$schema" command "$BIN/nitrosense" &&
+    gsettings set "$schema" binding "XF86Presentation" &&
+    printf '%s\n%s\n' "$paths" "$GNOME_BIND" | gnome_set_paths &&
+    say "NitroSense key bound in GNOME"
+}
+
+gnome_unbind() {
+  local paths
+  gnome_schema || return 0
+  paths=$(gnome_paths)
+  grep -qxF "$GNOME_BIND" <<<"$paths" || return 0
+  { grep -vxF "$GNOME_BIND" <<<"$paths" || true; } | gnome_set_paths &&
+    gsettings reset-recursively "$GNOME_KEYS.custom-keybinding:$GNOME_BIND"
+}
 
 # ---------- uninstall ----------
 
@@ -105,6 +144,7 @@ if [ "$UNINSTALL" -eq 1 ]; then
   for file in "$HYPR_LUA" "$HYPR_CONF"; do
     [ -f "$file" ] && grep -vxF -e "$HYPR_LUA_BIND" -e "$HYPR_CONF_BIND" "$file" >"$file.tmp" && mv "$file.tmp" "$file"
   done
+  gnome_unbind || warn "Could not remove the NitroSense key's GNOME shortcut."
   run_root_phase
   say "Done. linuwu-sense is still installed; remove it with: sudo dkms remove linuwu-sense/$LINUWU_VERSION --all"
   exit 0
@@ -343,6 +383,12 @@ if [ -f "$HYPR_LUA" ]; then
 elif [ -f "$HYPR_CONF" ]; then
   grep -q XF86Presentation "$HYPR_CONF" || { printf '\n%s\n' "$HYPR_CONF_BIND" >>"$HYPR_CONF"; say "NitroSense key bound in Hyprland"; }
 fi
+if gnome_session; then
+  gnome_bind || warn "Could not bind the NitroSense key in GNOME; add a custom shortcut for $BIN/nitrosense in Settings."
+fi
+case ":${XDG_CURRENT_DESKTOP:-}:" in
+  *:KDE:*) warn "KDE Plasma can't bind the NitroSense key (Qt has no name for XF86Presentation); use the launcher or another shortcut." ;;
+esac
 
 # ---------- other tools ----------
 
