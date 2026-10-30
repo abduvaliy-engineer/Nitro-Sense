@@ -23,3 +23,49 @@ jobs:
             exit 0
           fi
           gh release create "v$version" --target "$GITHUB_SHA" --title "NitroSense $version" --generate-notes
+
+  aur:
+    # Publishes packaging/aur to the AUR (nitrosense-linux) once the release and its tag archive exist. It signs in
+    # with the AUR_SSH_KEY secret, whose public half is on the maintainer's AUR account; without it, it does nothing.
+    needs: release
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    defaults:
+      run:
+        shell: bash
+    env:
+      AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+    steps:
+      - name: Tools
+        if: env.AUR_SSH_KEY != ''
+        run: pacman -Syu --noconfirm --needed git openssh pacman-contrib
+      - uses: actions/checkout@v4
+        if: env.AUR_SSH_KEY != ''
+      - name: Publish to the AUR
+        if: env.AUR_SSH_KEY != ''
+        run: |
+          ssh_dir=$(mktemp -d)
+          printf '%s\n' "$AUR_SSH_KEY" >"$ssh_dir/key"
+          chmod 600 "$ssh_dir/key"
+          # aur.archlinux.org's host key; its fingerprint SHA256:RFzBCUItH9LZS0cKB5UE6ceAYhBD5C8GeOBip8Z11+4 is on the
+          # AUR home page.
+          echo 'aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN' \
+            >"$ssh_dir/known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $ssh_dir/key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$ssh_dir/known_hosts"
+          git config --global --add safe.directory '*'
+          git clone ssh://aur@aur.archlinux.org/nitrosense-linux.git aur
+          cp packaging/aur/PKGBUILD packaging/aur/nitrosense-linux.install aur/
+          useradd -m builder
+          chown -R builder aur
+          # The real checksum of the release's tag archive, and the .SRCINFO the AUR reads.
+          su builder -c 'cd aur && updpkgsums && makepkg --printsrcinfo >.SRCINFO'
+          cd aur
+          git config user.name "Abduvaliy Abdulazizov"
+          git config user.email "abduvaliy.hbai@gmail.com"
+          git add PKGBUILD nitrosense-linux.install .SRCINFO
+          if git diff --cached --quiet; then
+            echo "The AUR already has this version"
+            exit 0
+          fi
+          git commit -q -m "Update to $(sed -n 's/^pkgver=//p' PKGBUILD)"
+          git push origin HEAD:master

@@ -15,7 +15,7 @@ jobs:
       - name: Syntax
         run: |
           for file in $(git ls-files 'app/*.js' ':!app/vendor'); do node --check "$file"; done
-          bash -n install.sh
+          bash -n install.sh packaging/aur/PKGBUILD packaging/aur/nitrosense-linux.install
           python3 -m py_compile tools/*.py app/backend/*.py
       - name: Lighting encoder
         run: node tests/lighting-encode.js app
@@ -35,6 +35,15 @@ jobs:
             0.*) ;;
             *) echo "::error::$version: NitroSense for Linux stays 0.x until it matches NitroSense one to one"; exit 1 ;;
           esac
+      - name: AUR package version
+        # The Release workflow publishes packaging/aur as is, so its pkgver moves with the app's version.
+        run: |
+          version=$(node -p "require('./app/package.json').version")
+          pkgver=$(sed -n 's/^pkgver=//p' packaging/aur/PKGBUILD)
+          if [ "$pkgver" != "$version" ]; then
+            echo "::error::packaging/aur/PKGBUILD has pkgver=$pkgver but app/package.json is $version"
+            exit 1
+          fi
       - name: New version for a release
         if: github.base_ref == 'main'
         run: |
@@ -43,3 +52,43 @@ jobs:
             echo "::error::v$version is already released; bump the version in app/package.json"
             exit 1
           fi
+
+  aur:
+    # Builds the AUR package from this commit in a clean Arch Linux, the way an AUR helper does after a release.
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Tools
+        run: pacman -Syu --noconfirm --needed git namcap
+      - uses: actions/checkout@v4
+      - name: Build the package
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          version=$(sed -n 's/^pkgver=//p' packaging/aur/PKGBUILD)
+          build=$(mktemp -d)
+          cp packaging/aur/PKGBUILD packaging/aur/nitrosense-linux.install "$build/"
+          # The release's tag archive doesn't exist yet: archive this commit with the same layout instead.
+          git archive --prefix="Nitro-Sense-$version/" -o "$build/nitrosense-linux-$version.tar.gz" HEAD
+          useradd -m builder
+          chown -R builder "$build"
+          su builder -c "cd '$build' && makepkg --nodeps --skipchecksums && makepkg --printsrcinfo >.SRCINFO"
+          echo "BUILD=$build" >>"$GITHUB_ENV"
+      - name: Check the package
+        run: |
+          namcap "$BUILD/PKGBUILD" "$BUILD"/nitrosense-linux-*.pkg.tar.zst
+          bsdtar -tf "$BUILD"/nitrosense-linux-*.pkg.tar.zst >files.txt
+          app=usr/lib/nitrosense-linux/app
+          for file in usr/bin/nitrosense "$app/main.js" "$app/packaged" usr/share/applications/nitrosense.desktop \
+              etc/xdg/autostart/nitrosense.desktop usr/lib/udev/rules.d/70-nitrosense.rules \
+              usr/lib/sysusers.d/nitrosense-linux.conf usr/share/licenses/nitrosense-linux/LICENSE; do
+            grep -qxF "$file" files.txt || { echo "::error::the package lacks /$file"; exit 1; }
+          done
+          while IFS=$'\t' read -r target _; do
+            [[ -z $target || $target == \#* ]] && continue
+            grep -qxF "$app/assets/acer/$target" files.txt || { echo "::error::the package lacks artwork $target"; exit 1; }
+          done <data/acer-assets.tsv
+          grep -qx 'aur' <(bsdtar -xOf "$BUILD"/nitrosense-linux-*.pkg.tar.zst "$app/packaged")
+          grep -qxF $'\tdepends = linuwu-sense-dkms' "$BUILD/.SRCINFO"
