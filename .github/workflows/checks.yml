@@ -21,6 +21,12 @@ jobs:
         run: node tests/lighting-encode.js app
       - name: App Sync matching
         run: node tests/appsync-match.js app
+      - name: GNOME key binding
+        run: |
+          command -v gsettings >/dev/null || sudo apt-get install -y libglib2.0-bin
+          bash tests/gnome-key.sh install.sh
+      - name: Driver rebuild rule
+        run: bash tests/driver-outdated.sh install.sh
       - name: Version stays 0.x
         # 1.0.0 is reserved for the complete one-to-one NitroSense; until then the minor keeps counting (0.10, 0.11, ...).
         run: |

@@ -55,11 +55,24 @@ Screenshots: the Linux app on a Nitro ANV16S-41 (Hyprland), showing live sensor 
 | Scenario → Pulsar Lighting | Keyboard RGB: Global effects (Static, Breathing, Neon, Wave, Ripple, Zoom, Snake, Disco) with brightness, speed, direction and a color wheel; Area mode with a color per keyboard zone; the keyboard flashes the mode color when the power mode changes |
 | Scenario profiles | Add, rename, duplicate, restore and remove profiles; applying one sets power mode, fans and lighting |
 | Scenario Manager | Every profile in one list: edit its AC and battery mode, fans and lighting without applying it, plus **App Sync** — link apps to a profile and it is applied while that app is in front |
-| Personal Settings | Battery charge mode (Optimized = 80 % limit), power-off USB charging with its 10 / 20 / 30 % limit, LCD overdrive, keyboard backlight off after 30 seconds, boot animation & sound |
+| Personal Settings | GPU Operating (Optimus / NVIDIA GPU only, applied by restarting), battery charge mode (Optimized = 80 % limit), power-off USB charging with its 10 / 20 / 30 % limit, LCD overdrive, keyboard backlight off after 30 seconds, boot animation & sound |
 | Monitoring | GPU, CPU and system temperature charts (GPU and CPU with usage), with min / max and a readout under the pointer; fan speeds, clocks, RAM speed and usage, Ethernet and Wi-Fi download / upload rates; CPU Details, a btop-style view of every logical CPU (mini 2-minute usage chart, usage and clock) under a 2-minute temperature / usage chart with total usage, average clock, temperature and load average (our own design: NitroSense's dialog only lists the clocks) |
 
-GPU Operating, Bluelight Shield™, Sticky keys and Boot Logo Customization are shown greyed out: they don't work on
-Linux yet. Checkup, App Center and Experience Zone are not built yet.
+Bluelight Shield™, Sticky keys and Boot Logo Customization are shown greyed out: they don't work on Linux yet.
+The Checkup, App Center and Experience Zone tabs, the Support and Settings buttons, and the App Shortcut and Live
+Update widgets' Details are greyed out too, until their pages are built.
+
+### GPU Operating
+
+On laptops with a MUX switch, GPU Operating switches between Optimus and NVIDIA GPU only, and like NitroSense it
+restarts the computer to apply the change. It needs linuwu-sense's `gpu_mode` file, which is waiting to be
+merged upstream ([linuwu-sense #154](https://github.com/0x7375646F/Linuwu-Sense/pull/154)). Until then the installer
+builds linuwu-sense from [our fork](https://github.com/abduvaliy-engineer/Linuwu-Sense/tree/gpu-mode-pinned), which
+is upstream plus only that patch. With a linuwu-sense you installed yourself, the card shows the current mode greyed out.
+
+In NVIDIA GPU only mode the laptop panel gets a new connector name (`eDP-2` instead of `eDP-1`), so a `preferred`
+monitor rule falls back to 60 Hz. On Hyprland, ask for the highest refresh rate instead: `monitor = , highrr, auto, 1`
+(or `mode = "highrr"` in a Lua config).
 
 ### Keyboard lighting
 
@@ -97,11 +110,13 @@ Run it as your normal user; it asks for `sudo` when it needs root. It:
 1. Installs the packages: Electron (`electron43` on Arch, otherwise Electron's own build), python3, and DKMS
    with kernel headers when the driver has to be built. Arch, Debian/Ubuntu and Fedora are supported.
 2. Builds the [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense) driver with DKMS if it is not
-   installed yet, so it is rebuilt on kernel updates, and replaces `acer_wmi` with it.
+   installed yet, so it is rebuilt on kernel updates, and replaces `acer_wmi` with it. A driver the installer built
+   before is updated when the version it builds changes (the new one loads after a restart); a linuwu-sense you
+   installed another way is left alone.
 3. Adds you to the `linuwu_sense` group and installs `data/70-nitrosense.rules`, so the app can use the
    driver's controls and the keyboard lighting without root.
 4. Installs the app to `~/.local/share/nitrosense`, with a `nitrosense` launcher and a desktop entry, and binds
-   the NitroSense key in Hyprland.
+   the NitroSense key on Hyprland and GNOME (see below).
 5. Adds NitroSense's artwork (see below).
 
 Log out and back in afterwards if the installer added you to the group. Other options: `--assets PATH`,
@@ -118,6 +133,21 @@ copies them from Acer's own NitroSense package and checks every file against `da
   account is needed, and the download is deleted afterwards. The Store build is NitroSense 5.0, so the Home
   gauge frame and the Disco lighting icon look like NitroSense 5.0's.
 - `./install.sh --assets PATH` takes a NitroSense `app.asar`, WindowsApps folder or `.msix`/`.msixbundle` instead.
+
+### NitroSense key
+
+The installer binds the NitroSense key (`XF86Presentation`) to `nitrosense`:
+
+- **Hyprland**: a line in `~/.config/hypr/bindings.lua` or `hyprland.conf`.
+- **GNOME**: a custom shortcut named NitroSense (Settings → Keyboard → Custom Shortcuts). If the key already has a
+  shortcut, the installer leaves it alone and says so.
+- **KDE Plasma** can't bind this key: Qt has no name for `XF86Presentation`, so Plasma's shortcut settings never
+  see it. Start NitroSense from the launcher or give it another shortcut.
+- **Other Wayland desktops**: bind `XF86Presentation` to `~/.local/bin/nitrosense` yourself, e.g. on Sway
+  `bindsym XF86Presentation exec ~/.local/bin/nitrosense`.
+- **X11 sessions** never receive the key: its keycode (433) is above X11's limit of 255.
+
+`--uninstall` removes only the bindings the installer added.
 
 ## Running
 

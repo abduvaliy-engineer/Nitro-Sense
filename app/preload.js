@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld("nitro", {
   personal: {
     read: () => ipcRenderer.invoke("personal:read"),
     set: (name, value) => ipcRenderer.invoke("personal:set", name, value),
+    applyGpuMode: (mode) => ipcRenderer.invoke("personal:applyGpuMode", mode),
   },
   lighting: {
     info: () => ipcRenderer.invoke("lighting:info"),

@@ -1,6 +1,7 @@
 const fs = require("fs/promises");
 const { constants } = require("fs");
 const path = require("path");
+const { execFile } = require("child_process");
 
 const DMI = "/sys/class/dmi/id";
 const POWER = "/sys/class/power_supply";
@@ -76,4 +77,14 @@ async function info() {
   };
 }
 
-module.exports = { info };
+// Like NitroSense, restarts at once (logind lets the active session's user reboot without a password).
+function restart() {
+  return new Promise((resolve, reject) => {
+    execFile("systemctl", ["reboot"], (error, _stdout, stderr) => {
+      if (error) reject(new Error(`Restart failed: ${(stderr || error.message).trim()}. The GPU mode changes at the next restart.`));
+      else resolve();
+    });
+  });
+}
+
+module.exports = { info, restart };

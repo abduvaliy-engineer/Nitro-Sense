@@ -18,9 +18,12 @@ BIN=$HOME/.local/bin
 APPS=${XDG_DATA_HOME:-$HOME/.local/share}/applications
 AUTOSTART=${XDG_CONFIG_HOME:-$HOME/.config}/autostart
 ELECTRON_VERSION=43.6.0
-LINUWU_REPO=https://github.com/0x7375646F/Linuwu-Sense
-LINUWU_COMMIT=73a25ec243a44ba2b1703e8d0a76fa2735062506
+# Until linuwu-sense #154 (gpu_mode, for GPU Operating) is merged upstream, the driver comes from our fork:
+# upstream 0x7375646F/Linuwu-Sense at 73a25ec plus only that patch (branch gpu-mode-pinned).
+LINUWU_REPO=https://github.com/abduvaliy-engineer/Linuwu-Sense
+LINUWU_COMMIT=75ce417b7eb1f85f6c74d83c6148ce61b2cfb6ff
 LINUWU_VERSION=1.0.0
+LINUWU_SRC=/usr/src/linuwu-sense-$LINUWU_VERSION
 # Models whose linuwu-sense quirks need a module option.
 declare -A LINUWU_OPTIONS=(["Nitro ANV16S-41"]="nitro_v4=1")
 
@@ -69,6 +72,17 @@ ask() {
 }
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# A linuwu-sense this installer built from another commit gets rebuilt; one installed some other way is left alone.
+# Builds record their commit; older ones are recognised by the dkms.conf this installer writes.
+driver_outdated() {
+  [ -f "$LINUWU_SRC/dkms.conf" ] || return 1
+  if [ -f "$LINUWU_SRC/.nitrosense-commit" ]; then
+    [ "$(cat "$LINUWU_SRC/.nitrosense-commit")" != "$LINUWU_COMMIT" ]
+  else
+    grep -qF 'M=$dkms_tree/$PACKAGE_NAME/$PACKAGE_VERSION/build modules' "$LINUWU_SRC/dkms.conf"
+  fi
+}
+
 # Prints the first NitroSense package folder under the given mount points, if any.
 find_package() {
   local dir asar
@@ -89,6 +103,45 @@ HYPR_LUA=$HOME/.config/hypr/bindings.lua
 HYPR_CONF=$HOME/.config/hypr/hyprland.conf
 HYPR_LUA_BIND='o.bind("XF86Presentation", "NitroSense", { launch = "nitrosense" })'
 HYPR_CONF_BIND='bind = , XF86Presentation, exec, nitrosense'
+GNOME_KEYS=org.gnome.settings-daemon.plugins.media-keys
+GNOME_BIND=/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/nitrosense/
+
+# GNOME: the NitroSense key as a custom shortcut (Settings -> Keyboard -> Custom Shortcuts) under our own path, so
+# uninstalling removes only ours.
+gnome_schema() { have gsettings && grep -qxF "$GNOME_KEYS" <<<"$(gsettings list-schemas 2>/dev/null)"; }
+gnome_session() { case ":${XDG_CURRENT_DESKTOP:-}:" in *:GNOME:*) gnome_schema ;; *) return 1 ;; esac; }
+gnome_paths() { gsettings get "$GNOME_KEYS" custom-keybindings | grep -o "'[^']*'" | tr -d "'" || true; }
+gnome_set_paths() { gsettings set "$GNOME_KEYS" custom-keybindings "[$(sed "/./!d; s/.*/'&'/" | paste -sd, -)]"; }
+
+gnome_bind() {
+  local paths path schema=$GNOME_KEYS.custom-keybinding:$GNOME_BIND
+  paths=$(gnome_paths)
+  grep -qxF "$GNOME_BIND" <<<"$paths" && return 0
+  for path in $paths; do
+    if [ "$(gsettings get "$GNOME_KEYS.custom-keybinding:$path" binding)" = "'XF86Presentation'" ]; then
+      warn "The NitroSense key already has a GNOME shortcut, so it was left as it is."
+      return 0
+    fi
+  done
+  if grep -qF "'XF86Presentation'" <<<"$(gsettings list-recursively)"; then
+    warn "The NitroSense key is already used by a GNOME setting, so it was left as it is."
+    return 0
+  fi
+  gsettings set "$schema" name "NitroSense" &&
+    gsettings set "$schema" command "$BIN/nitrosense" &&
+    gsettings set "$schema" binding "XF86Presentation" &&
+    printf '%s\n%s\n' "$paths" "$GNOME_BIND" | gnome_set_paths &&
+    say "NitroSense key bound in GNOME"
+}
+
+gnome_unbind() {
+  local paths
+  gnome_schema || return 0
+  paths=$(gnome_paths)
+  grep -qxF "$GNOME_BIND" <<<"$paths" || return 0
+  { grep -vxF "$GNOME_BIND" <<<"$paths" || true; } | gnome_set_paths &&
+    gsettings reset-recursively "$GNOME_KEYS.custom-keybinding:$GNOME_BIND"
+}
 
 # ---------- uninstall ----------
 
@@ -105,6 +158,7 @@ if [ "$UNINSTALL" -eq 1 ]; then
   for file in "$HYPR_LUA" "$HYPR_CONF"; do
     [ -f "$file" ] && grep -vxF -e "$HYPR_LUA_BIND" -e "$HYPR_CONF_BIND" "$file" >"$file.tmp" && mv "$file.tmp" "$file"
   done
+  gnome_unbind || warn "Could not remove the NitroSense key's GNOME shortcut."
   run_root_phase
   say "Done. linuwu-sense is still installed; remove it with: sudo dkms remove linuwu-sense/$LINUWU_VERSION --all"
   exit 0
@@ -121,8 +175,12 @@ if [ -n "$ROOT_PHASE" ]; then
   # ---------- packages ----------
 
   driver_installed() { modinfo linuwu_sense >/dev/null 2>&1; }
-  NEED_DRIVER=0
-  [ "$DRIVER" -eq 1 ] && ! driver_installed && NEED_DRIVER=1
+  NEED_DRIVER=0 REBUILD=0
+  if [ "$DRIVER" -eq 1 ]; then
+    if ! driver_installed; then NEED_DRIVER=1
+    elif driver_outdated; then NEED_DRIVER=1 REBUILD=1
+    fi
+  fi
 
   say "Installing packages"
   if have pacman; then
@@ -149,7 +207,9 @@ if [ -n "$ROOT_PHASE" ]; then
   # ---------- linuwu-sense driver ----------
 
   if [ "$NEED_DRIVER" -eq 1 ]; then
-    say "Building the linuwu-sense driver (DKMS, rebuilt on kernel updates)"
+    if [ "$REBUILD" -eq 1 ]; then say "Updating the linuwu-sense driver (DKMS)"
+    else say "Building the linuwu-sense driver (DKMS, rebuilt on kernel updates)"
+    fi
     if have mokutil && mokutil --sb-state 2>/dev/null | grep -q enabled; then
       warn "Secure Boot is on: the module must be signed with an enrolled key or it will not load."
     fi
@@ -167,8 +227,10 @@ if [ -n "$ROOT_PHASE" ]; then
   MAKE[0]="make -C \$kernel_source_dir M=\$dkms_tree/\$PACKAGE_NAME/\$PACKAGE_VERSION/build modules"
   AUTOINSTALL="yes"
 EOF
-    as_root rm -rf "/usr/src/linuwu-sense-$LINUWU_VERSION"
-    as_root cp -r "$tmp/linuwu" "/usr/src/linuwu-sense-$LINUWU_VERSION"
+    echo "$LINUWU_COMMIT" >"$tmp/linuwu/.nitrosense-commit"
+    as_root dkms remove "linuwu-sense/$LINUWU_VERSION" --all >/dev/null 2>&1 || true
+    as_root rm -rf "$LINUWU_SRC"
+    as_root cp -r "$tmp/linuwu" "$LINUWU_SRC"
     rm -rf "$tmp"
     as_root dkms install "linuwu-sense/$LINUWU_VERSION"
 
@@ -178,11 +240,13 @@ EOF
     if [ -n "${LINUWU_OPTIONS[$MODEL]:-}" ] && [ ! -e /etc/modprobe.d/linuwu_sense.conf ]; then
       echo "options linuwu_sense ${LINUWU_OPTIONS[$MODEL]}" | as_root tee /etc/modprobe.d/linuwu_sense.conf >/dev/null
     fi
-    as_root install -m644 "/usr/src/linuwu-sense-$LINUWU_VERSION/linuwu_sense.service" /etc/systemd/system/linuwu_sense.service
+    as_root install -m644 "$LINUWU_SRC/linuwu_sense.service" /etc/systemd/system/linuwu_sense.service
     as_root systemctl daemon-reload
     as_root systemctl enable --now linuwu_sense.service
     as_root modprobe -r acer_wmi 2>/dev/null || true
     as_root modprobe linuwu_sense
+    # The loaded module keeps running until the next boot; reloading it now would reset fans and lighting.
+    [ "$REBUILD" -eq 1 ] && warn "The updated linuwu-sense driver loads when you restart the computer."
   elif [ "$DRIVER" -eq 1 ]; then
     say "linuwu-sense is already installed"
   fi
@@ -237,8 +301,8 @@ if [ "$UPDATE" -eq 0 ] && [ -z "$ASSETS_SOURCE" ]; then
 fi
 # An update only needs root when the system part is missing or changed.
 system_current() {
-  modinfo linuwu_sense >/dev/null 2>&1 && [ "$NEW_GROUP" -eq 0 ] && [ -e /etc/nitrosense/cpu_max_mhz ] \
-    && cmp -s "$REPO/data/70-nitrosense.rules" /etc/udev/rules.d/70-nitrosense.rules
+  modinfo linuwu_sense >/dev/null 2>&1 && ! { [ "$DRIVER" -eq 1 ] && driver_outdated; } && [ "$NEW_GROUP" -eq 0 ] \
+    && [ -e /etc/nitrosense/cpu_max_mhz ] && cmp -s "$REPO/data/70-nitrosense.rules" /etc/udev/rules.d/70-nitrosense.rules
 }
 if [ "$UPDATE" -eq 1 ] && system_current; then
   say "Driver and permissions are up to date"
@@ -343,6 +407,12 @@ if [ -f "$HYPR_LUA" ]; then
 elif [ -f "$HYPR_CONF" ]; then
   grep -q XF86Presentation "$HYPR_CONF" || { printf '\n%s\n' "$HYPR_CONF_BIND" >>"$HYPR_CONF"; say "NitroSense key bound in Hyprland"; }
 fi
+if gnome_session; then
+  gnome_bind || warn "Could not bind the NitroSense key in GNOME; add a custom shortcut for $BIN/nitrosense in Settings."
+fi
+case ":${XDG_CURRENT_DESKTOP:-}:" in
+  *:KDE:*) warn "KDE Plasma can't bind the NitroSense key (Qt has no name for XF86Presentation); use the launcher or another shortcut." ;;
+esac
 
 # ---------- other tools ----------
 

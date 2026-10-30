@@ -1,5 +1,6 @@
 const TABS = ["Home", "Scenario", "Personal Settings", "Checkup", "Monitoring", "App Center", "Experience Zone"];
 const POLL_MS = 2000;
+const UNAVAILABLE = "Not available on Linux yet";
 
 const tabs = document.getElementById("tabs");
 const content = document.getElementById("content");
@@ -7,12 +8,24 @@ let activeTab = "Home";
 let activePage = null;
 let lastSnapshot = null;
 
+// NitroSense's disabled look (30 % opacity) with the reason on hover, for controls whose page or feature isn't
+// built yet: they stay visible so users see the app is still growing, and ignore clicks.
+function unavailable(node, reason = UNAVAILABLE) {
+  node.classList.add("unavailable");
+  node.title = reason;
+  node.setAttribute("aria-disabled", "true");
+  return node;
+}
+
+const hasPage = (name) => Boolean(window.NitroPages?.[name]);
+
 function renderTabs() {
   tabs.replaceChildren(...TABS.map((name) => {
     const button = document.createElement("button");
     button.className = name === activeTab ? "tab selected" : "tab";
     button.textContent = name;
-    button.addEventListener("click", () => selectTab(name));
+    if (hasPage(name)) button.addEventListener("click", () => selectTab(name));
+    else unavailable(button);
     return button;
   }));
 }
@@ -75,7 +88,10 @@ function updateHairline() {
   matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener("change", updateHairline, { once: true });
 }
 
-window.NitroApp = { selectTab };
+window.NitroApp = { selectTab, hasPage, unavailable };
+
+// Support and Settings have no page yet.
+for (const button of document.querySelectorAll(".header-btn")) unavailable(button);
 
 // Early development: the running version in the corner ("dev" when it runs from a git checkout).
 Promise.all([window.nitro.updates.version(), window.nitro.updates.checkout().catch(() => false)])

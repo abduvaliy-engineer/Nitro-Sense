@@ -63,6 +63,10 @@ function registerIpc() {
   ipcMain.handle("controls:setModeKeyCycle", (_e, cycle) => controls.setModeKeyCycle(Boolean(cycle)));
   ipcMain.handle("personal:read", () => controls.readPersonal());
   ipcMain.handle("personal:set", (_e, name, value) => controls.setPersonal(String(name), Number(value)));
+  ipcMain.handle("personal:applyGpuMode", async (_e, mode) => {
+    await controls.setGpuMode(Number(mode));
+    await system.restart();
+  });
   ipcMain.handle("lighting:info", () => lighting.info());
   ipcMain.handle("lighting:apply", (_e, value) => lighting.apply(value));
   ipcMain.handle("lighting:pickColor", () => lighting.pickColor());
