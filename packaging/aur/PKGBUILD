@@ -1,0 +1,51 @@
+# Maintainer: Abduvaliy Abdulazizov <abduvaliy dot hbai at gmail dot com>
+#
+# Kept in https://github.com/abduvaliy-engineer/Nitro-Sense under packaging/aur; its Release workflow publishes
+# every release here.
+
+pkgname=nitrosense-linux
+pkgver=0.12.1
+pkgrel=1
+pkgdesc='Recreation of Acer NitroSense for Nitro laptops: modes, fans, keyboard lighting, battery, monitoring'
+arch=('any')
+url='https://github.com/abduvaliy-engineer/Nitro-Sense'
+license=('GPL-3.0-or-later' 'MIT' 'LicenseRef-Acer')
+depends=('electron43' 'linuwu-sense-dkms' 'python')
+optdepends=('hyprpicker: pick lighting colours from the screen on Hyprland'
+            'nvidia-utils: NVIDIA GPU clock and usage on the Monitoring page')
+backup=('etc/xdg/autostart/nitrosense.desktop')
+install=nitrosense-linux.install
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+# The Release workflow fills in the checksum (updpkgsums) when it publishes to the AUR.
+sha256sums=('SKIP')
+
+package() {
+  cd "Nitro-Sense-$pkgver"
+  local dest=/usr/lib/$pkgname
+  local licenses=$pkgdir/usr/share/licenses/$pkgname
+
+  install -d "$pkgdir$dest"
+  cp -r app "$pkgdir$dest/"
+  # Live Update leaves installing new versions to pacman (app/backend/updates.js).
+  echo aur >"$pkgdir$dest/app/packaged"
+
+  install -d "$pkgdir/usr/bin"
+  printf '#!/bin/sh\nexec electron43 %s/app "$@"\n' "$dest" >"$pkgdir/usr/bin/nitrosense"
+  chmod 755 "$pkgdir/usr/bin/nitrosense"
+  install -Dm644 data/nitrosense.desktop "$pkgdir/usr/share/applications/nitrosense.desktop"
+  # Like NitroSense, it starts hidden at login so App Sync and the mode-change flash keep working.
+  install -d "$pkgdir/etc/xdg/autostart"
+  printf '[Desktop Entry]\nType=Application\nName=NitroSense\nExec=nitrosense --hidden\nNoDisplay=true\n' \
+    >"$pkgdir/etc/xdg/autostart/nitrosense.desktop"
+
+  # The linuwu_sense group may use the driver's controls and the keyboard lighting without root.
+  install -Dm644 data/70-nitrosense.rules "$pkgdir/usr/lib/udev/rules.d/70-nitrosense.rules"
+  install -d "$pkgdir/usr/lib/sysusers.d"
+  echo 'g linuwu_sense - -' >"$pkgdir/usr/lib/sysusers.d/$pkgname.conf"
+
+  install -Dm644 LICENSE "$licenses/LICENSE"
+  install -Dm644 app/vendor/three/LICENSE "$licenses/three.js-LICENSE"
+  install -Dm644 app/vendor/lottie/LICENSE.md "$licenses/lottie-web-LICENSE.md"
+  printf '%s\n' "The artwork in $dest/app/assets/acer (icons, fonts, backgrounds, animations and 3D models)" \
+    "belongs to Acer Inc. The GPL and MIT licenses of this package don't cover it." >"$licenses/LicenseRef-Acer"
+}
