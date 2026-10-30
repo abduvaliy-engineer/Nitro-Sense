@@ -59,7 +59,8 @@ Screenshots: the Linux app on a Nitro ANV16S-41 (Hyprland), showing live sensor 
 | Monitoring | GPU, CPU and system temperature charts (GPU and CPU with usage), with min / max and a readout under the pointer; fan speeds, clocks, RAM speed and usage, Ethernet and Wi-Fi download / upload rates; CPU Details, a btop-style view of every logical CPU (mini 2-minute usage chart, usage and clock) under a 2-minute temperature / usage chart with total usage, average clock, temperature and load average (our own design: NitroSense's dialog only lists the clocks) |
 
 Bluelight Shield™, Sticky keys and Boot Logo Customization are shown greyed out: they don't work on Linux yet.
-Checkup, App Center and Experience Zone are not built yet.
+The Checkup, App Center and Experience Zone tabs, the Support and Settings buttons, and the App Shortcut and Live
+Update widgets' Details are greyed out too, until their pages are built.
 
 ### GPU Operating
 
@@ -112,7 +113,7 @@ Run it as your normal user; it asks for `sudo` when it needs root. It:
 3. Adds you to the `linuwu_sense` group and installs `data/70-nitrosense.rules`, so the app can use the
    driver's controls and the keyboard lighting without root.
 4. Installs the app to `~/.local/share/nitrosense`, with a `nitrosense` launcher and a desktop entry, and binds
-   the NitroSense key in Hyprland.
+   the NitroSense key on Hyprland and GNOME (see below).
 5. Adds NitroSense's artwork (see below).
 
 Log out and back in afterwards if the installer added you to the group. Other options: `--assets PATH`,
@@ -129,6 +130,21 @@ copies them from Acer's own NitroSense package and checks every file against `da
   account is needed, and the download is deleted afterwards. The Store build is NitroSense 5.0, so the Home
   gauge frame and the Disco lighting icon look like NitroSense 5.0's.
 - `./install.sh --assets PATH` takes a NitroSense `app.asar`, WindowsApps folder or `.msix`/`.msixbundle` instead.
+
+### NitroSense key
+
+The installer binds the NitroSense key (`XF86Presentation`) to `nitrosense`:
+
+- **Hyprland**: a line in `~/.config/hypr/bindings.lua` or `hyprland.conf`.
+- **GNOME**: a custom shortcut named NitroSense (Settings → Keyboard → Custom Shortcuts). If the key already has a
+  shortcut, the installer leaves it alone and says so.
+- **KDE Plasma** can't bind this key: Qt has no name for `XF86Presentation`, so Plasma's shortcut settings never
+  see it. Start NitroSense from the launcher or give it another shortcut.
+- **Other Wayland desktops**: bind `XF86Presentation` to `~/.local/bin/nitrosense` yourself, e.g. on Sway
+  `bindsym XF86Presentation exec ~/.local/bin/nitrosense`.
+- **X11 sessions** never receive the key: its keycode (433) is above X11's limit of 255.
+
+`--uninstall` removes only the bindings the installer added.
 
 ## Running
 
