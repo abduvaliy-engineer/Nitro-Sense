@@ -167,6 +167,9 @@
 
 .widget-details:hover { background-image: url(../assets/acer/widget/widget_bottom_bg_hover.svg); }
 .widget-details:active { background-image: url(../assets/acer/widget/widget_bottom_bg_click.svg); }
+.widget-details.unavailable:hover, .widget-details.unavailable:active {
+  background-image: url(../assets/acer/widget/widget_bottom_bg.svg);
+}
 
 .widget-details span {
   font-size: 12px;

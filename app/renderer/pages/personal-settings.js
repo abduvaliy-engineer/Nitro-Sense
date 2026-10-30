@@ -167,7 +167,9 @@
     }
     const link = el("button", "ps-link");
     link.append(el("span", "", "See more health information of battery"), icon(`${ACER}/light/ic_textlink_arrow.svg`));
-    link.addEventListener("click", () => window.NitroApp?.selectTab("Checkup"));
+    // Checkup isn't built yet: the link is greyed out until it is.
+    if (window.NitroApp?.hasPage("Checkup")) link.addEventListener("click", () => window.NitroApp.selectTab("Checkup"));
+    else unavailable(link);
     const chargeMode = block(el("span", "ps-label ps-modes-title", "Battery Charge Mode"), list, link);
     if (values.battery_limiter === null) unavailable(chargeMode, NO_DRIVER);
 
