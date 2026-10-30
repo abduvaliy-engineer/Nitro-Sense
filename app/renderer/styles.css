@@ -120,6 +120,12 @@ button {
   pointer-events: none;
 }
 
+/* Not built yet (NitroApp.unavailable): NitroSense's disabled look, the reason on hover, no hover feedback. */
+.unavailable { opacity: 0.3; cursor: default; }
+.tab.unavailable:hover, .tab.unavailable:active { color: var(--color-80); }
+.header-btn.unavailable:hover { background-color: transparent; }
+.header-btn.unavailable:hover img, .header-btn.unavailable:active img { opacity: 0.35; }
+
 .header-actions {
   display: flex;
   flex: none;
