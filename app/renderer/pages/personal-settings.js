@@ -7,7 +7,8 @@
   const NO_DRIVER = "Not supported by the linuwu-sense driver on this laptop";
   const USB_LIMIT_KEY = "personal.usbChargeLimit";
   const USB_LIMITS = [10, 20, 30];
-  const GPU_MODES = { optimus: "Optimus", dgpu: "NVIDIA GPU only" };
+  const GPU_MODES = ["Optimus", "NVIDIA GPU only", "Automatic Selection"]; // by gpu_mode value
+  const GPU_SETTABLE = [0, 1]; // linuwu-sense can't set Automatic Selection
   const SPY_DELAY = 50;
   const BACKLIGHT_DELAY = 500;
   const SCROLL_MARGIN = 60;
@@ -89,12 +90,60 @@
 
   // ---------- cards ----------
 
+  // NitroSense lists the modes the model supports; Automatic Selection appears here only while it is the current
+  // mode (set from Windows), since linuwu-sense can't set it.
   function gpuCard(page) {
     const menu = dropdown();
-    menu.text.textContent = GPU_MODES[page.values.gpu_mode] ?? GPU_MODES.optimus;
     const modes = el("div", "ps-gpu-modes");
     modes.append(menu.root);
-    return [unavailable(block(el("span", "ps-label ps-gap4", "Choosing the operating mode of the GPU."), modes))];
+    const gpu = block(el("span", "ps-label ps-gap4", "Choosing the operating mode of the GPU."), modes);
+    if (page.values.gpu_mode_settable) {
+      menu.trigger.addEventListener("click", () => {
+        const now = page.values.gpu_mode;
+        menu.trigger.classList.add("open");
+        window.NitroMenu.open(menu.trigger, (now === 2 ? [2, ...GPU_SETTABLE] : GPU_SETTABLE).map((mode) => ({
+          label: GPU_MODES[mode],
+          active: mode === now,
+          onSelect: () => mode !== now && gpuDialog(page, mode),
+        })), { width: 300, onClose: () => menu.trigger.classList.remove("open") });
+      });
+    } else {
+      unavailable(gpu, NO_DRIVER);
+    }
+    page.renderers.push(() => {
+      menu.text.textContent = GPU_MODES[page.values.gpu_mode] ?? GPU_MODES[0];
+    });
+    return [gpu];
+  }
+
+  // NitroSense's GPU "Confirmation" (app-middle-dialog). Apply & Restart Now writes the mode and restarts at once.
+  function gpuDialog(page, mode) {
+    page.dialog = window.NitroDialog.open({
+      size: "468x300",
+      title: "Confirmation",
+      build(body, close) {
+        const text = el("div", "ps-gpu-dialog");
+        text.append(el("span", "ps-gpu-dialog-note", "You have to restart the computer to apply this setting."));
+        if (mode === 1) {
+          text.append(el("span", "ps-gpu-dialog-warn", "*Type-C port to external display device may not be available in this mode."));
+        }
+        // NitroSense adds "*" to a string that already starts with one.
+        text.append(el("span", "ps-gpu-dialog-warn", "**Before restarting, save any open files and close all programs."));
+        const apply = labelled("button", "pill-btn w260", "confirm", "Apply & Restart Now");
+        apply.addEventListener("click", () => {
+          close();
+          page.applyGpuMode(mode);
+        });
+        const cancel = labelled("button", "pill-btn w156", "close", "Cancel");
+        cancel.addEventListener("click", close);
+        const footer = el("div", "ns-dialog-footer");
+        footer.append(apply, cancel);
+        body.append(text, footer);
+      },
+      onClose: () => {
+        page.dialog = null;
+      },
+    });
   }
 
   function batteryCard(page) {
@@ -333,6 +382,7 @@
       lastTop: 0,
       spyTimer: 0,
       backlightTimer: 0,
+      dialog: null,
       writes: Promise.resolve(),
 
       render() {
@@ -403,6 +453,22 @@
         });
       },
 
+      // The trigger shows the new mode at once, as in NitroSense. If the write or the restart fails, it shows what the
+      // driver really has and a notification says why.
+      applyGpuMode(mode) {
+        page.values.gpu_mode = mode;
+        page.render();
+        window.nitro.personal.applyGpuMode(mode).catch(async (error) => {
+          console.error("Personal Settings: applying the GPU mode failed", error);
+          window.nitro.notify("GPU Operating", String(error.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, ""));
+          const values = await window.nitro.personal.read().catch(() => null);
+          if (values && current === page) {
+            Object.assign(page.values, values);
+            page.render();
+          }
+        });
+      },
+
       flushBacklight() {
         if (!page.backlightTimer) return;
         clearTimeout(page.backlightTimer);
@@ -420,7 +486,8 @@
     ]);
     if (current !== page) return;
     page.values = Object.fromEntries(
-      ["battery_limiter", "usb_charging", "lcd_override", "backlight_timeout", "boot_animation_sound", "gpu_mode"]
+      ["battery_limiter", "usb_charging", "lcd_override", "backlight_timeout", "boot_animation_sound", "gpu_mode",
+        "gpu_mode_settable"]
         .map((name) => [name, values[name] ?? null]),
     );
     // Turning the charger off forgets its limit in the EC, so the app remembers the last one (NitroSense's 30 %).
@@ -443,6 +510,7 @@
     unmount() {
       if (!current) return;
       clearTimeout(current.spyTimer);
+      current.dialog?.close();
       current.flushBacklight();
       current = null;
     },

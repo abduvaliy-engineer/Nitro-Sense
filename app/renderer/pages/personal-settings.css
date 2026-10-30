@@ -430,3 +430,21 @@
   .ps-row { width: auto; }
   .ps-right { width: 752px; }
 }
+
+/* ---------- GPU Operating "Confirmation" dialog (app-middle-dialog body: 12px 24px padding, rows 20 px apart) ---------- */
+
+.ps-gpu-dialog {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  padding: 12px 16px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: left;
+}
+
+.ps-gpu-dialog-note { color: var(--color-c0); }
+.ps-gpu-dialog-warn { color: var(--color-lb); }

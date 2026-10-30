@@ -55,11 +55,22 @@ Screenshots: the Linux app on a Nitro ANV16S-41 (Hyprland), showing live sensor 
 | Scenario → Pulsar Lighting | Keyboard RGB: Global effects (Static, Breathing, Neon, Wave, Ripple, Zoom, Snake, Disco) with brightness, speed, direction and a color wheel; Area mode with a color per keyboard zone; the keyboard flashes the mode color when the power mode changes |
 | Scenario profiles | Add, rename, duplicate, restore and remove profiles; applying one sets power mode, fans and lighting |
 | Scenario Manager | Every profile in one list: edit its AC and battery mode, fans and lighting without applying it, plus **App Sync** — link apps to a profile and it is applied while that app is in front |
-| Personal Settings | Battery charge mode (Optimized = 80 % limit), power-off USB charging with its 10 / 20 / 30 % limit, LCD overdrive, keyboard backlight off after 30 seconds, boot animation & sound |
+| Personal Settings | GPU Operating (Optimus / NVIDIA GPU only, applied by restarting), battery charge mode (Optimized = 80 % limit), power-off USB charging with its 10 / 20 / 30 % limit, LCD overdrive, keyboard backlight off after 30 seconds, boot animation & sound |
 | Monitoring | GPU, CPU and system temperature charts (GPU and CPU with usage), with min / max and a readout under the pointer; fan speeds, clocks, RAM speed and usage, Ethernet and Wi-Fi download / upload rates; CPU Details, a btop-style view of every logical CPU (mini 2-minute usage chart, usage and clock) under a 2-minute temperature / usage chart with total usage, average clock, temperature and load average (our own design: NitroSense's dialog only lists the clocks) |
 
-GPU Operating, Bluelight Shield™, Sticky keys and Boot Logo Customization are shown greyed out: they don't work on
-Linux yet. Checkup, App Center and Experience Zone are not built yet.
+Bluelight Shield™, Sticky keys and Boot Logo Customization are shown greyed out: they don't work on Linux yet.
+Checkup, App Center and Experience Zone are not built yet.
+
+### GPU Operating
+
+On laptops with a MUX switch, GPU Operating switches between Optimus and NVIDIA GPU only, and like NitroSense it
+restarts the computer to apply the change. It needs linuwu-sense's `gpu_mode` file, which is waiting to be
+merged upstream ([linuwu-sense #154](https://github.com/0x7375646F/Linuwu-Sense/pull/154)); without it the card shows
+the current mode greyed out.
+
+In NVIDIA GPU only mode the laptop panel gets a new connector name (`eDP-2` instead of `eDP-1`), so a `preferred`
+monitor rule falls back to 60 Hz. On Hyprland, ask for the highest refresh rate instead: `monitor = , highrr, auto, 1`
+(or `mode = "highrr"` in a Lua config).
 
 ### Keyboard lighting
 
