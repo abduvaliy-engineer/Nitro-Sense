@@ -26,12 +26,12 @@ sha256sums=('SKIP')
 # (about 340 MB).
 build() {
   cd "Nitro-Sense-$pkgver"
-  local source=${NITROSENSE_ASSETS:-}
-  if [ -z "$source" ]; then
-    source=$srcdir/NitroSense.msix
-    [ -s "$source" ] || python3 -I tools/fetch-nitrosense.py "$source"
+  local artwork=${NITROSENSE_ASSETS:-}
+  if [ -z "$artwork" ]; then
+    artwork=$srcdir/NitroSense.msix
+    [ -s "$artwork" ] || python3 -I tools/fetch-nitrosense.py "$artwork"
   fi
-  python3 -I tools/extract-acer-assets.py "$source" data/acer-assets.tsv app/assets/acer
+  python3 -I tools/extract-acer-assets.py "$artwork" data/acer-assets.tsv app/assets/acer
 }
 
 package() {
