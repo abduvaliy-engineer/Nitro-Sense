@@ -1,0 +1,72 @@
+# linuwu-sense-gpu-mode-dkms as a .deb and an .rpm (nfpm); packaging/deb-rpm/build.sh fills in the @...@ values. It's
+# the driver of the AUR package of the same name and the one install.sh builds: build.sh takes the commit and its
+# checksum from packaging/aur/linuwu-sense-gpu-mode-dkms/PKGBUILD.
+name: linuwu-sense-gpu-mode-dkms
+arch: all
+platform: linux
+version: "@DRIVER_VERSION@"
+version_schema: none
+release: "1"
+section: kernel
+priority: optional
+maintainer: Abduvaliy Abdulazizov <abduvaliy.hbai@gmail.com>
+vendor: Abduvaliy Abdulazizov
+homepage: https://github.com/abduvaliy-engineer/Linuwu-Sense
+license: GPL-2.0-or-later
+description: |-
+  Acer Nitro/Predator WMI driver (linuwu-sense) with gpu_mode, DKMS
+  linuwu-sense from 0x7375646F/Linuwu-Sense at 73a25ec plus only the gpu_mode patch (GPU Operating in
+  NitroSense for Linux), until that patch is merged upstream. It's the driver NitroSense for Linux's
+  installer builds; DKMS builds it for every kernel with headers.
+depends:
+  - dkms
+overrides:
+  rpm:
+    recommends: [kernel-devel-matched]
+contents:
+  - src: "@STAGE@/src"
+    dst: "/usr/src/linuwu-sense-@DRIVER_VERSION@"
+    type: tree
+  # The DKMS steps the .deb's maintainer scripts and the .rpm's scriptlets share.
+  - src: "@STAGE@/hook"
+    dst: /usr/lib/linuwu-sense-gpu-mode-dkms/hook
+  # rpm removes only the folders a package lists (dpkg every empty one it made). So the .rpm lists its own, and co-owns
+  # systemd's modules-load.d, which no package it depends on owns (Fedora's directory ownership rule).
+  - dst: /usr/lib/linuwu-sense-gpu-mode-dkms
+    type: dir
+    packager: rpm
+  - dst: /usr/share/licenses/linuwu-sense-gpu-mode-dkms
+    type: dir
+    packager: rpm
+  - dst: /usr/lib/modules-load.d
+    type: dir
+    packager: rpm
+  # linuwu-sense replaces acer_wmi, loads at boot, and is unloaded at shutdown so it can save the keyboard state.
+  - src: "@STAGE@/blacklist.conf"
+    dst: /usr/lib/modprobe.d/linuwu-sense-gpu-mode-dkms.conf
+  - src: "@STAGE@/modules-load.conf"
+    dst: /usr/lib/modules-load.d/linuwu-sense-gpu-mode-dkms.conf
+  - src: "@STAGE@/linuwu_sense.service"
+    dst: /usr/lib/systemd/system/linuwu_sense.service
+  - src: "@HERE@/copyright"
+    dst: /usr/share/doc/linuwu-sense-gpu-mode-dkms/copyright
+    packager: deb
+  - src: "@STAGE@/LICENSE"
+    dst: /usr/share/doc/linuwu-sense-gpu-mode-dkms/LICENSE
+    packager: deb
+  - src: "@STAGE@/LICENSE"
+    dst: /usr/share/licenses/linuwu-sense-gpu-mode-dkms/LICENSE
+    type: license
+    packager: rpm
+scripts:
+  preinstall: "@HERE@/preinstall.sh"
+  postinstall: "@HERE@/postinstall.sh"
+  preremove: "@HERE@/preremove.sh"
+deb:
+  compression: zstd
+rpm:
+  summary: Acer Nitro/Predator WMI driver (linuwu-sense) with gpu_mode, DKMS
+  group: System Environment/Kernel
+  compression: zstd
+  scripts:
+    posttrans: "@HERE@/posttrans.sh"

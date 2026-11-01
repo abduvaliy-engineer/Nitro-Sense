@@ -1,0 +1,6 @@
+linuwu-sense with gpu_mode, as NitroSense for Linux's installer builds it
+https://github.com/abduvaliy-engineer/Linuwu-Sense (from https://github.com/0x7375646F/Linuwu-Sense)
+
+The driver's source is under the GNU General Public License v2.0 or later (its SPDX line). The repository's LICENSE,
+copied next to this file, is the GNU General Public License v3.0. On Debian systems the GPL texts are also in
+/usr/share/common-licenses.

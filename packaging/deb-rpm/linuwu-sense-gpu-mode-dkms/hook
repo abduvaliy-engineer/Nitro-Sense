@@ -1,0 +1,73 @@
+#!/bin/sh
+# linuwu-sense-gpu-mode-dkms's DKMS steps, shared by the .deb's maintainer scripts and the .rpm's scriptlets.
+#   hook install     add this version to DKMS, build it for every kernel with headers, module options, service
+#   hook remove      take this version out of DKMS (an upgrade adds the new one afterwards)
+#   hook uninstall   remove, plus the service and the module options the package wrote
+name=linuwu-sense
+version=@DRIVER_VERSION@
+
+# Models whose linuwu-sense quirks need a module option (install.sh's LINUWU_OPTIONS).
+case "$(cat /sys/class/dmi/id/product_name 2>/dev/null)" in
+  "Nitro ANV16S-41") options="nitro_v4=1" ;;
+  *) options="" ;;
+esac
+
+added() { [ -n "$(dkms status -m "$name" -v "$version" 2>/dev/null)" ]; }
+
+case "$1" in
+  install)
+    added || dkms add -m "$name" -v "$version" >/dev/null || exit 1
+    # Every kernel with headers now; DKMS's own kernel hooks build it for later kernels (AUTOINSTALL).
+    for build in /lib/modules/*/build; do
+      [ -e "$build" ] || continue
+      kernel=${build#/lib/modules/}
+      kernel=${kernel%/build}
+      dkms install -m "$name" -v "$version" -k "$kernel"
+      case $? in
+        0) ;;
+        # dkms.conf's BUILD_EXCLUSIVE_KERNEL_MIN
+        77) echo "!! linuwu-sense needs Linux 6.14 or newer, so it isn't built for kernel $kernel." \
+          "Ubuntu 24.04: install linux-generic-hwe-24.04. Debian 13: install the kernel from trixie-backports." >&2 ;;
+        *) echo "!! linuwu-sense: building it for kernel $kernel failed; see /var/lib/dkms/$name/$version/build/make.log" >&2 ;;
+      esac
+    done
+    running=$(uname -r)
+    if [ ! -e "/lib/modules/$running/build" ]; then
+      echo "!! linuwu-sense: the running kernel $running has no headers. Install them (Debian/Ubuntu:" \
+        "linux-headers-$running, Fedora: kernel-devel-$running), then run: sudo dkms autoinstall" >&2
+    fi
+    if [ -n "$options" ] && [ ! -e /etc/modprobe.d/linuwu_sense.conf ]; then
+      echo "options linuwu_sense $options" >/etc/modprobe.d/linuwu_sense.conf
+    fi
+    # The service unloads the module at shutdown, so it can save the keyboard state.
+    if command -v systemctl >/dev/null 2>&1; then
+      if [ -d /run/systemd/system ]; then systemctl daemon-reload; fi
+      systemctl enable linuwu_sense.service >/dev/null 2>&1
+    fi
+    if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -q enabled; then
+      echo "!! linuwu-sense: Secure Boot is on, so the module must be signed with an enrolled key or it won't load." >&2
+    fi
+    if [ -d /sys/module/linuwu_sense ]; then
+      echo "==> The updated linuwu-sense driver loads at the next boot."
+    else
+      echo "==> linuwu-sense (with gpu_mode) loads at the next boot. To load it now instead:"
+      echo "      sudo modprobe -r acer_wmi; sudo modprobe linuwu_sense"
+    fi
+    ;;
+  remove)
+    if added; then dkms remove -m "$name" -v "$version" --all >/dev/null; fi
+    ;;
+  uninstall)
+    "$0" remove
+    if command -v systemctl >/dev/null 2>&1; then systemctl disable linuwu_sense.service >/dev/null 2>&1; fi
+    # Only the option file this package wrote (an exact match), never one the user changed.
+    if [ -n "$options" ] && [ "$(cat /etc/modprobe.d/linuwu_sense.conf 2>/dev/null)" = "options linuwu_sense $options" ]; then
+      rm -f /etc/modprobe.d/linuwu_sense.conf
+    fi
+    ;;
+  *)
+    echo "usage: $0 install|remove|uninstall" >&2
+    exit 2
+    ;;
+esac
+exit 0
