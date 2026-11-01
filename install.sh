@@ -83,17 +83,6 @@ driver_outdated() {
   fi
 }
 
-# Prints the first NitroSense package folder under the given mount points, if any.
-find_package() {
-  local dir asar
-  for dir in "$@"; do
-    for asar in "$dir"/Program\ Files/WindowsApps/*NitroSense*/app/resources/app.asar; do
-      [ -f "$asar" ] && { echo "${asar%/app/resources/app.asar}"; return 0; }
-    done
-  done
-  return 0
-}
-
 [ -n "$ROOT_PHASE" ] || [ "$(id -u)" -ne 0 ] || die "Run this as your normal user; it asks for sudo when it needs root."
 [ "$(uname -m)" = x86_64 ] || die "Only x86_64 is supported."
 MODEL=$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)
@@ -103,6 +92,10 @@ APP_DIR=$PREFIX/app
 NS_LAUNCHER=$BIN/nitrosense
 # shellcheck source=data/nitrosense-setup
 . "$REPO/data/nitrosense-setup"
+# Finding and checking NitroSense's artwork; the .deb and .rpm ship the same file as nitrosense-artwork.
+NS_ROOT=$REPO
+# shellcheck source=data/nitrosense-artwork
+. "$REPO/data/nitrosense-artwork"
 
 # ---------- uninstall ----------
 
@@ -235,7 +228,7 @@ EOF
       [ "$fstype" = ntfs ] && [ -z "$mountpoint" ] || continue
       mnt=$(mktemp -d /run/nitrosense-windows.XXXXXX)
       if mount -o ro "$dev" "$mnt" 2>/dev/null || mount -t ntfs3 -o ro "$dev" "$mnt" 2>/dev/null; then
-        package=$(find_package "$mnt")
+        package=$(artwork_find "$mnt")
         if [ -n "$package" ]; then
           mkdir -p "$STAGE/app/resources"
           cp -r "$package/app/resources/app.asar" "$STAGE/app/resources/"
@@ -305,17 +298,8 @@ fi
 
 # ---------- NitroSense artwork ----------
 
-assets_complete() {
-  local target
-  while IFS=$'\t' read -r target _; do
-    [[ -z $target || $target == \#* ]] && continue
-    [ -f "$APP_DIR/assets/acer/$target" ] || return 1
-  done <"$REPO/data/acer-assets.tsv"
-}
-
-extract_assets() {
-  python3 -I "$REPO/tools/extract-acer-assets.py" "$1" "$REPO/data/acer-assets.tsv" "$APP_DIR/assets/acer"
-}
+assets_complete() { artwork_complete "$APP_DIR/assets/acer"; }
+extract_assets() { artwork_extract "$1" "$APP_DIR/assets/acer"; }
 
 if [ -n "$ASSETS_SOURCE" ]; then
   say "Copying NitroSense artwork from $ASSETS_SOURCE"
@@ -325,7 +309,7 @@ else
   # whatever it doesn't provide comes from Acer's package in the Microsoft Store.
   windows=""
   [ -n "$STAGE" ] && [ -f "$STAGE/app/resources/app.asar" ] && windows=$STAGE
-  [ -n "$windows" ] || windows=$(find_package /run/media/"$USER"/* /media/"$USER"/* /mnt /mnt/*)
+  [ -n "$windows" ] || windows=$(artwork_find /run/media/"$USER"/* /media/"$USER"/* /mnt /mnt/*)
   if [ -n "$windows" ]; then
     say "Copying NitroSense artwork from Windows"
     extract_assets "$windows" >/dev/null || true
