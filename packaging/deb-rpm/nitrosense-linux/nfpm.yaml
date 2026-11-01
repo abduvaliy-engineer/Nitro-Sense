@@ -37,7 +37,8 @@ contents:
     dst: /usr/lib/nitrosense-linux/app/assets/acer
     type: symlink
   # rpm removes only the folders a package lists (dpkg every empty one it made). So the .rpm lists those the tree above
-  # leaves out, and co-owns udev's, which no package it depends on owns (Fedora's directory ownership rule).
+  # leaves out, and co-owns udev's and systemd's unit folder, which no package it depends on owns (Fedora's directory
+  # ownership rule).
   - dst: /usr/lib/nitrosense-linux/app/assets
     type: dir
     packager: rpm
@@ -48,6 +49,12 @@ contents:
     type: dir
     packager: rpm
   - dst: /usr/lib/udev/rules.d
+    type: dir
+    packager: rpm
+  - dst: /usr/lib/systemd
+    type: dir
+    packager: rpm
+  - dst: /usr/lib/systemd/system
     type: dir
     packager: rpm
   # Live Update installs new versions of a .deb or .rpm through apt or dnf (app/backend/updates.js).
@@ -73,6 +80,9 @@ contents:
   # The linuwu_sense group may use the driver's controls and the keyboard lighting without root.
   - src: "@SRC@/data/70-nitrosense.rules"
     dst: /usr/lib/udev/rules.d/70-nitrosense.rules
+  # The Mode Switch Key service; the rules above start it for keyboards that report the key.
+  - src: "@STAGE@/nitrosense-modekey@.service"
+    dst: /usr/lib/systemd/system/nitrosense-modekey@.service
   - src: "@STAGE@/sysusers.conf"
     dst: /usr/lib/sysusers.d/nitrosense-linux.conf
   - src: "@HERE@/copyright"

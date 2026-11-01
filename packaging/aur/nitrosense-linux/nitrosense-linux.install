@@ -13,6 +13,10 @@ _nitrosense_cpu_max() {
 # after this script, so the group is created here first.
 _nitrosense_permissions() {
   systemd-sysusers /usr/lib/sysusers.d/nitrosense-linux.conf
+  # pacman's daemon-reload hook runs after this script: systemd needs the Mode Switch Key service's unit before the
+  # hidraw trigger below starts it, and a running one restarts with the new version.
+  systemctl daemon-reload
+  systemctl try-restart 'nitrosense-modekey@*.service'
   udevadm control --reload
   udevadm trigger --action=bind /sys/devices/platform/acer-wmi
   udevadm trigger --subsystem-match=hidraw --action=add
@@ -33,6 +37,11 @@ EOF
 post_upgrade() {
   _nitrosense_cpu_max
   _nitrosense_permissions >/dev/null 2>&1
+  return 0
+}
+
+pre_remove() {
+  systemctl stop 'nitrosense-modekey@*.service' 2>/dev/null
   return 0
 }
 

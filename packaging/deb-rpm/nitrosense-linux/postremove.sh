@@ -3,6 +3,10 @@
 # keeps everything.
 case "$1" in remove|purge|0) ;; *) exit 0 ;; esac
 
+if [ -d /run/systemd/system ]; then
+  systemctl stop 'nitrosense-modekey@*.service' 2>/dev/null
+  systemctl daemon-reload
+fi
 if [ -e /etc/apparmor.d/nitrosense-linux ]; then
   if command -v apparmor_parser >/dev/null 2>&1; then apparmor_parser -R /etc/apparmor.d/nitrosense-linux 2>/dev/null; fi
   rm -f /etc/apparmor.d/nitrosense-linux

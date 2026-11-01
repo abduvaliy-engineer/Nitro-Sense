@@ -4,7 +4,7 @@ Unofficial recreation of Acer's NitroSense control center for Acer Nitro laptops
 behave like NitroSense on Windows, and talks to the hardware through the [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense)
 kernel driver.
 
-> **Status: early development (v0.14.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
+> **Status: early development (v0.15.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
 > Arch Linux (Omarchy / Hyprland).
 
 ![NitroSense for Linux — Home](docs/screenshots/home.png)
@@ -50,7 +50,7 @@ Screenshots: the Linux app on a Nitro ANV16S-41 (Hyprland), showing live sensor 
 |---|---|
 | Home | Live CPU / GPU / system temperature gauges, GPU / CPU frequency and usage, 3D mode avatar, device / battery / driver card |
 | Side panel | Scenario profiles, monitoring tiles (configurable), update check against GitHub releases, app shortcuts |
-| Scenario → Mode | Quiet / Balanced / Performance / Turbo (Eco / Balanced on battery), GPU / CPU clock gauges, mode switch key behavior |
+| Scenario → Mode | Quiet / Balanced / Performance / Turbo (Eco / Balanced on battery), GPU / CPU clock gauges, mode switch key behavior; the laptop's [Mode Switch Key](#mode-switch-key) switches modes |
 | Scenario → Fan Control | Auto / Max / Custom with per-fan speed and Auto toggle |
 | Scenario → Pulsar Lighting | Keyboard RGB: Global effects (Static, Breathing, Neon, Wave, Ripple, Zoom, Snake, Disco) with brightness, speed, direction and a color wheel; Area mode with a color per keyboard zone; the keyboard flashes the mode color when the power mode changes |
 | Scenario profiles | Add, rename, duplicate, restore and remove profiles; applying one sets power mode, fans and lighting |
@@ -128,6 +128,7 @@ nitrosense-setup        # once per user, then log out and back in
   only recommends the driver: with DAMX's linuwu-sense everything works except GPU Operating.
 - `nitrosense-setup` does what a package can't: it adds you to the `linuwu_sense` group and binds the
   [NitroSense key](#nitrosense-key).
+- The `nitrosense-modekey` service makes the [Mode Switch Key](#mode-switch-key) switch modes; udev starts it.
 - Live Update's **Update All** downloads the new packages from the release, checks them against its `SHA256SUMS` and
   installs them with apt or dnf (one password prompt).
 - Removing: `nitrosense-setup --remove` for the key binding, then
@@ -159,6 +160,7 @@ installs the same packages from this repository.
   `NITROSENSE_ASSETS=<app.asar, WindowsApps folder or .msixbundle>`.
 - `nitrosense-setup` does what a package can't: it adds you to the `linuwu_sense` group and binds the
   [NitroSense key](#nitrosense-key). Before uninstalling, `nitrosense-setup --remove` removes the key binding.
+- The `nitrosense-modekey` service makes the [Mode Switch Key](#mode-switch-key) switch modes; udev starts it.
 - Updates come with your AUR helper (`yay -Syu`); Live Update only tells you about them.
 - Moving from the installer: run `./install.sh --uninstall`, then remove its driver with
   `sudo dkms remove linuwu-sense/1.0.0 --all && sudo rm -rf /usr/src/linuwu-sense-1.0.0`.
@@ -182,7 +184,7 @@ the installer stops there, because Ubuntu blocks the sandbox of an Electron in y
    before is updated when the version it builds changes (the new one loads after a restart); a linuwu-sense you
    installed another way is left alone.
 3. Adds you to the `linuwu_sense` group and installs `data/70-nitrosense.rules`, so the app can use the
-   driver's controls and the keyboard lighting without root.
+   driver's controls and the keyboard lighting without root, and the [Mode Switch Key](#mode-switch-key) service.
 4. Installs the app to `~/.local/share/nitrosense`, with a `nitrosense` launcher and a desktop entry, and binds
    the NitroSense key on Hyprland and GNOME (see below).
 5. Adds NitroSense's artwork (see below).
@@ -218,6 +220,23 @@ The installer and `nitrosense-setup` (packages) bind the NitroSense key (`XF86Pr
 
 `./install.sh --uninstall` and `nitrosense-setup --remove` remove only the bindings they added.
 
+### Mode Switch Key
+
+On the ANV16S-41 the Mode Switch Key never reaches Linux as a key: its keyboard (`1025:174B`) sends it as a vendor
+HID report that Linux drops, and on Windows Acer's service reads that report. The installer and the packages add the
+same kind of service, `nitrosense-modekey`. udev starts it for that keyboard, and each press switches to the next
+mode, in NitroSense's order:
+
+- **AC plugged in**: Quiet → Balanced → Performance → Turbo → Quiet
+- **On battery**: Balanced ↔ Eco
+- **AC below 40 % battery** (NitroSense's low-battery lock): Quiet ↔ Balanced
+
+It sets the mode the way the app does, so the keyboard flashes the mode color and the Mode page follows, and it
+works with the app closed. It runs as root because only root can read the keyboard's raw reports; it acts on the
+key's report and drops every other one. `systemctl status 'nitrosense-modekey@*'` shows it. Other Nitro keyboards
+that send the key this way get added as people report them; on models where the key arrives through WMI,
+linuwu-sense handles it itself.
+
 ## Running
 
 Start NitroSense from your app launcher, with the NitroSense key, or by running `nitrosense`. It is
@@ -247,12 +266,13 @@ app/
   backend/                sensors, controls (sysfs writes), lighting, settings, updates, shortcuts
   renderer/               UI: pages/, side panel, shared components
   vendor/                 three.js r125 and lottie-web (MIT, licenses included)
-data/                     udev rule, desktop entry, nitrosense-setup, nitrosense-artwork, artwork manifest
+data/                     udev rule, desktop entry, nitrosense-setup, nitrosense-artwork, artwork manifest,
+                          the Mode Switch Key service (nitrosense-modekey) and its unit
 packaging/aur/            the AUR packages (nitrosense-linux, linuwu-sense-gpu-mode-dkms)
 packaging/deb-rpm/        the same two as .deb and .rpm: nfpm configs, install scripts, build.sh
 tools/                    artwork extraction and Microsoft Store download
 tests/                    lighting encoder, App Sync matching, key binding, driver rebuild, Live Update's package
-                          choice, and the .deb/.rpm install test
+                          choice, the Mode Switch Key service, and the .deb/.rpm install test
 docs/screenshots/         README screenshots
 .github/workflows/        checks on every PR, release on merge into main
 install.sh                installer
