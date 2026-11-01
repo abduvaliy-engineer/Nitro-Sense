@@ -17,7 +17,10 @@ PREFIX=${XDG_DATA_HOME:-$HOME/.local/share}/nitrosense
 BIN=$HOME/.local/bin
 APPS=${XDG_DATA_HOME:-$HOME/.local/share}/applications
 AUTOSTART=${XDG_CONFIG_HOME:-$HOME/.config}/autostart
-ELECTRON_VERSION=43.6.0
+ELECTRON_VERSION=43.8.6
+# electron-v$ELECTRON_VERSION-linux-x64.zip's sha256, from the release's SHASUMS256.txt. The .deb and .rpm bundle the
+# same build: packaging/deb-rpm/build.sh reads both lines.
+ELECTRON_SHA256=1c657678e0701c5d55b18a3fe18cd9e8a0a375c976292fbfb8406ab13a763402
 # Until linuwu-sense #154 (gpu_mode, for GPU Operating) is merged upstream, the driver comes from our fork:
 # upstream 0x7375646F/Linuwu-Sense at 73a25ec plus only that patch (branch gpu-mode-pinned).
 LINUWU_REPO=https://github.com/abduvaliy-engineer/Linuwu-Sense
@@ -83,17 +86,6 @@ driver_outdated() {
   fi
 }
 
-# Prints the first NitroSense package folder under the given mount points, if any.
-find_package() {
-  local dir asar
-  for dir in "$@"; do
-    for asar in "$dir"/Program\ Files/WindowsApps/*NitroSense*/app/resources/app.asar; do
-      [ -f "$asar" ] && { echo "${asar%/app/resources/app.asar}"; return 0; }
-    done
-  done
-  return 0
-}
-
 [ -n "$ROOT_PHASE" ] || [ "$(id -u)" -ne 0 ] || die "Run this as your normal user; it asks for sudo when it needs root."
 [ "$(uname -m)" = x86_64 ] || die "Only x86_64 is supported."
 MODEL=$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)
@@ -103,6 +95,10 @@ APP_DIR=$PREFIX/app
 NS_LAUNCHER=$BIN/nitrosense
 # shellcheck source=data/nitrosense-setup
 . "$REPO/data/nitrosense-setup"
+# Finding and checking NitroSense's artwork; the .deb and .rpm ship the same file as nitrosense-artwork.
+NS_ROOT=$REPO
+# shellcheck source=data/nitrosense-artwork
+. "$REPO/data/nitrosense-artwork"
 
 # ---------- uninstall ----------
 
@@ -235,7 +231,7 @@ EOF
       [ "$fstype" = ntfs ] && [ -z "$mountpoint" ] || continue
       mnt=$(mktemp -d /run/nitrosense-windows.XXXXXX)
       if mount -o ro "$dev" "$mnt" 2>/dev/null || mount -t ntfs3 -o ro "$dev" "$mnt" 2>/dev/null; then
-        package=$(find_package "$mnt")
+        package=$(artwork_find "$mnt")
         if [ -n "$package" ]; then
           mkdir -p "$STAGE/app/resources"
           cp -r "$package/app/resources/app.asar" "$STAGE/app/resources/"
@@ -249,6 +245,12 @@ EOF
     done < <(lsblk -rpno NAME,FSTYPE,MOUNTPOINT)
   fi
   exit 0
+fi
+
+# Ubuntu 24.04 and newer let only programs with an AppArmor profile create the user namespaces Chromium's sandbox
+# needs, so Electron's own build can't start from a home folder there; the .deb brings a profile for its Electron.
+if ! have electron43 && [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null)" = 1 ]; then
+  die "Electron can't start from a home folder here: Ubuntu 24.04 and newer block its sandbox. Install the .deb from https://github.com/abduvaliy-engineer/Nitro-Sense/releases/latest instead."
 fi
 
 NEW_GROUP=0
@@ -274,11 +276,13 @@ if have electron43; then
   ELECTRON=$(command -v electron43)
 else
   ELECTRON=$PREFIX/electron/electron
-  if [ ! -x "$ELECTRON" ]; then
+  # Electron's builds name their version in a "version" file; another pinned version replaces the copy.
+  if [ ! -x "$ELECTRON" ] || [ "$(cat "$PREFIX/electron/version" 2>/dev/null)" != "$ELECTRON_VERSION" ]; then
     say "Downloading Electron $ELECTRON_VERSION"
     tmp=$(mktemp -d)
     curl -fL --progress-bar -o "$tmp/electron.zip" \
       "https://github.com/electron/electron/releases/download/v$ELECTRON_VERSION/electron-v$ELECTRON_VERSION-linux-x64.zip"
+    echo "$ELECTRON_SHA256  $tmp/electron.zip" | sha256sum -c --quiet || die "The Electron download doesn't match its checksum."
     rm -rf "$PREFIX/electron" && mkdir -p "$PREFIX/electron"
     unzip -q "$tmp/electron.zip" -d "$PREFIX/electron"
     rm -rf "$tmp"
@@ -305,17 +309,8 @@ fi
 
 # ---------- NitroSense artwork ----------
 
-assets_complete() {
-  local target
-  while IFS=$'\t' read -r target _; do
-    [[ -z $target || $target == \#* ]] && continue
-    [ -f "$APP_DIR/assets/acer/$target" ] || return 1
-  done <"$REPO/data/acer-assets.tsv"
-}
-
-extract_assets() {
-  python3 -I "$REPO/tools/extract-acer-assets.py" "$1" "$REPO/data/acer-assets.tsv" "$APP_DIR/assets/acer"
-}
+assets_complete() { artwork_complete "$APP_DIR/assets/acer"; }
+extract_assets() { artwork_extract "$1" "$APP_DIR/assets/acer"; }
 
 if [ -n "$ASSETS_SOURCE" ]; then
   say "Copying NitroSense artwork from $ASSETS_SOURCE"
@@ -325,7 +320,7 @@ else
   # whatever it doesn't provide comes from Acer's package in the Microsoft Store.
   windows=""
   [ -n "$STAGE" ] && [ -f "$STAGE/app/resources/app.asar" ] && windows=$STAGE
-  [ -n "$windows" ] || windows=$(find_package /run/media/"$USER"/* /media/"$USER"/* /mnt /mnt/*)
+  [ -n "$windows" ] || windows=$(artwork_find /run/media/"$USER"/* /media/"$USER"/* /mnt /mnt/*)
   if [ -n "$windows" ]; then
     say "Copying NitroSense artwork from Windows"
     extract_assets "$windows" >/dev/null || true

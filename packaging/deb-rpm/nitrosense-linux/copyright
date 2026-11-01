@@ -1,0 +1,15 @@
+NitroSense for Linux
+https://github.com/abduvaliy-engineer/Nitro-Sense
+
+Copyright (C) Abduvaliy Abdulazizov. Free software under the GNU General Public License v3.0 or later; on Debian
+systems its text is in /usr/share/common-licenses/GPL-3.
+
+Bundled with it, under their own licenses:
+- three.js and lottie-web (MIT): /usr/lib/nitrosense-linux/app/vendor/three/LICENSE and
+  /usr/lib/nitrosense-linux/app/vendor/lottie/LICENSE.md
+- Electron (MIT), with Chromium and its components: /usr/lib/nitrosense-linux/electron/LICENSE and
+  /usr/lib/nitrosense-linux/electron/LICENSES.chromium.html
+
+Acer's NitroSense artwork in /var/lib/nitrosense-linux/acer (icons, fonts, backgrounds, animations and 3D models)
+belongs to Acer Inc. It isn't part of this package: installing the package takes it from Acer's own NitroSense
+package, and the licenses above don't cover it.

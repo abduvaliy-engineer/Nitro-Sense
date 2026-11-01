@@ -1,8 +1,13 @@
 const fs = require("fs/promises");
+const crypto = require("crypto");
 const os = require("os");
 const path = require("path");
+const { createWriteStream } = require("fs");
+const { once } = require("events");
+const { Readable } = require("stream");
 const { execFile } = require("child_process");
 const { app } = require("electron");
+const packageUpdate = require("./package-update");
 
 const REPO = "abduvaliy-engineer/Nitro-Sense";
 const RELEASES = `https://github.com/${REPO}/releases`;
@@ -67,8 +72,9 @@ async function isCheckout() {
   }
 }
 
-// A package-manager install says so in app/packaged (the AUR package writes "aur"). That package manager owns
-// the files, so Live Update still finds new releases but leaves installing them to it. null = not packaged.
+// A package-manager install says so in app/packaged: the AUR package writes "aur", the .deb and .rpm "deb" and "rpm".
+// The AUR's copy is left to the AUR helper; a .deb or .rpm installs the release's new packages (installPackages).
+// null = not packaged.
 async function packaged() {
   try {
     return (await fs.readFile(path.join(__dirname, "..", "packaged"), "utf8")).trim() || null;
@@ -77,12 +83,86 @@ async function packaged() {
   }
 }
 
-// One-click update: download the release's source, run its installer in update mode, then restart.
-// progress(stage): "downloading", "installing", "finished".
+// The driver package's installed "version-release", or null when it isn't installed.
+function installedDriver(format) {
+  const [command, args] = format === "deb"
+    ? ["dpkg-query", ["-W", "-f=${db:Status-Status} ${Version}", "linuwu-sense-gpu-mode-dkms"]]
+    : ["rpm", ["-q", "--qf", "installed %{VERSION}-%{RELEASE}", "linuwu-sense-gpu-mode-dkms"]];
+  return new Promise((resolve) => {
+    execFile(command, args, { timeout: 10000 }, (error, stdout) => {
+      const match = !error && /^installed (\S+)$/.exec(stdout.trim());
+      resolve(match ? match[1] : null);
+    });
+  });
+}
+
+function get(url, timeout) {
+  return fetch(url, { headers: { "User-Agent": "NitroSense-Linux" }, signal: AbortSignal.timeout(timeout) }).then((response) => {
+    if (!response.ok) throw new Error(`GitHub returned ${response.status} for ${url.split("/").pop()}`);
+    return response;
+  });
+}
+
+// Streams url into file and checks the file's sha256.
+async function download(url, file, sha256) {
+  const response = await get(url, 15 * 60000);
+  const hash = crypto.createHash("sha256");
+  const out = createWriteStream(file);
+  for await (const chunk of Readable.fromWeb(response.body)) {
+    hash.update(chunk);
+    if (!out.write(chunk)) await once(out, "drain");
+  }
+  out.end();
+  await once(out, "finish");
+  if (hash.digest("hex") !== sha256) throw new Error(`${path.basename(file)} doesn't match the release's SHA256SUMS`);
+}
+
+// A .deb or .rpm install: download the release's packages for it, check them against the release's SHA256SUMS and
+// install them with apt or dnf through pkexec (one password prompt).
+async function installPackages(format, version, progress) {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nitrosense-update-"));
+  try {
+    progress("downloading");
+    const base = `${RELEASES}/download/v${version}`;
+    const sums = await (await get(`${base}/SHA256SUMS`, 30000)).text();
+    const paths = [];
+    for (const file of packageUpdate.plan(format, version, sums, await installedDriver(format))) {
+      paths.push(path.join(dir, file.name));
+      await download(`${base}/${file.name}`, paths.at(-1), file.sha256);
+    }
+    // apt reads local packages as its own _apt user.
+    await fs.chmod(dir, 0o755);
+    progress("installing");
+    await run("pkexec", packageUpdate.installCommand(format, paths), 30 * 60000);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
+
+// One-click update. progress(stage): "downloading", "installing", "finished".
 async function install(version, progress = () => {}) {
   if (!/^\d+\.\d+\.\d+$/.test(String(version))) throw new Error("Invalid version");
-  if (await packaged()) throw new Error("This copy is updated by its package manager");
-  if (await isCheckout()) return { checkout: true };
+  const manager = await packaged();
+  if (manager === "deb" || manager === "rpm") {
+    await installPackages(manager, version, progress);
+  } else if (manager) {
+    throw new Error("This copy is updated by its package manager");
+  } else {
+    if (await isCheckout()) return { checkout: true };
+    await installRelease(version, progress);
+  }
+  progress("finished");
+  // Long enough for the "finished" dialog to be read.
+  // The window is showing (the user asked for the update), so the new version must not start hidden.
+  setTimeout(() => {
+    app.relaunch({ args: process.argv.slice(1).filter((arg) => arg !== "--hidden") });
+    app.exit(0);
+  }, 2500);
+  return { installed: true };
+}
+
+// An installer copy: download the release's source and run its installer in update mode.
+async function installRelease(version, progress) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nitrosense-update-"));
   try {
     progress("downloading");
@@ -101,14 +181,6 @@ async function install(version, progress = () => {}) {
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }
-  progress("finished");
-  // Long enough for the "finished" dialog to be read.
-  // The window is showing (the user asked for the update), so the new version must not start hidden.
-  setTimeout(() => {
-    app.relaunch({ args: process.argv.slice(1).filter((arg) => arg !== "--hidden") });
-    app.exit(0);
-  }, 2500);
-  return { installed: true };
 }
 
 function isReleaseUrl(url) {

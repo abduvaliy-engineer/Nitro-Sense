@@ -1,0 +1,109 @@
+# nitrosense-linux as a .deb and an .rpm (nfpm). packaging/deb-rpm/build.sh fills in the @...@ values and builds it.
+name: nitrosense-linux
+arch: amd64
+platform: linux
+version: "@APP_VERSION@"
+release: "1"
+section: utils
+priority: optional
+maintainer: Abduvaliy Abdulazizov <abduvaliy.hbai@gmail.com>
+vendor: Abduvaliy Abdulazizov
+homepage: https://github.com/abduvaliy-engineer/Nitro-Sense
+license: GPL-3.0-or-later AND MIT
+description: |-
+  Recreation of Acer NitroSense for Nitro laptops
+  Modes, fans, keyboard lighting, battery and monitoring for Acer Nitro laptops, like Acer's NitroSense on
+  Windows. It brings its own Electron. Acer's artwork isn't in the package: installing it takes the artwork
+  from Acer's own NitroSense package (sudo nitrosense-artwork).
+suggests:
+  - hyprpicker
+overrides:
+  # The libraries the bundled Electron loads, and Python (depends.py).
+  deb:
+    depends: ["@DEB_DEPENDS@"]
+    # The driver with gpu_mode (DAMX's linuwu-sense works too, without GPU Operating), links, and Live Update's
+    # password prompt.
+    recommends: [linuwu-sense-gpu-mode-dkms, xdg-utils, "pkexec | policykit-1"]
+  rpm:
+    depends: ["@RPM_DEPENDS@"]
+    recommends: [linuwu-sense-gpu-mode-dkms, xdg-utils, polkit]
+contents:
+  # The app, its Electron, the artwork tools and the AppArmor profile (build.sh stages them).
+  - src: "@STAGE@/lib"
+    dst: /usr/lib/nitrosense-linux
+    type: tree
+  # Acer's artwork can't be redistributed: nitrosense-artwork fetches it when the package is installed.
+  - src: /var/lib/nitrosense-linux/acer
+    dst: /usr/lib/nitrosense-linux/app/assets/acer
+    type: symlink
+  # rpm removes only the folders a package lists (dpkg every empty one it made). So the .rpm lists those the tree above
+  # leaves out, and co-owns udev's, which no package it depends on owns (Fedora's directory ownership rule).
+  - dst: /usr/lib/nitrosense-linux/app/assets
+    type: dir
+    packager: rpm
+  - dst: /usr/share/licenses/nitrosense-linux
+    type: dir
+    packager: rpm
+  - dst: /usr/lib/udev
+    type: dir
+    packager: rpm
+  - dst: /usr/lib/udev/rules.d
+    type: dir
+    packager: rpm
+  # Live Update installs new versions of a .deb or .rpm through apt or dnf (app/backend/updates.js).
+  - src: "@STAGE@/packaged.deb"
+    dst: /usr/lib/nitrosense-linux/app/packaged
+    packager: deb
+  - src: "@STAGE@/packaged.rpm"
+    dst: /usr/lib/nitrosense-linux/app/packaged
+    packager: rpm
+  - src: "@STAGE@/nitrosense"
+    dst: /usr/bin/nitrosense
+  # The per-user steps a package can't do: the linuwu_sense group and the NitroSense key.
+  - src: "@SRC@/data/nitrosense-setup"
+    dst: /usr/bin/nitrosense-setup
+  - src: "@SRC@/data/nitrosense-artwork"
+    dst: /usr/bin/nitrosense-artwork
+  - src: "@SRC@/data/nitrosense.desktop"
+    dst: /usr/share/applications/nitrosense.desktop
+  # Like NitroSense, it starts hidden at login so App Sync and the mode-change flash keep working.
+  - src: "@STAGE@/autostart.desktop"
+    dst: /etc/xdg/autostart/nitrosense.desktop
+    type: config|noreplace
+  # The linuwu_sense group may use the driver's controls and the keyboard lighting without root.
+  - src: "@SRC@/data/70-nitrosense.rules"
+    dst: /usr/lib/udev/rules.d/70-nitrosense.rules
+  - src: "@STAGE@/sysusers.conf"
+    dst: /usr/lib/sysusers.d/nitrosense-linux.conf
+  - src: "@HERE@/copyright"
+    dst: /usr/share/doc/nitrosense-linux/copyright
+    packager: deb
+  - src: "@SRC@/LICENSE"
+    dst: /usr/share/licenses/nitrosense-linux/LICENSE
+    type: license
+    packager: rpm
+  - src: "@SRC@/app/vendor/three/LICENSE"
+    dst: /usr/share/licenses/nitrosense-linux/three.js-LICENSE
+    type: license
+    packager: rpm
+  - src: "@SRC@/app/vendor/lottie/LICENSE.md"
+    dst: /usr/share/licenses/nitrosense-linux/lottie-web-LICENSE.md
+    type: license
+    packager: rpm
+  - src: "@STAGE@/lib/electron/LICENSE"
+    dst: /usr/share/licenses/nitrosense-linux/electron-LICENSE
+    type: license
+    packager: rpm
+  - src: "@HERE@/LicenseRef-Acer"
+    dst: /usr/share/licenses/nitrosense-linux/LicenseRef-Acer
+    type: license
+    packager: rpm
+scripts:
+  postinstall: "@HERE@/postinstall.sh"
+  postremove: "@HERE@/postremove.sh"
+deb:
+  compression: zstd
+rpm:
+  summary: Recreation of Acer NitroSense for Nitro laptops
+  group: Applications/System
+  compression: zstd
