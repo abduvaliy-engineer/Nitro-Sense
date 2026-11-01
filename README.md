@@ -4,7 +4,7 @@ Unofficial recreation of Acer's NitroSense control center for Acer Nitro laptops
 behave like NitroSense on Windows, and talks to the hardware through the [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense)
 kernel driver.
 
-> **Status: early development (v0.11.5).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
+> **Status: early development (v0.13.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
 > Arch Linux (Omarchy / Hyprland).
 
 ![NitroSense for Linux — Home](docs/screenshots/home.png)
@@ -99,6 +99,30 @@ quit it with `nitrosense --quit`.
 
 ## Install
 
+### Arch Linux (AUR)
+
+```sh
+yay -S nitrosense-linux linuwu-sense-gpu-mode-dkms
+nitrosense-setup        # once per user, then log out and back in
+```
+
+- [`nitrosense-linux`](https://aur.archlinux.org/packages/nitrosense-linux) installs the app to
+  `/usr/lib/nitrosense-linux`, with a `nitrosense` command, a desktop entry, a login autostart, and the udev rule
+  that lets the `linuwu_sense` group use the controls.
+- It needs a linuwu-sense driver (`linuwu-sense-dkms`). [`linuwu-sense-gpu-mode-dkms`](https://aur.archlinux.org/packages/linuwu-sense-gpu-mode-dkms)
+  is the one the installer below builds, with `gpu_mode` for GPU Operating. Other linuwu-sense packages, DAMX's
+  included, work too, with GPU Operating greyed out.
+- Building it fetches NitroSense's artwork from Acer's package in the Microsoft Store (about 340 MB), like the
+  installer, and checks every file. To use a NitroSense you already have, build with
+  `NITROSENSE_ASSETS=<app.asar, WindowsApps folder or .msixbundle>`.
+- `nitrosense-setup` does what a package can't: it adds you to the `linuwu_sense` group and binds the
+  [NitroSense key](#nitrosense-key). Before uninstalling, `nitrosense-setup --remove` removes the key binding.
+- Updates come with your AUR helper (`yay -Syu`); Live Update only tells you about them.
+- Moving from the installer: run `./install.sh --uninstall`, then remove its driver with
+  `sudo dkms remove linuwu-sense/1.0.0 --all && sudo rm -rf /usr/src/linuwu-sense-1.0.0`.
+
+### Installer (Arch, Debian/Ubuntu, Fedora)
+
 ```sh
 git clone https://github.com/abduvaliy-engineer/Nitro-Sense.git
 cd Nitro-Sense
@@ -136,7 +160,7 @@ copies them from Acer's own NitroSense package and checks every file against `da
 
 ### NitroSense key
 
-The installer binds the NitroSense key (`XF86Presentation`) to `nitrosense`:
+The installer and `nitrosense-setup` (AUR) bind the NitroSense key (`XF86Presentation`) to `nitrosense`:
 
 - **Hyprland**: a line in `~/.config/hypr/bindings.lua` or `hyprland.conf`.
 - **GNOME**: a custom shortcut named NitroSense (Settings → Keyboard → Custom Shortcuts). If the key already has a
@@ -147,7 +171,7 @@ The installer binds the NitroSense key (`XF86Presentation`) to `nitrosense`:
   `bindsym XF86Presentation exec ~/.local/bin/nitrosense`.
 - **X11 sessions** never receive the key: its keycode (433) is above X11's limit of 255.
 
-`--uninstall` removes only the bindings the installer added.
+`./install.sh --uninstall` and `nitrosense-setup --remove` remove only the bindings they added.
 
 ## Running
 
@@ -160,11 +184,12 @@ For development, run it from the checkout: `cd app && electron43 . --dev` reload
 
 Live Update in the side panel checks this repository's GitHub releases. **Update All** downloads the new release,
 runs `install.sh --update` and restarts NitroSense; it only asks for a password when the driver or permissions
-changed. A development checkout (`./install.sh --dev`) is not overwritten; it opens the release page instead.
+changed. A development checkout (`./install.sh --dev`) is not overwritten; it opens the release page instead. The
+AUR package belongs to pacman, so there Live Update only shows new versions, and **Update All** is greyed out.
 
 Development happens on the `dev` branch. Merging `dev` into `main` is a release: the Release workflow publishes
-the version in `app/package.json` as a GitHub release, and the Checks workflow refuses a release PR whose
-version was already released. Versions stay `0.x` (0.9, 0.10, 0.11, ...) until the app matches NitroSense one to one;
+the version in `app/package.json` as a GitHub release and then `packaging/aur` to the AUR (only from `main`), and the
+Checks workflow builds both AUR packages on every PR and refuses a release PR whose version was already released. Versions stay `0.x` (0.9, 0.10, 0.11, ...) until the app matches NitroSense one to one;
 that release will be 1.0.0.
 
 ## Project layout
@@ -175,14 +200,21 @@ app/
   backend/                sensors, controls (sysfs writes), lighting, settings, updates, shortcuts
   renderer/               UI: pages/, side panel, shared components
   vendor/                 three.js r125 and lottie-web (MIT, licenses included)
-data/                     udev rule, desktop entry, artwork manifest
+data/                     udev rule, desktop entry, nitrosense-setup, artwork manifest
+packaging/aur/            the AUR packages (nitrosense-linux, linuwu-sense-gpu-mode-dkms)
 tools/                    artwork extraction and Microsoft Store download
-tests/                    lighting encoder and App Sync matching checks
+tests/                    lighting encoder, App Sync matching, key binding and driver rebuild checks
 docs/screenshots/         README screenshots
 .github/workflows/        checks on every PR, release on merge into main
 install.sh                installer
 nitrosense/               first GTK prototype (superseded)
 ```
+
+## License
+
+NitroSense for Linux is free software under the [GNU General Public License v3.0 or later](LICENSE). `app/vendor`
+holds three.js and lottie-web under the MIT license, with their license files. NitroSense's artwork belongs to Acer:
+it isn't in this repository, and the installer and the AUR package take it from Acer's own NitroSense package.
 
 ## Disclaimer
 
