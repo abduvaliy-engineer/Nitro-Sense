@@ -118,6 +118,8 @@ nitrosense-setup        # once per user, then log out and back in
 - `nitrosense-setup` does what a package can't: it adds you to the `linuwu_sense` group and binds the
   [NitroSense key](#nitrosense-key). Before uninstalling, `nitrosense-setup --remove` removes the key binding.
 - Updates come with your AUR helper (`yay -Syu`); Live Update only tells you about them.
+- The same PKGBUILDs are in this repository: `makepkg -si` in `packaging/aur/linuwu-sense-gpu-mode-dkms`, then in
+  `packaging/aur/nitrosense-linux`, builds and installs them without the AUR.
 - Moving from the installer: run `./install.sh --uninstall`, then remove its driver with
   `sudo dkms remove linuwu-sense/1.0.0 --all && sudo rm -rf /usr/src/linuwu-sense-1.0.0`.
 
