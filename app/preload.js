@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld("nitro", {
     check: () => ipcRenderer.invoke("updates:check"),
     version: () => ipcRenderer.invoke("updates:version"),
     checkout: () => ipcRenderer.invoke("updates:checkout"),
+    packaged: () => ipcRenderer.invoke("updates:packaged"),
     install: (version) => ipcRenderer.invoke("updates:install", version),
     onProgress: (callback) => ipcRenderer.on("updates:progress", (_e, stage) => callback(stage)),
     open: (url) => ipcRenderer.invoke("updates:open", url),

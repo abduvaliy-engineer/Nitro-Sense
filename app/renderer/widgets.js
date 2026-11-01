@@ -235,6 +235,9 @@
   const UPDATE_CACHE_KEY = "updates.lastCheck";
   const AUTO_CHECK_MS = 6 * 60 * 60 * 1000;
   const RETRY_AFTER_FAILURE_MS = 15 * 60 * 1000;
+  // A package-manager install (app/packaged) is updated by that package manager, so Update All says how instead.
+  const PACKAGED_REASON = { aur: "Installed from the AUR: update it with your AUR helper (yay -Syu)" };
+  const packagedBy = window.nitro.updates.packaged().catch(() => null);
   let updateResult = null;
   let updatePromise = null;
 
@@ -270,6 +273,7 @@
     const content = el("div", "wi-update");
     body.append(content);
     let checking = false;
+    let packaged = null;
 
     function render() {
       content.replaceChildren();
@@ -313,7 +317,13 @@
       }
 
       const button = el("button", "pill-btn w260 wi-update-button", updates.length ? "Update All" : "Check Now");
-      button.addEventListener("click", () => (updates.length ? confirmUpdate(updates[0]) : check()));
+      if (updates.length && packaged) {
+        // NitroSense's disabled pill: no hover or click, the reason on hover.
+        window.NitroApp.unavailable(button, PACKAGED_REASON[packaged] ?? "Installed by a package manager: update it there");
+        button.disabled = true;
+      } else {
+        button.addEventListener("click", () => (updates.length ? confirmUpdate(updates[0]) : check()));
+      }
       content.append(block, button);
     }
 
@@ -415,8 +425,11 @@
       render();
     }
 
-    if (updateResult) render();
-    else cachedUpdateResult().then((cached) => (cached ? render() : check()));
+    packagedBy.then((manager) => {
+      packaged = manager;
+      if (updateResult) render();
+      else cachedUpdateResult().then((cached) => (cached ? render() : check()));
+    });
     return {};
   }
 

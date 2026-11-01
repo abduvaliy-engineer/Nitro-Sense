@@ -1,0 +1,54 @@
+# Maintainer: Abduvaliy Abdulazizov <abduvaliy dot hbai at gmail dot com>
+#
+# Kept in https://github.com/abduvaliy-engineer/Nitro-Sense under packaging/aur; its Release workflow publishes it.
+# linuwu-sense as NitroSense for Linux's installer builds it: upstream 0x7375646F/Linuwu-Sense at 73a25ec plus only
+# the gpu_mode patch (GPU Operating), until that patch is merged upstream (Linuwu-Sense#154).
+
+pkgname=linuwu-sense-gpu-mode-dkms
+_commit=75ce417b7eb1f85f6c74d83c6148ce61b2cfb6ff  # install.sh's LINUWU_COMMIT; CI checks they match
+# Upstream's 1.0.0 plus the gpu_mode patch, revision 1.
+pkgver=1.0.0.1
+pkgrel=1
+pkgdesc='Acer Nitro/Predator WMI driver (linuwu-sense) with gpu_mode for GPU Operating, DKMS'
+arch=('any')
+url='https://github.com/abduvaliy-engineer/Linuwu-Sense'
+license=('GPL-2.0-or-later')
+depends=('dkms')
+optdepends=('linux-headers: build the module for the stock Arch kernel (use your kernel'\''s headers package)')
+provides=('linuwu-sense-dkms')
+conflicts=('linuwu-sense-dkms')
+install=$pkgname.install
+source=("linuwu-sense-$_commit.tar.gz::$url/archive/$_commit.tar.gz")
+sha256sums=('4181f87561c90aac58bb281096914bcb1244b0521180eef40efae88399bcd799')
+
+prepare() {
+  cd "Linuwu-Sense-$_commit"
+  # Recent kernels reject these fortified strncpy calls; the copies are length-bounded anyway.
+  sed -i 's/\bstrncpy(/memcpy(/g' src/linuwu_sense.c
+}
+
+package() {
+  cd "Linuwu-Sense-$_commit"
+  local src=$pkgdir/usr/src/linuwu-sense-$pkgver
+
+  install -Dm644 src/linuwu_sense.c "$src/src/linuwu_sense.c"
+  install -Dm644 /dev/stdin "$src/Makefile" <<<'obj-m := src/linuwu_sense.o'
+  # Arch's dkms hooks build and install the module for every kernel with headers.
+  install -Dm644 /dev/stdin "$src/dkms.conf" <<EOF
+PACKAGE_NAME="linuwu-sense"
+PACKAGE_VERSION="$pkgver"
+BUILT_MODULE_NAME[0]="linuwu_sense"
+BUILT_MODULE_LOCATION[0]="src"
+DEST_MODULE_LOCATION[0]="/kernel/drivers/platform/x86"
+MAKE[0]="make -C \$kernel_source_dir M=\$dkms_tree/\$PACKAGE_NAME/\$PACKAGE_VERSION/build modules"
+AUTOINSTALL="yes"
+EOF
+
+  # linuwu-sense replaces acer_wmi, loads at boot, and is unloaded at shutdown so it can save the keyboard state.
+  install -Dm644 /dev/stdin "$pkgdir/usr/lib/modprobe.d/$pkgname.conf" <<<'blacklist acer_wmi'
+  install -Dm644 /dev/stdin "$pkgdir/usr/lib/modules-load.d/$pkgname.conf" <<<'linuwu_sense'
+  install -Dm644 linuwu_sense.service "$pkgdir/usr/lib/systemd/system/linuwu_sense.service"
+  sed -i 's|/sbin/rmmod|/usr/bin/rmmod|' "$pkgdir/usr/lib/systemd/system/linuwu_sense.service"
+
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
