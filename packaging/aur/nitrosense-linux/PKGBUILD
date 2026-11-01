@@ -4,7 +4,7 @@
 # every release here.
 
 pkgname=nitrosense-linux
-pkgver=0.14.0
+pkgver=0.15.0
 pkgrel=1
 pkgdesc='Recreation of Acer NitroSense for Nitro laptops: modes, fans, keyboard lighting, battery, monitoring'
 arch=('any')
