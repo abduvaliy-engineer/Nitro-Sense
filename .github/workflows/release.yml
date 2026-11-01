@@ -1,9 +1,11 @@
 name: Release
 
-# Every merge into main publishes the version in app/package.json; the app's Live Update picks it up.
+# Every merge into main publishes the version in app/package.json; the app's Live Update picks it up. A manual run
+# on main (gh workflow run release.yml --ref main) skips the existing release and publishes the AUR packages again.
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -54,6 +56,13 @@ jobs:
             >"$ssh_dir/known_hosts"
           export GIT_SSH_COMMAND="ssh -i $ssh_dir/key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$ssh_dir/known_hosts"
           git config --global --add safe.directory '*'
+          # Until the key is on the maintainer's AUR account (AUR registration can be paused), skip with a warning
+          # instead of failing the release.
+          if ! ssh -i "$ssh_dir/key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$ssh_dir/known_hosts" aur@aur.archlinux.org help >/dev/null 2>&1; then
+            echo "::warning::The AUR doesn't accept AUR_SSH_KEY yet, so nothing was published. Add its public half to the AUR account, then run this workflow on main."
+            exit 0
+          fi
           useradd -m builder
           for dir in packaging/aur/*/; do
             pkg=$(basename "$dir")
