@@ -18,7 +18,7 @@ jobs:
           bash -n install.sh data/nitrosense-setup data/nitrosense-artwork packaging/aur/*/PKGBUILD packaging/aur/*/*.install \
             packaging/deb-rpm/build.sh tests/packages.sh
           for script in packaging/deb-rpm/*/*.sh packaging/deb-rpm/linuwu-sense-gpu-mode-dkms/hook; do sh -n "$script"; done
-          python3 -m py_compile tools/*.py app/backend/*.py packaging/deb-rpm/depends.py
+          python3 -m py_compile tools/*.py app/backend/*.py packaging/deb-rpm/depends.py data/nitrosense-modekey
       - name: Lighting encoder
         run: node tests/lighting-encode.js app
       - name: App Sync matching
@@ -27,6 +27,8 @@ jobs:
         run: node tests/scenario-power.js app
       - name: Live Update's .deb and .rpm choice
         run: node tests/package-update.js app
+      - name: Mode Switch Key service
+        run: python3 -I -B tests/mode-key.py data/nitrosense-modekey
       - name: NitroSense key binding
         run: |
           command -v gsettings >/dev/null || sudo apt-get install -y libglib2.0-bin

@@ -1,0 +1,33 @@
+# NitroSense Mode Switch Key service for one keyboard; the instance is its hidraw node. udev starts it for
+# keyboards that report the key (70-nitrosense.rules); install.sh and the packages fill in @MODEKEY@.
+[Unit]
+Description=NitroSense Mode Switch Key (%I)
+Documentation=https://github.com/abduvaliy-engineer/Nitro-Sense
+BindsTo=dev-%i.device
+After=dev-%i.device
+
+[Service]
+ExecStart=/usr/bin/python3 -I -B @MODEKEY@ /dev/%I
+Restart=on-failure
+RestartSec=2
+# It only reads the keyboard and writes /sys/firmware/acpi/platform_profile, both owned by root, so it needs no
+# capabilities; /sys stays writable under ProtectSystem=strict.
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
