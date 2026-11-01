@@ -1,0 +1,36 @@
+# The parts of the install that depend on the laptop and can't ship as files.
+
+# Models whose linuwu-sense quirks need a module option (install.sh's LINUWU_OPTIONS).
+_linuwu_options() {
+  case "$(cat /sys/class/dmi/id/product_name 2>/dev/null)" in
+    "Nitro ANV16S-41") echo "nitro_v4=1" ;;
+  esac
+}
+
+post_install() {
+  local options
+  options=$(_linuwu_options)
+  if [ -n "$options" ] && [ ! -e /etc/modprobe.d/linuwu_sense.conf ]; then
+    echo "options linuwu_sense $options" >/etc/modprobe.d/linuwu_sense.conf
+  fi
+  systemctl enable linuwu_sense.service >/dev/null 2>&1
+  cat <<'EOF'
+==> linuwu-sense (with gpu_mode) loads at the next boot. To load it now instead:
+      sudo modprobe -r acer_wmi; sudo modprobe linuwu_sense
+EOF
+}
+
+post_upgrade() {
+  echo "==> The updated linuwu-sense driver loads at the next boot."
+}
+
+pre_remove() {
+  systemctl disable linuwu_sense.service >/dev/null 2>&1
+  # Only the option file this package wrote (an exact match), never one the user changed.
+  local options
+  options=$(_linuwu_options)
+  if [ -n "$options" ] && [ "$(cat /etc/modprobe.d/linuwu_sense.conf 2>/dev/null)" = "options linuwu_sense $options" ]; then
+    rm -f /etc/modprobe.d/linuwu_sense.conf
+  fi
+  return 0
+}

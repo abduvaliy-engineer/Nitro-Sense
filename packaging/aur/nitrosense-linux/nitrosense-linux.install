@@ -23,14 +23,10 @@ post_install() {
   _nitrosense_cpu_max
   _nitrosense_permissions >/dev/null 2>&1
   cat <<'EOF'
-==> NitroSense: two more steps for each user
-  1. Join the linuwu_sense group, then log out and back in:
-       sudo usermod -aG linuwu_sense "$USER"
-  2. Bind the NitroSense key to the nitrosense command:
-       Hyprland (hyprland.conf):      bind = , XF86Presentation, exec, nitrosense
-       Omarchy (hypr/bindings.lua):   o.bind("XF86Presentation", "NitroSense", { launch = "nitrosense" })
-       GNOME: Settings > Keyboard > Custom Shortcuts
-     KDE Plasma and X11 sessions can't bind this key.
+==> NitroSense: run this once as each user who uses it, then log out and back in:
+      nitrosense-setup
+    It joins the linuwu_sense group (for the controls) and binds the NitroSense key on Hyprland and GNOME.
+    GPU Operating needs the linuwu-sense-gpu-mode-dkms driver.
 EOF
 }
 
@@ -43,5 +39,9 @@ post_upgrade() {
 post_remove() {
   rm -f /etc/nitrosense/cpu_max_mhz
   rmdir /etc/nitrosense 2>/dev/null
+  cat <<'EOF'
+==> A NitroSense key binding nitrosense-setup added stays in your desktop settings: the XF86Presentation line in
+    your Hyprland config, or the NitroSense custom shortcut in GNOME Settings.
+EOF
   return 0
 }
