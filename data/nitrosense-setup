@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# NitroSense for Linux: the per-user setup a system package can't do (install.sh runs the same functions).
+#   nitrosense-setup            join the linuwu_sense group and bind the NitroSense key (Hyprland, GNOME)
+#   nitrosense-setup --remove   remove the NitroSense key binding again
+# Sourced by install.sh, it only defines the functions; NS_LAUNCHER is the command GNOME's shortcut runs.
+
+NS_LAUNCHER=${NS_LAUNCHER:-$(command -v nitrosense || echo nitrosense)}
+HYPR_LUA=$HOME/.config/hypr/bindings.lua
+HYPR_CONF=$HOME/.config/hypr/hyprland.conf
+HYPR_LUA_BIND='o.bind("XF86Presentation", "NitroSense", { launch = "nitrosense" })'
+HYPR_CONF_BIND='bind = , XF86Presentation, exec, nitrosense'
+GNOME_KEYS=org.gnome.settings-daemon.plugins.media-keys
+GNOME_BIND=/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/nitrosense/
+
+declare -F say >/dev/null || say() { printf '\033[1;38;5;208m==>\033[0m %s\n' "$*"; }
+declare -F warn >/dev/null || warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
+declare -F have >/dev/null || have() { command -v "$1" >/dev/null 2>&1; }
+
+# GNOME: the NitroSense key as a custom shortcut (Settings -> Keyboard -> Custom Shortcuts) under our own path, so
+# removing it touches only ours.
+gnome_schema() { have gsettings && grep -qxF "$GNOME_KEYS" <<<"$(gsettings list-schemas 2>/dev/null)"; }
+gnome_session() { case ":${XDG_CURRENT_DESKTOP:-}:" in *:GNOME:*) gnome_schema ;; *) return 1 ;; esac; }
+gnome_paths() { gsettings get "$GNOME_KEYS" custom-keybindings | grep -o "'[^']*'" | tr -d "'" || true; }
+gnome_set_paths() { gsettings set "$GNOME_KEYS" custom-keybindings "[$(sed "/./!d; s/.*/'&'/" | paste -sd, -)]"; }
+
+gnome_bind() {
+  local paths path schema=$GNOME_KEYS.custom-keybinding:$GNOME_BIND
+  paths=$(gnome_paths)
+  grep -qxF "$GNOME_BIND" <<<"$paths" && return 0
+  for path in $paths; do
+    if [ "$(gsettings get "$GNOME_KEYS.custom-keybinding:$path" binding)" = "'XF86Presentation'" ]; then
+      warn "The NitroSense key already has a GNOME shortcut, so it was left as it is."
+      return 0
+    fi
+  done
+  if grep -qF "'XF86Presentation'" <<<"$(gsettings list-recursively)"; then
+    warn "The NitroSense key is already used by a GNOME setting, so it was left as it is."
+    return 0
+  fi
+  gsettings set "$schema" name "NitroSense" &&
+    gsettings set "$schema" command "$NS_LAUNCHER" &&
+    gsettings set "$schema" binding "XF86Presentation" &&
+    printf '%s\n%s\n' "$paths" "$GNOME_BIND" | gnome_set_paths &&
+    say "NitroSense key bound in GNOME"
+}
+
+gnome_unbind() {
+  local paths
+  gnome_schema || return 0
+  paths=$(gnome_paths)
+  grep -qxF "$GNOME_BIND" <<<"$paths" || return 0
+  { grep -vxF "$GNOME_BIND" <<<"$paths" || true; } | gnome_set_paths &&
+    gsettings reset-recursively "$GNOME_KEYS.custom-keybinding:$GNOME_BIND"
+}
+
+# Binds the NitroSense key where the desktop allows it; an existing binding of the key is left alone.
+key_bind() {
+  if [ -f "$HYPR_LUA" ]; then
+    grep -q XF86Presentation "$HYPR_LUA" || { printf '\n%s\n' "$HYPR_LUA_BIND" >>"$HYPR_LUA"; say "NitroSense key bound in Hyprland"; }
+  elif [ -f "$HYPR_CONF" ]; then
+    grep -q XF86Presentation "$HYPR_CONF" || { printf '\n%s\n' "$HYPR_CONF_BIND" >>"$HYPR_CONF"; say "NitroSense key bound in Hyprland"; }
+  fi
+  if gnome_session; then
+    gnome_bind || warn "Could not bind the NitroSense key in GNOME; add a custom shortcut for $NS_LAUNCHER in Settings."
+  fi
+  case ":${XDG_CURRENT_DESKTOP:-}:" in
+    *:KDE:*) warn "KDE Plasma can't bind the NitroSense key (Qt has no name for XF86Presentation); use the launcher or another shortcut." ;;
+  esac
+  return 0
+}
+
+# Removes only the bindings key_bind added.
+key_unbind() {
+  local file
+  for file in "$HYPR_LUA" "$HYPR_CONF"; do
+    if [ -f "$file" ] && grep -qxF -e "$HYPR_LUA_BIND" -e "$HYPR_CONF_BIND" "$file"; then
+      { grep -vxF -e "$HYPR_LUA_BIND" -e "$HYPR_CONF_BIND" "$file" || true; } >"$file.tmp" && mv "$file.tmp" "$file"
+    fi
+  done
+  gnome_unbind || warn "Could not remove the NitroSense key's GNOME shortcut."
+  return 0
+}
+
+# The linuwu_sense group may use the driver's controls and the keyboard lighting (data/70-nitrosense.rules).
+group_join() {
+  local user=${USER:-$(id -un)}
+  if id -nG "$user" | grep -qw linuwu_sense; then
+    id -nG | grep -qw linuwu_sense || warn "You're in the linuwu_sense group: log out and back in to use the controls."
+    return 0
+  fi
+  say "Adding $user to the linuwu_sense group"
+  if [ -t 0 ] && have sudo; then sudo usermod -aG linuwu_sense "$user"; else pkexec usermod -aG linuwu_sense "$user"; fi &&
+    warn "Log out and back in so the linuwu_sense group applies."
+}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  set -euo pipefail
+  case "${1:-}" in
+    "") group_join; key_bind; say "NitroSense is set up for $(id -un)" ;;
+    --remove) key_unbind; say "NitroSense key binding removed" ;;
+    *) echo "usage: nitrosense-setup [--remove]" >&2; exit 2 ;;
+  esac
+fi
