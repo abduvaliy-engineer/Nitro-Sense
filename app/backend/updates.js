@@ -67,10 +67,21 @@ async function isCheckout() {
   }
 }
 
+// A package-manager install says so in app/packaged (the AUR package writes "aur"). That package manager owns
+// the files, so Live Update still finds new releases but leaves installing them to it. null = not packaged.
+async function packaged() {
+  try {
+    return (await fs.readFile(path.join(__dirname, "..", "packaged"), "utf8")).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 // One-click update: download the release's source, run its installer in update mode, then restart.
 // progress(stage): "downloading", "installing", "finished".
 async function install(version, progress = () => {}) {
   if (!/^\d+\.\d+\.\d+$/.test(String(version))) throw new Error("Invalid version");
+  if (await packaged()) throw new Error("This copy is updated by its package manager");
   if (await isCheckout()) return { checkout: true };
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nitrosense-update-"));
   try {
@@ -104,4 +115,4 @@ function isReleaseUrl(url) {
   return typeof url === "string" && url.startsWith(`${RELEASES}/`);
 }
 
-module.exports = { check, install, isCheckout, isReleaseUrl, RELEASES };
+module.exports = { check, install, isCheckout, packaged, isReleaseUrl, RELEASES };

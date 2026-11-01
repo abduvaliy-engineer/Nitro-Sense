@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# install.sh's GNOME binding of the NitroSense key, against a throwaway settings file: a minimal copy of GNOME's
-# media-keys schema and GSettings' keyfile backend in a temp dir, so no real desktop settings are touched.
-# Usage: bash tests/gnome-key.sh [install.sh]   (needs gsettings and glib-compile-schemas)
+# The NitroSense key binding (data/nitrosense-setup, used by install.sh and the AUR package) against throwaway
+# settings: a temp HOME for Hyprland's config, and for GNOME a minimal copy of its media-keys schema with GSettings'
+# keyfile backend in a temp dir, so no real desktop settings are touched.
+# Usage: bash tests/key-binding.sh [data/nitrosense-setup]   (needs gsettings and glib-compile-schemas)
 set -euo pipefail
-INSTALL=${1:-$(dirname "$0")/../install.sh}
+SETUP=${1:-$(dirname "$0")/../data/nitrosense-setup}
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/schemas"
@@ -22,12 +23,15 @@ cat >"$work/schemas/test.gschema.xml" <<'EOF'
 EOF
 glib-compile-schemas "$work/schemas"
 export GSETTINGS_SCHEMA_DIR=$work/schemas GSETTINGS_BACKEND=keyfile XDG_CONFIG_HOME=$work/config
-export XDG_CURRENT_DESKTOP=ubuntu:GNOME
-BIN=/home/test/.local/bin
+export XDG_CURRENT_DESKTOP=ubuntu:GNOME HOME=$work/home
+mkdir -p "$HOME/.config/hypr"
+printf 'o.bind("SUPER + RETURN", "Terminal", { launch = "alacritty" })\n' >"$HOME/.config/hypr/bindings.lua"
+NS_LAUNCHER=/home/test/.local/bin/nitrosense
 say() { echo "SAY: $*"; }
 warn() { echo "WARN: $*"; }
 have() { command -v "$1" >/dev/null 2>&1; }
-eval "$(sed -n '/^GNOME_KEYS=/,/^# ---------- uninstall/p' "$INSTALL")"
+# shellcheck source=data/nitrosense-setup
+. "$SETUP"
 
 K=org.gnome.settings-daemon.plugins.media-keys
 ours=$K.custom-keybinding:$GNOME_BIND
@@ -42,7 +46,7 @@ gnome_session || fail "GNOME not detected in ubuntu:GNOME"
 gnome_bind
 [ "$(list)" = "['$GNOME_BIND']" ] || fail "bind into an empty list: $(list)"
 [ "$(gsettings get "$ours" binding)" = "'XF86Presentation'" ] || fail "binding"
-[ "$(gsettings get "$ours" command)" = "'$BIN/nitrosense'" ] || fail "command"
+[ "$(gsettings get "$ours" command)" = "'$NS_LAUNCHER'" ] || fail "command"
 [ "$(gsettings get "$ours" name)" = "'NitroSense'" ] || fail "name"
 
 gnome_bind
@@ -75,5 +79,19 @@ gnome_unbind
 gsettings set $K custom-keybindings "['$GNOME_BIND']"
 gnome_unbind
 empty "unbind of the last shortcut:"
+
+# Hyprland (plus GNOME, since this is a GNOME session): bound once, and removing it keeps the user's own lines.
+lua=$HOME/.config/hypr/bindings.lua
+key_bind >/dev/null
+key_bind >/dev/null
+[ "$(grep -c XF86Presentation "$lua")" = 1 ] || fail "Hyprland binding added $(grep -c XF86Presentation "$lua") times"
+[ "$(list)" = "['$GNOME_BIND']" ] || fail "key_bind didn't bind GNOME: $(list)"
+key_unbind
+grep -q XF86Presentation "$lua" && fail "key_unbind left the Hyprland binding"
+grep -q '"Terminal"' "$lua" || fail "key_unbind removed the user's own binding"
+empty "key_unbind:"
+printf 'o.bind("XF86Presentation", "Mine", { launch = "foo" })\n' >>"$lua"
+key_bind >/dev/null
+[ "$(grep -c XF86Presentation "$lua")" = 1 ] || fail "key_bind added a second binding next to the user's own"
 
 echo "all passed"
