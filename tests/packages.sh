@@ -96,6 +96,17 @@ getent group linuwu_sense >/dev/null || fail "there's no linuwu_sense group"
 if owned nitrosense-linux | grep -q '/assets/acer/'; then fail "the package itself holds Acer's artwork"; fi
 pass "files, the packaged marker and the linuwu_sense group"
 
+# The Mode Switch Key service: the unit runs the packaged service, and udev starts it for the keyboards in the rule.
+unit=/usr/lib/systemd/system/nitrosense-modekey@.service
+grep -qx "ExecStart=/usr/bin/python3 -I -B $lib/nitrosense-modekey /dev/%I" "$unit" ||
+  fail "the Mode Switch Key unit doesn't run $lib/nitrosense-modekey"
+[ -x "$lib/nitrosense-modekey" ] || fail "the Mode Switch Key service isn't executable"
+python3 -I -B -c 'import ast, sys; ast.parse(open(sys.argv[1]).read())' "$lib/nitrosense-modekey" ||
+  fail "the Mode Switch Key service doesn't parse with this distribution's Python"
+grep -q 'nitrosense-modekey@%k.service' /usr/lib/udev/rules.d/70-nitrosense.rules ||
+  fail "udev doesn't start the Mode Switch Key service"
+pass "the Mode Switch Key service, its unit and its udev rule"
+
 # Containers block the user namespaces Chromium's sandbox needs (Docker's seccomp filter), hence --no-sandbox here;
 # Electron still loads every library it needs when it starts.
 version=$("$lib/electron/electron" --no-sandbox --version 2>>"$log") || fail "Electron doesn't start"
@@ -167,7 +178,7 @@ dkms status -m linuwu-sense -v "$driver_version" | grep -q . || fail "a reinstal
 pass "a reinstall keeps the driver in DKMS and the artwork"
 
 drop nitrosense-linux linuwu-sense-gpu-mode-dkms || fail "removing the packages failed"
-for path in /var/lib/nitrosense-linux /etc/apparmor.d/nitrosense-linux /etc/nitrosense "$lib" \
+for path in /var/lib/nitrosense-linux /etc/apparmor.d/nitrosense-linux /etc/nitrosense "$lib" "$unit" \
     "/usr/src/linuwu-sense-$driver_version" /usr/lib/linuwu-sense-gpu-mode-dkms; do
   [ ! -e "$path" ] || fail "$path is left behind"
 done

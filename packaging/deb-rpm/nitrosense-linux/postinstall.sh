@@ -11,6 +11,12 @@ if command -v systemd-sysusers >/dev/null 2>&1; then
 else
   getent group linuwu_sense >/dev/null || groupadd --system linuwu_sense
 fi
+# systemd learns the Mode Switch Key service's unit before the hidraw trigger below starts it; a running one
+# restarts with the new version.
+if [ -d /run/systemd/system ]; then
+  systemctl daemon-reload
+  systemctl try-restart 'nitrosense-modekey@*.service' 2>/dev/null
+fi
 if command -v udevadm >/dev/null 2>&1; then
   udevadm control --reload 2>/dev/null
   udevadm trigger --action=bind /sys/devices/platform/acer-wmi 2>/dev/null

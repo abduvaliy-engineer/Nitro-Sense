@@ -1,0 +1,106 @@
+#!/usr/bin/python3 -IB
+"""NitroSense Mode Switch Key service. Usage, as root: nitrosense-modekey /dev/hidrawN
+
+Some Nitro keyboards report the Mode Switch Key only as a vendor HID report that Linux drops: the ANV16S-41's
+internal keyboard (1025:174B) sends input report 4 = 04 85 ff on reserved usage page 0x88, and no WMI or EC event
+follows. On Windows, Acer's service reads that report and switches the mode; this does the same, in NitroSense's
+order:
+
+    on AC                                  Quiet > Balanced > Performance > Turbo > Quiet
+    on battery                             Balanced > Eco > Balanced
+    on AC below 40 % (low-battery lock)    Quiet > Balanced > Quiet
+
+The mode goes to /sys/firmware/acpi/platform_profile, so every platform-profile driver (acer-wmi, amd-pmf) follows,
+as when the app sets it, and the app's Mode page follows the change. udev starts one instance per keyboard that
+reports the key (data/70-nitrosense.rules). Every other report the keyboard sends (typing) is read and dropped,
+never stored.
+"""
+import glob
+import os
+import sys
+
+PROFILE = "/sys/firmware/acpi/platform_profile"
+CHOICES = "/sys/firmware/acpi/platform_profile_choices"
+POWER_SUPPLY = "/sys/class/power_supply"
+NAMES = {"low-power": "Eco", "quiet": "Quiet", "balanced": "Balanced", "balanced-performance": "Performance",
+         "performance": "Turbo"}
+CYCLES = {
+    "ac": ["quiet", "balanced", "balanced-performance", "performance"],
+    # linuwu-sense only accepts Eco and Balanced on battery (the app's BATTERY_MODES).
+    "battery": ["balanced", "low-power"],
+    # NitroSense's low-battery lock (the app's liveMode): on AC below 40 % only Quiet runs as itself.
+    "locked": ["quiet", "balanced"],
+}
+LOW_BATTERY = 40
+# Report ID and first byte of a Mode Switch Key press.
+KEY_REPORT = (0x04, 0x85)
+
+
+def is_mode_key(report):
+    return len(report) >= 2 and (report[0], report[1]) == KEY_REPORT
+
+
+def next_mode(current, power, choices):
+    """The mode after `current` for power "ac", "battery" or "locked", among the driver's choices."""
+    cycle = [mode for mode in CYCLES[power] if mode in choices]
+    if not cycle:
+        return None
+    # A mode outside this cycle (Eco on AC, Turbo on battery, "custom" while drivers disagree) goes to its first.
+    return cycle[(cycle.index(current) + 1) % len(cycle)] if current in cycle else cycle[0]
+
+
+def read(path):
+    with open(path) as f:
+        return f.read().strip()
+
+
+def power_state(supplies=POWER_SUPPLY):
+    """ "battery", "locked" (on AC below 40 %) or "ac", as the app's onBattery and lowBattery see it."""
+    ac, battery = None, None
+    for supply in sorted(glob.glob(os.path.join(supplies, "*"))):
+        try:
+            kind = read(os.path.join(supply, "type"))
+            if kind == "Mains":
+                ac = bool(ac) or read(os.path.join(supply, "online")) == "1"
+            elif kind == "Battery" and battery is None:
+                battery = int(read(os.path.join(supply, "capacity")))
+        except (OSError, ValueError):
+            continue
+    if ac is False:
+        return "battery"
+    return "locked" if battery is not None and battery < LOW_BATTERY else "ac"
+
+
+def switch():
+    current, power = read(PROFILE), power_state()
+    mode = next_mode(current, power, read(CHOICES).split())
+    if mode is None:
+        return
+    with open(PROFILE, "w") as f:
+        f.write(mode)
+    where = {"ac": "on AC", "battery": "on battery", "locked": "on AC below 40 %"}[power]
+    print(f"Mode Switch Key {where}: {NAMES.get(current, current)} -> {NAMES[mode]}", flush=True)
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit("usage: nitrosense-modekey /dev/hidrawN")
+    node = sys.argv[1]
+    fd = os.open(node, os.O_RDONLY)
+    print(f"listening to {node}", flush=True)
+    while True:
+        try:
+            report = os.read(fd, 64)
+        except OSError as error:
+            sys.exit(f"{node}: {error.strerror}")  # the keyboard went away; systemd stops this instance
+        if not report:
+            sys.exit(f"{node} closed")
+        if is_mode_key(report):
+            try:
+                switch()
+            except OSError as error:
+                print(f"switching the mode failed: {error}", file=sys.stderr, flush=True)
+
+
+if __name__ == "__main__":
+    main()

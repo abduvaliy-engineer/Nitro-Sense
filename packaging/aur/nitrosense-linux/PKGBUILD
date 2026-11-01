@@ -4,7 +4,7 @@
 # every release here.
 
 pkgname=nitrosense-linux
-pkgver=0.14.0
+pkgver=0.15.0
 pkgrel=1
 pkgdesc='Recreation of Acer NitroSense for Nitro laptops: modes, fans, keyboard lighting, battery, monitoring'
 arch=('any')
@@ -57,6 +57,11 @@ package() {
 
   # The linuwu_sense group may use the driver's controls and the keyboard lighting without root.
   install -Dm644 data/70-nitrosense.rules "$pkgdir/usr/lib/udev/rules.d/70-nitrosense.rules"
+  # The Mode Switch Key service; the rules above start it for keyboards that report the key.
+  install -Dm755 data/nitrosense-modekey "$pkgdir$dest/nitrosense-modekey"
+  install -d "$pkgdir/usr/lib/systemd/system"
+  sed "s|@MODEKEY@|$dest/nitrosense-modekey|" data/nitrosense-modekey@.service \
+    >"$pkgdir/usr/lib/systemd/system/nitrosense-modekey@.service"
   install -d "$pkgdir/usr/lib/sysusers.d"
   echo 'g linuwu_sense - -' >"$pkgdir/usr/lib/sysusers.d/$pkgname.conf"
 

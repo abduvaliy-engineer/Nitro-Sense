@@ -27,6 +27,10 @@ LINUWU_REPO=https://github.com/abduvaliy-engineer/Linuwu-Sense
 LINUWU_COMMIT=75ce417b7eb1f85f6c74d83c6148ce61b2cfb6ff
 LINUWU_VERSION=1.0.0
 LINUWU_SRC=/usr/src/linuwu-sense-$LINUWU_VERSION
+# The Mode Switch Key service runs as root, so it lives outside the user's copy.
+MODEKEY_DIR=/usr/local/lib/nitrosense-linux
+MODEKEY=$MODEKEY_DIR/nitrosense-modekey
+MODEKEY_UNIT=/etc/systemd/system/nitrosense-modekey@.service
 # Models whose linuwu-sense quirks need a module option.
 declare -A LINUWU_OPTIONS=(["Nitro ANV16S-41"]="nitro_v4=1")
 
@@ -74,6 +78,8 @@ ask() {
   [[ $reply =~ ^[Yy] ]]
 }
 have() { command -v "$1" >/dev/null 2>&1; }
+# The Mode Switch Key service's unit, pointing at this install's copy of the service.
+modekey_unit() { sed "s|@MODEKEY@|$MODEKEY|" "$REPO/data/nitrosense-modekey@.service"; }
 
 # A linuwu-sense this installer built from another commit gets rebuilt; one installed some other way is left alone.
 # Builds record their commit; older ones are recognised by the dkms.conf this installer writes.
@@ -103,7 +109,9 @@ NS_ROOT=$REPO
 # ---------- uninstall ----------
 
 if [ -n "$ROOT_PHASE" ] && [ "$UNINSTALL" -eq 1 ]; then
-  rm -rf /etc/udev/rules.d/70-nitrosense.rules /etc/nitrosense
+  systemctl stop 'nitrosense-modekey@*.service' 2>/dev/null || true
+  rm -rf /etc/udev/rules.d/70-nitrosense.rules /etc/nitrosense "$MODEKEY_UNIT" "$MODEKEY_DIR"
+  systemctl daemon-reload 2>/dev/null || true
   udevadm control --reload
   exit 0
 fi
@@ -210,6 +218,13 @@ EOF
   say "Granting the linuwu_sense group access to the controls"
   as_root groupadd -f linuwu_sense
   id -nG "$ROOT_PHASE" | grep -qw linuwu_sense || usermod -aG linuwu_sense "$ROOT_PHASE"
+  # The Mode Switch Key service, which udev starts from the hidraw trigger below for keyboards that report the key.
+  as_root install -Dm755 "$REPO/data/nitrosense-modekey" "$MODEKEY"
+  modekey_unit | as_root tee "$MODEKEY_UNIT" >/dev/null
+  if [ -d /run/systemd/system ]; then
+    as_root systemctl daemon-reload
+    as_root systemctl try-restart 'nitrosense-modekey@*.service'
+  fi
   as_root install -m644 "$REPO/data/70-nitrosense.rules" /etc/udev/rules.d/70-nitrosense.rules
   as_root udevadm control --reload
   as_root udevadm trigger --action=bind /sys/devices/platform/acer-wmi 2>/dev/null || true
@@ -262,7 +277,8 @@ fi
 # An update only needs root when the system part is missing or changed.
 system_current() {
   modinfo linuwu_sense >/dev/null 2>&1 && ! { [ "$DRIVER" -eq 1 ] && driver_outdated; } && [ "$NEW_GROUP" -eq 0 ] \
-    && [ -e /etc/nitrosense/cpu_max_mhz ] && cmp -s "$REPO/data/70-nitrosense.rules" /etc/udev/rules.d/70-nitrosense.rules
+    && [ -e /etc/nitrosense/cpu_max_mhz ] && cmp -s "$REPO/data/70-nitrosense.rules" /etc/udev/rules.d/70-nitrosense.rules \
+    && cmp -s "$REPO/data/nitrosense-modekey" "$MODEKEY" && modekey_unit | cmp -s - "$MODEKEY_UNIT"
 }
 if [ "$UPDATE" -eq 1 ] && system_current; then
   say "Driver and permissions are up to date"
