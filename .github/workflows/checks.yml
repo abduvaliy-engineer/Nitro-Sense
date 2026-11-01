@@ -15,12 +15,18 @@ jobs:
       - name: Syntax
         run: |
           for file in $(git ls-files 'app/*.js' ':!app/vendor'); do node --check "$file"; done
-          bash -n install.sh data/nitrosense-setup packaging/aur/*/PKGBUILD packaging/aur/*/*.install
-          python3 -m py_compile tools/*.py app/backend/*.py
+          bash -n install.sh data/nitrosense-setup data/nitrosense-artwork packaging/aur/*/PKGBUILD packaging/aur/*/*.install \
+            packaging/deb-rpm/build.sh tests/packages.sh
+          for script in packaging/deb-rpm/*/*.sh packaging/deb-rpm/linuwu-sense-gpu-mode-dkms/hook; do sh -n "$script"; done
+          python3 -m py_compile tools/*.py app/backend/*.py packaging/deb-rpm/depends.py
       - name: Lighting encoder
         run: node tests/lighting-encode.js app
       - name: App Sync matching
         run: node tests/appsync-match.js app
+      - name: Scenario mode on plugging in and unplugging
+        run: node tests/scenario-power.js app
+      - name: Live Update's .deb and .rpm choice
+        run: node tests/package-update.js app
       - name: NitroSense key binding
         run: |
           command -v gsettings >/dev/null || sudo apt-get install -y libglib2.0-bin
@@ -132,3 +138,74 @@ jobs:
           grep -q 'ACER_WMID_MISC_SETTING_GPU_MODE' <<<"$source" || { echo "::error::the driver lacks gpu_mode"; exit 1; }
           grep -q '\bstrncpy(' <<<"$source" && { echo "::error::the driver still calls strncpy"; exit 1; }
           grep -qxF $'\tprovides = linuwu-sense-dkms' "$DRIVER/.SRCINFO"
+
+  packages:
+    # Builds the .deb and .rpm packages from this commit, the way the Release workflow does for a release.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Downloads (nfpm, Electron, linuwu-sense)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/nitrosense-build
+          key: package-downloads-${{ hashFiles('packaging/deb-rpm/build.sh', 'install.sh', 'packaging/aur/linuwu-sense-gpu-mode-dkms/PKGBUILD') }}
+      - name: Build the packages
+        run: bash packaging/deb-rpm/build.sh dist
+      - name: Check them
+        run: |
+          # Live Update finds them under the names it expects.
+          node tests/package-update.js app dist
+          # Acer's artwork stays out of the packages: the only assets/acer entry is the symlink to it.
+          if dpkg-deb --contents dist/nitrosense-linux_*_amd64.deb | grep '/assets/acer/'; then
+            echo "::error::the .deb holds Acer's artwork"
+            exit 1
+          fi
+          ls -l dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: dist/
+          retention-days: 7
+
+  packages-install:
+    # Installs the packages on each distribution they're for and checks them there (tests/packages.sh): files,
+    # Electron starting, the artwork, the AppArmor profile, the driver built by DKMS, a reinstall and the removal.
+    needs: packages
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["ubuntu:24.04", "ubuntu:26.04", "debian:13", "fedora:44", "fedora:45"]
+    container: ${{ matrix.image }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Tools
+        # actions/cache needs tar and zstd; Python fetches Acer's package when the cache has none.
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update -q && apt-get install -y -q ca-certificates python3 zstd
+          else
+            dnf install -y -q python3 tar zstd
+          fi
+      - uses: actions/checkout@v4
+      - name: Acer's NitroSense package (for the artwork)
+        id: msix
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/nitrosense
+          key: nitrosense-msix-${{ hashFiles('data/acer-assets.tsv') }}
+      - name: Download it from the Microsoft Store
+        if: steps.msix.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /var/cache/nitrosense
+          python3 -I tools/fetch-nitrosense.py /var/cache/nitrosense/NitroSense.msix
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+      - name: Install, check, reinstall and remove
+        env:
+          NITROSENSE_ASSETS: /var/cache/nitrosense/NitroSense.msix
+        run: bash tests/packages.sh dist

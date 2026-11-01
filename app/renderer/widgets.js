@@ -235,8 +235,10 @@
   const UPDATE_CACHE_KEY = "updates.lastCheck";
   const AUTO_CHECK_MS = 6 * 60 * 60 * 1000;
   const RETRY_AFTER_FAILURE_MS = 15 * 60 * 1000;
-  // A package-manager install (app/packaged) is updated by that package manager, so Update All says how instead.
+  // A package-manager install (app/packaged): the AUR's copy is updated by the AUR helper, so Update All says how
+  // instead; a .deb or .rpm installs the release's new packages itself, through apt or dnf.
   const PACKAGED_REASON = { aur: "Installed from the AUR: update it with your AUR helper (yay -Syu)" };
+  const SELF_UPDATING = ["deb", "rpm"];
   const packagedBy = window.nitro.updates.packaged().catch(() => null);
   let updateResult = null;
   let updatePromise = null;
@@ -317,7 +319,7 @@
       }
 
       const button = el("button", "pill-btn w260 wi-update-button", updates.length ? "Update All" : "Check Now");
-      if (updates.length && packaged) {
+      if (updates.length && packaged && !SELF_UPDATING.includes(packaged)) {
         // NitroSense's disabled pill: no hover or click, the reason on hover.
         window.NitroApp.unavailable(button, PACKAGED_REASON[packaged] ?? "Installed by a package manager: update it there");
         button.disabled = true;

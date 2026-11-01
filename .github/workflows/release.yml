@@ -1,7 +1,8 @@
 name: Release
 
-# Every merge into main publishes the version in app/package.json; the app's Live Update picks it up. A manual run
-# on main (gh workflow run release.yml --ref main) skips the existing release and publishes the AUR packages again.
+# Every merge into main publishes the version in app/package.json with its .deb and .rpm packages; the app's Live
+# Update picks it up. A manual run on main (gh workflow run release.yml --ref main) keeps the existing release and
+# publishes the AUR packages again.
 on:
   push:
     branches: [main]
@@ -15,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Build the .deb and .rpm packages
+        run: bash packaging/deb-rpm/build.sh dist
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -22,9 +25,14 @@ jobs:
           version=$(node -p "require('./app/package.json').version")
           if gh release view "v$version" >/dev/null 2>&1; then
             echo "v$version is already released"
+            # A release whose packages didn't get attached gets them now.
+            if ! gh release view "v$version" --json assets --jq '.assets[].name' | grep -qx SHA256SUMS; then
+              gh release upload "v$version" dist/*
+            fi
             exit 0
           fi
-          gh release create "v$version" --target "$GITHUB_SHA" --title "NitroSense $version" --generate-notes
+          # Attached from the start, so Live Update never finds a release without its packages.
+          gh release create "v$version" dist/* --target "$GITHUB_SHA" --title "NitroSense $version" --generate-notes
 
   aur:
     # Publishes packaging/aur/* to the AUR once the release and its tag archive exist. Only from main, and only with

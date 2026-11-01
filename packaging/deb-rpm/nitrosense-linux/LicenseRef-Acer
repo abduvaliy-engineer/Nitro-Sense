@@ -1,0 +1,3 @@
+The artwork in /var/lib/nitrosense-linux/acer (icons, fonts, backgrounds, animations and 3D models) belongs to Acer Inc.
+It isn't part of this package: installing the package takes it from Acer's own NitroSense package, and the GPL and
+MIT licenses of this package don't cover it.
