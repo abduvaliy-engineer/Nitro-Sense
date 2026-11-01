@@ -5,7 +5,7 @@ behave like NitroSense on Windows, and talks to the hardware through the [linuwu
 kernel driver.
 
 > **Status: early development (v0.15.0).** Not every page is done yet. Tested on an Acer Nitro ANV16S-41 running
-> Arch Linux (Omarchy / Hyprland).
+> Arch Linux (Omarchy / Hyprland); other models: [Supported laptops](#supported-laptops).
 
 ![NitroSense for Linux — Home](docs/screenshots/home.png)
 
@@ -96,6 +96,28 @@ counts. Apps come from your desktop entries and Steam library, or any executable
 NitroSense keeps running in the background when you close its window, so App Sync and the mode-change keyboard flash
 keep working, and the installer starts it hidden at login. Open it again from the launcher or with the NitroSense key;
 quit it with `nitrosense --quit`.
+
+## Supported laptops
+
+NitroSense for Linux drives the hardware through [linuwu-sense](https://github.com/0x7375646F/Linuwu-Sense), the driver
+[DAMX](https://github.com/PXDiv/Div-Acer-Manager-Max) uses too, so it supports the Acer Nitro and Predator laptops they
+support. It's tested on a Nitro V 16S ANV16S-41. Other models may miss some controls: please
+[open an issue](https://github.com/abduvaliy-engineer/Nitro-Sense/issues) and tell how it works on yours.
+
+| Series | Supported by the driver the app installs | Supported by a newer linuwu-sense or by DAMX |
+|---|---|---|
+| Nitro V 15 / V 16 | ANV15-41, ANV15-51, ANV16-41, ANV16S-41 (tested) | ANV15-52, ANV16-71 |
+| Nitro 16 / 17 | AN16-41, AN16-42, AN16-43 | AN17-51 |
+| Nitro 5 | AN515-55, AN515-58 | AN515-44, AN515-45, AN515-47, AN515-54, AN515-57, AN517-41, AN517-54 |
+| Predator Helios Neo | PHN16-71, PHN16-72 | PHN14-51, PHN16-73, PHN16S-71 |
+| Predator Helios | PH16-71, PH18-71 | PH16-72, PH18-73, PH315-52, PH315-53, PH315-54 |
+| Predator Triton | PTX17-71 | |
+| Other Predator | | PHIN16-71, PHIN16S-71 |
+
+The driver the installer and the packages install doesn't know the models in the last column yet. On those,
+`options linuwu_sense nitro_v4=1` (Nitro) or `options linuwu_sense predator_v4=1` (Predator) in
+`/etc/modprobe.d/linuwu_sense.conf` may turn on fans and modes, as DAMX's Internals Manager does; the installer and the
+packages keep that file.
 
 ## Install
 
