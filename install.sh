@@ -17,7 +17,10 @@ PREFIX=${XDG_DATA_HOME:-$HOME/.local/share}/nitrosense
 BIN=$HOME/.local/bin
 APPS=${XDG_DATA_HOME:-$HOME/.local/share}/applications
 AUTOSTART=${XDG_CONFIG_HOME:-$HOME/.config}/autostart
-ELECTRON_VERSION=43.6.0
+ELECTRON_VERSION=43.8.6
+# electron-v$ELECTRON_VERSION-linux-x64.zip's sha256, from the release's SHASUMS256.txt. The .deb and .rpm bundle the
+# same build: packaging/deb-rpm/build.sh reads both lines.
+ELECTRON_SHA256=1c657678e0701c5d55b18a3fe18cd9e8a0a375c976292fbfb8406ab13a763402
 # Until linuwu-sense #154 (gpu_mode, for GPU Operating) is merged upstream, the driver comes from our fork:
 # upstream 0x7375646F/Linuwu-Sense at 73a25ec plus only that patch (branch gpu-mode-pinned).
 LINUWU_REPO=https://github.com/abduvaliy-engineer/Linuwu-Sense
@@ -244,6 +247,12 @@ EOF
   exit 0
 fi
 
+# Ubuntu 24.04 and newer let only programs with an AppArmor profile create the user namespaces Chromium's sandbox
+# needs, so Electron's own build can't start from a home folder there; the .deb brings a profile for its Electron.
+if ! have electron43 && [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null)" = 1 ]; then
+  die "Electron can't start from a home folder here: Ubuntu 24.04 and newer block its sandbox. Install the .deb from https://github.com/abduvaliy-engineer/Nitro-Sense/releases/latest instead."
+fi
+
 NEW_GROUP=0
 id -nG "$USER" | grep -qw linuwu_sense || NEW_GROUP=1
 if [ "$UPDATE" -eq 0 ] && [ -z "$ASSETS_SOURCE" ]; then
@@ -267,11 +276,13 @@ if have electron43; then
   ELECTRON=$(command -v electron43)
 else
   ELECTRON=$PREFIX/electron/electron
-  if [ ! -x "$ELECTRON" ]; then
+  # Electron's builds name their version in a "version" file; another pinned version replaces the copy.
+  if [ ! -x "$ELECTRON" ] || [ "$(cat "$PREFIX/electron/version" 2>/dev/null)" != "$ELECTRON_VERSION" ]; then
     say "Downloading Electron $ELECTRON_VERSION"
     tmp=$(mktemp -d)
     curl -fL --progress-bar -o "$tmp/electron.zip" \
       "https://github.com/electron/electron/releases/download/v$ELECTRON_VERSION/electron-v$ELECTRON_VERSION-linux-x64.zip"
+    echo "$ELECTRON_SHA256  $tmp/electron.zip" | sha256sum -c --quiet || die "The Electron download doesn't match its checksum."
     rm -rf "$PREFIX/electron" && mkdir -p "$PREFIX/electron"
     unzip -q "$tmp/electron.zip" -d "$PREFIX/electron"
     rm -rf "$tmp"
