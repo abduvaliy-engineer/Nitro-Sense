@@ -21,6 +21,8 @@ jobs:
         run: node tests/lighting-encode.js app
       - name: App Sync matching
         run: node tests/appsync-match.js app
+      - name: Scenario mode on plugging in and unplugging
+        run: node tests/scenario-power.js app
       - name: NitroSense key binding
         run: |
           command -v gsettings >/dev/null || sudo apt-get install -y libglib2.0-bin
