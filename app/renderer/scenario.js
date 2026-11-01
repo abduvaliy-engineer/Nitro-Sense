@@ -66,6 +66,8 @@
   const onBattery = () => lastPower?.ac === false;
   // NitroSense locks the AC mode on AC power below 40 % battery: Quiet stays, everything else runs Balanced.
   const lowBattery = () => !onBattery() && lastPower?.battery != null && lastPower.battery < LOW_BATTERY;
+  // The power state a profile's live mode depends on (see liveMode).
+  const powerState = () => (onBattery() ? "battery" : lowBattery() ? "locked" : "ac");
 
   async function load() {
     if (state) return state;
@@ -167,17 +169,39 @@
     await window.nitro.lighting.apply(state.profiles[state.active].lighting);
   }
 
+  // The profile's mode for the current power state, and its fans on AC (linuwu-sense puts the fans on auto
+  // when the mode changes). Nothing is saved.
+  async function runLiveMode(profile) {
+    lastApply = Date.now();
+    try {
+      await window.nitro.controls.setProfile(liveMode(profile));
+      if (!onBattery()) await window.nitro.controls.setFanSpeed(...fanSpeeds(profile.fan));
+    } catch (error) {
+      console.error("running the profile's mode failed", error);
+    }
+    lastApply = Date.now();
+    emit();
+  }
+
   // Mode and fan changes made elsewhere (keys, other pages) are written into the active profile.
+  // Plugging in, unplugging, or the low-battery lock starting or ending runs the profile's mode for the new
+  // power state instead, as NitroSense does; that isn't a change to save.
   async function sync(snapshot) {
+    const before = lastPower ? powerState() : null;
     lastPower = snapshot.power;
     if (!state) await load();
-    // A reading taken while a profile was being applied may still show the previous mode.
-    if (Date.now() - lastApply < 2500) return;
     const profile = state.profiles[state.active];
     if (!profile) return;
+    if (before && before !== powerState()) {
+      await runLiveMode(profile);
+      return;
+    }
+    // A reading taken while a profile was being applied may still show the previous mode.
+    if (Date.now() - lastApply < 2500) return;
     let changed = false;
     const slot = onBattery() ? "dcMode" : "mode";
-    if (snapshot.profile && MODE_NAMES[snapshot.profile] && profile[slot] !== snapshot.profile) {
+    // Only a mode other than the one the profile runs now was changed elsewhere (the lock's Balanced wasn't).
+    if (snapshot.profile && MODE_NAMES[snapshot.profile] && snapshot.profile !== liveMode(profile)) {
       profile[slot] = snapshot.profile;
       changed = true;
     }
