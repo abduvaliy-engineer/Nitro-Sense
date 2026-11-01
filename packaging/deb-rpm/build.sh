@@ -78,6 +78,10 @@ chmod -R go-w "$lib/electron"
 install -Dm644 -t "$lib/tools" "$src/tools/extract-acer-assets.py" "$src/tools/fetch-nitrosense.py"
 install -Dm644 -t "$lib/data" "$src/data/acer-assets.tsv" "$src/data/microsoft-root-2011.pem"
 install -m644 "$here/nitrosense-linux/apparmor" "$lib/apparmor-profile"
+# The Mode Switch Key service and its unit, which udev starts for keyboards that report the key.
+install -m755 "$src/data/nitrosense-modekey" "$lib/nitrosense-modekey"
+sed "s|@MODEKEY@|/usr/lib/nitrosense-linux/nitrosense-modekey|" "$src/data/nitrosense-modekey@.service" \
+  >"$stage/nitrosense-modekey@.service"
 printf '#!/bin/sh\nexec /usr/lib/nitrosense-linux/electron/electron /usr/lib/nitrosense-linux/app "$@"\n' \
   >"$stage/nitrosense"
 chmod 755 "$stage/nitrosense"
