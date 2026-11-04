@@ -20,6 +20,7 @@ fi
 if command -v udevadm >/dev/null 2>&1; then
   udevadm control --reload 2>/dev/null
   udevadm trigger --action=bind /sys/devices/platform/acer-wmi 2>/dev/null
+  udevadm trigger --action=add --subsystem-match=platform-profile 2>/dev/null
   udevadm trigger --subsystem-match=hidraw --action=add 2>/dev/null
   if [ -d /sys/module/linuwu_sense ]; then udevadm trigger --action=add /sys/module/linuwu_sense 2>/dev/null; fi
 fi
