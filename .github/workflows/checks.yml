@@ -19,6 +19,8 @@ jobs:
             packaging/deb-rpm/build.sh tests/packages.sh
           for script in packaging/deb-rpm/*/*.sh packaging/deb-rpm/linuwu-sense-gpu-mode-dkms/hook; do sh -n "$script"; done
           python3 -m py_compile tools/*.py app/backend/*.py packaging/deb-rpm/depends.py data/nitrosense-modekey
+      - name: udev rules
+        run: udevadm verify --resolve-names=never data/70-nitrosense.rules
       - name: Lighting encoder
         run: node tests/lighting-encode.js app
       - name: App Sync matching
