@@ -19,6 +19,7 @@ _nitrosense_permissions() {
   systemctl try-restart 'nitrosense-modekey@*.service'
   udevadm control --reload
   udevadm trigger --action=bind /sys/devices/platform/acer-wmi
+  udevadm trigger --action=add --subsystem-match=platform-profile
   udevadm trigger --subsystem-match=hidraw --action=add
   if [ -d /sys/module/linuwu_sense ]; then udevadm trigger --action=add /sys/module/linuwu_sense; fi
 }

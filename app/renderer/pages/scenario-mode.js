@@ -303,10 +303,15 @@
           iconBox.append(icon(`${ACER}/mode/ic_mode_${ICONS[mode]}.svg`));
           button.append(iconBox, el("p", "", scenario.MODE_NAMES[mode]));
           button.disabled = disabled.has(mode);
+          // The card shows the new mode at once. If the driver refuses it, a notification says why and the next
+          // poll shows the real mode again.
           button.addEventListener("click", () => {
             selected = mode;
             markSelected();
-            scenario.setMode(mode).catch((error) => console.error("mode change failed", error));
+            scenario.setMode(mode).catch((error) => {
+              console.error("mode change failed", error);
+              window.NitroApp.notifyError("Mode", error);
+            });
           });
           wrap.append(button);
           cardButtons[mode] = button;

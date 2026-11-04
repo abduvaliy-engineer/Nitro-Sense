@@ -228,6 +228,7 @@ EOF
   as_root install -m644 "$REPO/data/70-nitrosense.rules" /etc/udev/rules.d/70-nitrosense.rules
   as_root udevadm control --reload
   as_root udevadm trigger --action=bind /sys/devices/platform/acer-wmi 2>/dev/null || true
+  as_root udevadm trigger --action=add --subsystem-match=platform-profile
   as_root udevadm trigger --subsystem-match=hidraw --action=add
   [ -d /sys/module/linuwu_sense ] && as_root udevadm trigger --action=add /sys/module/linuwu_sense
 
