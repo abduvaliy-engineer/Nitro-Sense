@@ -19,6 +19,13 @@ function unavailable(node, reason = UNAVAILABLE) {
 
 const hasPage = (name) => Boolean(window.NitroPages?.[name]);
 
+// A notification saying why a change failed. Backend errors reach the renderer as "Error invoking remote method
+// '<channel>': Error: <message>", so only the message is shown.
+function notifyError(title, error) {
+  const message = String(error?.message ?? error).replace(/^Error invoking remote method '[^']+': (Error: )?/, "");
+  window.nitro.notify(title, message).catch((failure) => console.error("notification failed", failure));
+}
+
 function renderTabs() {
   tabs.replaceChildren(...TABS.map((name) => {
     const button = document.createElement("button");
@@ -88,7 +95,7 @@ function updateHairline() {
   matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener("change", updateHairline, { once: true });
 }
 
-window.NitroApp = { selectTab, hasPage, unavailable };
+window.NitroApp = { selectTab, hasPage, unavailable, notifyError };
 
 // Support and Settings have no page yet.
 for (const button of document.querySelectorAll(".header-btn")) unavailable(button);

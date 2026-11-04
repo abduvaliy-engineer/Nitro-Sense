@@ -462,7 +462,7 @@
         page.render();
         window.nitro.personal.applyGpuMode(mode).catch(async (error) => {
           console.error("Personal Settings: applying the GPU mode failed", error);
-          window.nitro.notify("GPU Operating", String(error.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, ""));
+          window.NitroApp.notifyError("GPU Operating", error);
           const values = await window.nitro.personal.read().catch(() => null);
           if (values && current === page) {
             Object.assign(page.values, values);

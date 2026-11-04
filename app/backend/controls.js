@@ -9,7 +9,9 @@ async function write(file, value) {
   try {
     await fs.writeFile(file, `${value}\n`);
   } catch (error) {
-    if (error.code === "EACCES") throw new Error(`No permission to write ${file}. Run install.sh to grant the linuwu_sense group access.`);
+    if (error.code === "EACCES") {
+      throw new Error(`No permission to write ${file}. Run install.sh (or nitrosense-setup for the .deb, .rpm and AUR packages), then log in again.`);
+    }
     throw new Error(`Driver rejected ${value}: ${error.message}`);
   }
 }
