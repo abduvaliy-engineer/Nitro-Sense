@@ -329,8 +329,11 @@
       content.append(block, button);
     }
 
-    // NitroSense's "Attention" confirmation (openUpdateConfirmDlg).
-    function confirmUpdate(update) {
+    // NitroSense's "Attention" confirmation (openUpdateConfirmDlg). An update already running (its dialog was
+    // closed) shows its progress instead.
+    async function confirmUpdate(update) {
+      const running = await window.nitro.updates.status().catch(() => null);
+      if (running) return followUpdate(running);
       window.NitroDialog.open({
         size: "468x200",
         title: "Attention",
@@ -344,77 +347,10 @@
           const start = el("button", "pill-btn w156", "Start Now");
           start.addEventListener("click", () => {
             close();
-            install(update);
+            updateDialog(update, window.nitro.updates.install(update.version));
           });
           footer.append(cancel, start);
           dialogBody.append(text, footer);
-        },
-      });
-    }
-
-    // NitroSense's update dialog (app-middle-dialog): progress while downloading and installing, then the
-    // result. The app restarts itself after a successful update.
-    function install(update) {
-      window.NitroDialog.open({
-        size: "468x300",
-        title: "Live Update",
-        build(dialogBody, close) {
-          const dialog = dialogBody.closest(".ns-dialog");
-          dialog.classList.add("lu-updating");
-          const content = el("div", "lu-content");
-          dialogBody.append(content);
-
-          const progress = el("div", "lu-progress");
-          const anim = el("div", "lu-anim");
-          const text = el("div", "lu-text");
-          const status = el("span", "lu-status", ` [1/ 1] ${update.name} downloading`);
-          text.append(el("span", "lu-title", "Updating, please wait"), status);
-          const alert = el("div", "lu-alert");
-          alert.append(el("span", "", "*Do not unplug adapter and run other applications during updating."));
-          // NitroSense keeps Cancel visible; an update that has started can't be undone here.
-          const cancel = el("button", "lu-cancel");
-          cancel.disabled = true;
-          cancel.append(el("span", "", "Cancel"));
-          progress.append(anim, text, alert, cancel);
-          content.append(progress);
-          window.lottie?.loadAnimation({
-            container: anim, renderer: "svg", loop: true, autoplay: true, path: `${ACER}/animation/loading72-NS.json`,
-          });
-
-          function result(ok, title, message) {
-            dialog.classList.remove("lu-updating");
-            const box = el("div", "lu-result");
-            const art = el("div", "lu-result-art");
-            const icon = el("img");
-            icon.src = `${ACER}/dialog/${ok ? "dialogue_finish" : "dialogue_warning"}.svg`;
-            icon.alt = "";
-            art.append(icon);
-            const words = el("div", "lu-result-text");
-            words.append(el("span", "lu-result-title", title), el("span", "lu-result-message", message));
-            box.append(art, words);
-            content.replaceChildren(box);
-            if (!ok) {
-              const footer = el("div", "ns-dialog-footer");
-              const done = el("button", "pill-btn w156", "Close");
-              done.addEventListener("click", close);
-              footer.append(done);
-              dialogBody.append(footer);
-            }
-          }
-
-          window.nitro.updates.onProgress?.((stage) => {
-            if (stage === "installing") status.textContent = ` [1/ 1] ${update.name} installing`;
-            if (stage === "finished") result(true, "All updates finished", "NitroSense restarts now to apply the update.");
-          });
-          window.nitro.updates.install(update.version).then((outcome) => {
-            if (outcome?.checkout) {
-              close();
-              window.nitro.updates.open(update.url);
-            }
-          }, (error) => {
-            console.error("update failed", error);
-            result(false, "All updates canceled or failed", "You can close this dialog to find the failed items and reinstall them.");
-          });
         },
       });
     }
@@ -434,6 +370,99 @@
     });
     return {};
   }
+
+  // NitroSense's update dialog (app-middle-dialog): progress while downloading and installing, then the
+  // result. The app restarts itself after a successful update. `running` is the install call; null for a window
+  // that opened during an update, which follows its progress events.
+  function updateDialog(update, running) {
+    window.NitroDialog.open({
+      size: "468x300",
+      title: "Live Update",
+      build(dialogBody, close) {
+        const dialog = dialogBody.closest(".ns-dialog");
+        dialog.classList.add("lu-updating");
+        const content = el("div", "lu-content");
+        dialogBody.append(content);
+
+        const progress = el("div", "lu-progress");
+        const anim = el("div", "lu-anim");
+        const text = el("div", "lu-text");
+        const status = el("span", "lu-status", ` [1/ 1] ${update.name} downloading`);
+        text.append(el("span", "lu-title", "Updating, please wait"), status);
+        const alert = el("div", "lu-alert");
+        alert.append(el("span", "", "*Do not unplug adapter and run other applications during updating."));
+        // NitroSense keeps Cancel visible; an update that has started can't be undone here.
+        const cancel = el("button", "lu-cancel");
+        cancel.disabled = true;
+        cancel.append(el("span", "", "Cancel"));
+        progress.append(anim, text, alert, cancel);
+        content.append(progress);
+        window.lottie?.loadAnimation({
+          container: anim, renderer: "svg", loop: true, autoplay: true, path: `${ACER}/animation/loading72-NS.json`,
+        });
+
+        // The install call and the progress events both report a failure.
+        let ended = false;
+        function result(ok, title, message) {
+          if (ended) return;
+          ended = true;
+          dialog.classList.remove("lu-updating");
+          const box = el("div", "lu-result");
+          const art = el("div", "lu-result-art");
+          const icon = el("img");
+          icon.src = `${ACER}/dialog/${ok ? "dialogue_finish" : "dialogue_warning"}.svg`;
+          icon.alt = "";
+          art.append(icon);
+          const words = el("div", "lu-result-text");
+          words.append(el("span", "lu-result-title", title), el("span", "lu-result-message", message));
+          box.append(art, words);
+          content.replaceChildren(box);
+          if (!ok) {
+            const footer = el("div", "ns-dialog-footer");
+            const done = el("button", "pill-btn w156", "Close");
+            done.addEventListener("click", close);
+            footer.append(done);
+            dialogBody.append(footer);
+          }
+        }
+        const failed = () => result(false, "All updates canceled or failed", "You can close this dialog to find the failed items and reinstall them.");
+
+        const stage = (name) => {
+          if (name === "installing") status.textContent = ` [1/ 1] ${update.name} installing`;
+          if (name === "finished") result(true, "All updates finished", "NitroSense restarts now to apply the update.");
+          if (name === "failed") failed();
+        };
+        window.nitro.updates.onProgress?.(stage);
+        if (!running) {
+          stage(update.stage);
+          return;
+        }
+        running.then((outcome) => {
+          if (outcome?.checkout) {
+            ended = true;
+            close();
+            window.nitro.updates.open(update.url);
+          }
+        }, (error) => {
+          console.error("update failed", error);
+          failed();
+        });
+      },
+    });
+  }
+
+  // The update the background part is installing ({ version, stage }), named as the check names it.
+  function followUpdate(running) {
+    const listed = updateResult?.updates?.find((update) => update.version === running.version);
+    updateDialog({ name: listed?.name ?? `NitroSense ${running.version}`, version: running.version, stage: running.stage }, null);
+  }
+
+  // A window opened during an update (it was closed while one ran) shows its progress again.
+  function followRunningUpdate() {
+    window.nitro.updates.status().then((running) => running && followUpdate(running), () => {});
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", followRunningUpdate);
+  else followRunningUpdate();
 
   // ---------- App Shortcut ----------
 

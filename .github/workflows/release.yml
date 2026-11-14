@@ -1,8 +1,8 @@
 name: Release
 
-# Every merge into main publishes the version in app/package.json with its .deb and .rpm packages; the app's Live
-# Update picks it up. A manual run on main (gh workflow run release.yml --ref main) keeps the existing release and
-# publishes the AUR packages again.
+# Every merge into main publishes the version in Cargo.toml as a GitHub release. Live Update finds it there and
+# installs its tag archive with nitrosense.sh. A manual run on main (gh workflow run release.yml --ref main) publishes
+# a release whose creation failed.
 on:
   push:
     branches: [main]
@@ -16,81 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build the .deb and .rpm packages
-        run: bash packaging/deb-rpm/build.sh dist
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version=$(node -p "require('./app/package.json').version")
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
           if gh release view "v$version" >/dev/null 2>&1; then
             echo "v$version is already released"
-            # A release whose packages didn't get attached gets them now.
-            if ! gh release view "v$version" --json assets --jq '.assets[].name' | grep -qx SHA256SUMS; then
-              gh release upload "v$version" dist/*
-            fi
             exit 0
           fi
-          # Attached from the start, so Live Update never finds a release without its packages.
-          gh release create "v$version" dist/* --target "$GITHUB_SHA" --title "NitroSense $version" --generate-notes
-
-  aur:
-    # Publishes packaging/aur/* to the AUR once the release and its tag archive exist. Only from main, and only with
-    # the AUR_SSH_KEY secret, whose public half is on the maintainer's AUR account; without it, it does nothing.
-    needs: release
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    container: archlinux:base-devel
-    defaults:
-      run:
-        shell: bash
-    env:
-      AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
-    steps:
-      - name: Tools
-        if: env.AUR_SSH_KEY != ''
-        run: pacman -Syu --noconfirm --needed git openssh pacman-contrib
-      - uses: actions/checkout@v4
-        if: env.AUR_SSH_KEY != ''
-      - name: Publish to the AUR
-        if: env.AUR_SSH_KEY != ''
-        run: |
-          ssh_dir=$(mktemp -d)
-          printf '%s\n' "$AUR_SSH_KEY" >"$ssh_dir/key"
-          chmod 600 "$ssh_dir/key"
-          # aur.archlinux.org's host key; its fingerprint SHA256:RFzBCUItH9LZS0cKB5UE6ceAYhBD5C8GeOBip8Z11+4 is on the
-          # AUR home page.
-          echo 'aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN' \
-            >"$ssh_dir/known_hosts"
-          export GIT_SSH_COMMAND="ssh -i $ssh_dir/key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$ssh_dir/known_hosts"
-          git config --global --add safe.directory '*'
-          # Until the key is on the maintainer's AUR account (AUR registration can be paused), skip with a warning
-          # instead of failing the release.
-          if ! ssh -i "$ssh_dir/key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
-              -o UserKnownHostsFile="$ssh_dir/known_hosts" aur@aur.archlinux.org help >/dev/null 2>&1; then
-            echo "::warning::The AUR doesn't accept AUR_SSH_KEY yet, so nothing was published. Add its public half to the AUR account, then run this workflow on main."
-            exit 0
-          fi
-          useradd -m builder
-          for dir in packaging/aur/*/; do
-            pkg=$(basename "$dir")
-            # A package that isn't on the AUR yet clones empty; the first push creates it.
-            git clone -q "ssh://aur@aur.archlinux.org/$pkg.git" "aur-$pkg"
-            cp "$dir"* "aur-$pkg/"
-            chown -R builder "aur-$pkg"
-            # The real checksums of the sources (the app's tag archive), and the .SRCINFO the AUR reads.
-            su builder -c "cd 'aur-$pkg' && updpkgsums && makepkg --printsrcinfo >.SRCINFO"
-            (
-              cd "aur-$pkg"
-              git config user.name "Abduvaliy Abdulazizov"
-              git config user.email "abduvaliy.hbai@gmail.com"
-              git add PKGBUILD .SRCINFO ./*.install
-              if git diff --cached --quiet; then
-                echo "$pkg: the AUR already has this version"
-              else
-                git commit -q -m "Update to $(sed -n 's/^pkgver=//p' PKGBUILD)-$(sed -n 's/^pkgrel=//p' PKGBUILD)"
-                git push -q origin HEAD:master
-                echo "$pkg: published"
-              fi
-            )
-          done
+          gh release create "v$version" --target "$GITHUB_SHA" --title "NitroSense $version" --generate-notes
