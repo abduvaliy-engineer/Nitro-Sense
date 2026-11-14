@@ -4,8 +4,23 @@ use super::system::SENSE_DIRS;
 use super::util::{exists, js_round, parse_int, read};
 use serde_json::{json, Map, Value};
 use std::fmt::Display;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 const PLATFORM_PROFILE_CHOICES: &str = "/sys/firmware/acpi/platform_profile_choices";
+
+/// When NitroSense itself last changed the mode or the fans.
+static CHANGED: Mutex<Option<Instant>> = Mutex::new(None);
+
+fn mark_changed() {
+    *CHANGED.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Instant::now());
+}
+
+/// Whether NitroSense itself changed the mode or the fans within `window`: a reading taken that soon may not show
+/// all of it yet.
+pub fn changed_within(window: Duration) -> bool {
+    CHANGED.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).is_some_and(|time| time.elapsed() < window)
+}
 
 pub fn write(file: &str, value: impl Display) -> Result<(), String> {
     std::fs::write(file, format!("{value}\n")).map_err(|error| {
@@ -35,7 +50,10 @@ pub fn set_profile(profile: &str) -> Result<(), String> {
     if read(PLATFORM_PROFILE)?.trim() == profile {
         return Ok(());
     }
-    write(PLATFORM_PROFILE, profile)
+    mark_changed();
+    let written = write(PLATFORM_PROFILE, profile);
+    mark_changed();
+    written
 }
 
 /// 0,0 = automatic, 100,100 = maximum, anything else = custom percentages.
@@ -44,7 +62,11 @@ pub fn set_fan_speed(cpu: f64, gpu: f64) -> Result<(), String> {
     if values.iter().any(|v| !v.is_finite() || *v < 0.0 || *v > 100.0) {
         return Err("Fan speeds must be 0-100%".to_string());
     }
-    write(&sense_file("fan_speed")?, format!("{},{}", values[0] as i64, values[1] as i64))
+    let file = sense_file("fan_speed")?;
+    mark_changed();
+    let written = write(&file, format!("{},{}", values[0] as i64, values[1] as i64));
+    mark_changed();
+    written
 }
 
 pub fn set_mode_key_cycle(cycle: bool) -> Result<(), String> {

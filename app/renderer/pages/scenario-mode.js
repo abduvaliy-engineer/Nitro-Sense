@@ -266,8 +266,9 @@
         button.append(dot, el("span", "", label));
         button.addEventListener("click", async () => {
           desiredModeKeyCycle = cycle;
-          window.nitro.settings.set(MODE_KEY_SETTING, cycle);
           setRadio(cycle);
+          // Saved first: the background part puts the driver back on the saved choice when they differ.
+          await window.nitro.settings.set(MODE_KEY_SETTING, cycle).catch((error) => console.error(error));
           await window.nitro.controls.setModeKeyCycle(cycle).catch((error) => console.error(error));
         });
         wrap.append(button);
@@ -363,16 +364,6 @@
     unmount() {
       current?.unmount();
       current = null;
-    },
-  };
-
-  // Keep the driver's mode-key setting in line with the user's choice (module parameters reset on boot).
-  window.NitroModeKey = {
-    enforce(snapshot) {
-      if (desiredModeKeyCycle === undefined || snapshot.modeKeyCycle == null) return;
-      if (snapshot.modeKeyCycle !== desiredModeKeyCycle) {
-        window.nitro.controls.setModeKeyCycle(desiredModeKeyCycle).catch((error) => console.error(error));
-      }
     },
   };
 

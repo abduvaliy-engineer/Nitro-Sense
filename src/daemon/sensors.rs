@@ -374,7 +374,7 @@ fn read_network(state: &mut State) -> Value {
 }
 
 // linuwu-sense echoes the last written "cpu,gpu" percentages: 0,0 = auto, 100,100 = max.
-fn read_fan_mode() -> Value {
+pub fn read_fan_mode() -> Value {
     for file in FAN_SPEED {
         let Some(value) = read(file) else { continue };
         let mut parts = value.split(',').map(parse_int);
@@ -405,7 +405,7 @@ pub fn read_power() -> Value {
 }
 
 // linuwu-sense: Y = the mode key cycles modes, N = it toggles Turbo on/off.
-fn read_mode_key_cycle() -> Option<bool> {
+pub fn read_mode_key_cycle() -> Option<bool> {
     read("/sys/module/linuwu_sense/parameters/cycle_gaming_thermal_profile").map(|value| value == "Y" || value == "1")
 }
 

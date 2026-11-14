@@ -62,6 +62,10 @@ fn send_line(writer: &Writer, message: &Value) -> bool {
     writeln!(lock(writer), "{message}").is_ok()
 }
 
+fn window_closed() -> bool {
+    matches!(&*lock(&daemon().ui), Ui::Closed)
+}
+
 fn ui_writer() -> Option<Writer> {
     match &*lock(&daemon().ui) {
         Ui::Open { writer, .. } => Some(writer.clone()),
@@ -453,6 +457,7 @@ pub fn run(_lock: std::fs::File, hidden: bool, dev: bool) {
     }
     appsync::init(on_switch);
     watch_platform_profile();
+    scenario::follow_power(window_closed);
     std::thread::spawn(|| {
         scenario::restore_lighting();
         scenario::watch_apps();

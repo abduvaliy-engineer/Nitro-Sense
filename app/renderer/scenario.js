@@ -171,23 +171,10 @@
     await window.nitro.lighting.restore(state.profiles[state.active].lighting);
   }
 
-  // The profile's mode for the current power state, and its fans on AC (linuwu-sense puts the fans on auto
-  // when the mode changes). Nothing is saved.
-  async function runLiveMode(profile) {
-    lastApply = Date.now();
-    try {
-      await window.nitro.controls.setProfile(liveMode(profile));
-      if (!onBattery()) await window.nitro.controls.setFanSpeed(...fanSpeeds(profile.fan));
-    } catch (error) {
-      console.error("running the profile's mode failed", error);
-    }
-    lastApply = Date.now();
-    emit();
-  }
-
   // Mode and fan changes made elsewhere (keys, other pages) are written into the active profile.
-  // Plugging in, unplugging, or the low-battery lock starting or ending runs the profile's mode for the new
-  // power state instead, as NitroSense does; that isn't a change to save.
+  // Plugging in, unplugging, or the low-battery lock starting or ending: the background part runs the profile's
+  // mode for the new power state, as NitroSense does (window open or not). Until that has landed a reading can
+  // still show the previous mode, which isn't a change to save.
   async function sync(snapshot) {
     const before = lastPower ? powerState() : null;
     lastPower = snapshot.power;
@@ -195,7 +182,8 @@
     const profile = state.profiles[state.active];
     if (!profile) return;
     if (before && before !== powerState()) {
-      await runLiveMode(profile);
+      lastApply = Date.now();
+      emit();
       return;
     }
     // A reading taken while a profile was being applied may still show the previous mode.
