@@ -107,6 +107,27 @@ pub fn check(current_version: &str) -> Result<Value, String> {
     Ok(json!({ "updates": [{ "name": name, "version": latest.version, "url": latest.url }] }))
 }
 
+/// Where the installer's output goes: Captured for the window's Update All (its last line becomes the error),
+/// Terminal for `nitrosense --update` (output and password prompts in the terminal).
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Output {
+    Captured,
+    Terminal,
+}
+
+fn run_installer(command: &str, args: &[&str], output: Output) -> Result<(), String> {
+    if output == Output::Captured {
+        // Generous: a new release may need NitroSense's artwork downloaded again, and the app built.
+        return run_checked(command, args, Duration::from_secs(30 * 60));
+    }
+    let name = super::util::basename(command);
+    match std::process::Command::new(command).args(args).status() {
+        Ok(status) if status.success() => Ok(()),
+        Ok(_) => Err(format!("{name} stopped with an error (see above)")),
+        Err(error) => Err(format!("{name} failed: {error}")),
+    }
+}
+
 fn run_checked(command: &str, args: &[&str], timeout: Duration) -> Result<(), String> {
     let name = super::util::basename(command);
     match run(command, args, timeout) {
@@ -200,7 +221,7 @@ impl Drop for TempDir {
 
 // A .deb or .rpm install: download the release's packages for it, check them against the release's SHA256SUMS and
 // install them with apt or dnf through pkexec (one password prompt).
-fn install_packages(format: &str, version: &str, progress: &dyn Fn(&str)) -> Result<(), String> {
+fn install_packages(format: &str, version: &str, progress: &dyn Fn(&str), output: Output) -> Result<(), String> {
     let dir = TempDir::new()?;
     progress("downloading");
     let base = format!("{}/download/v{version}", releases());
@@ -219,11 +240,11 @@ fn install_packages(format: &str, version: &str, progress: &dyn Fn(&str)) -> Res
     progress("installing");
     let command = package_update::install_command(format, &paths)?;
     let args: Vec<&str> = command.iter().map(String::as_str).collect();
-    run_checked("pkexec", &args, Duration::from_secs(30 * 60))
+    run_installer("pkexec", &args, output)
 }
 
 // An installer copy: download the release's source and run its installer in update mode.
-fn install_release(version: &str, progress: &dyn Fn(&str)) -> Result<(), String> {
+fn install_release(version: &str, progress: &dyn Fn(&str), output: Output) -> Result<(), String> {
     let dir = TempDir::new()?;
     progress("downloading");
     let archive = dir.0.join("source.tar.gz");
@@ -240,27 +261,26 @@ fn install_release(version: &str, progress: &dyn Fn(&str)) -> Result<(), String>
         .flatten()
         .find(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
         .ok_or("The release's archive is empty")?;
-    // Generous timeout: a new release may need NitroSense's artwork downloaded again, and the app built.
     let installer = source.path().join("nitrosense.sh").to_string_lossy().into_owned();
-    run_checked("bash", &[&installer, "--update"], Duration::from_secs(30 * 60))
+    run_installer("bash", &[&installer, "--update"], output)
 }
 
-/// One-click update. progress(stage): "downloading", "installing", "finished". When it returns { installed: true }
-/// the caller restarts the app.
-pub fn install(version: &str, app_dir: &Path, progress: &dyn Fn(&str)) -> Result<Value, String> {
+/// One-click update (Update All, `nitrosense --update`). progress(stage): "downloading", "installing", "finished".
+/// When it returns { installed: true } the caller restarts the app.
+pub fn install(version: &str, app_dir: &Path, progress: &dyn Fn(&str), output: Output) -> Result<Value, String> {
     let mut numbers = version.split('.');
     let numeric = |part: Option<&str>| part.is_some_and(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()));
     if !(numeric(numbers.next()) && numeric(numbers.next()) && numeric(numbers.next()) && numbers.next().is_none()) {
         return Err("Invalid version".to_string());
     }
     match packaged(app_dir).as_deref() {
-        Some(format @ ("deb" | "rpm")) => install_packages(format, version, progress)?,
+        Some(format @ ("deb" | "rpm")) => install_packages(format, version, progress, output)?,
         Some(_) => return Err("This copy is updated by its package manager".to_string()),
         None => {
             if is_checkout(app_dir) {
                 return Ok(json!({ "checkout": true }));
             }
-            install_release(version, progress)?;
+            install_release(version, progress, output)?;
         }
     }
     progress("finished");

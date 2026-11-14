@@ -3,6 +3,7 @@
 //!   nitrosense            show the window (starting the background part when it isn't running)
 //!   nitrosense --hidden   start without a window (login autostart)
 //!   nitrosense --quit     stop the background part and close the window
+//!   nitrosense --update   install the latest release, as Live Update's Update All does
 //!   nitrosense --dev      reload the window when the files in app/ change
 //!
 //! Like NitroSense, the app keeps running when its window closes, so App Sync and the mode-change keyboard flash
@@ -22,8 +23,11 @@ fn main() {
         return;
     }
     if has("--help") || has("-h") {
-        println!("NitroSense for Linux {}\n\n  nitrosense            show the window\n  nitrosense --hidden   start without a window\n  nitrosense --quit     stop NitroSense\n  nitrosense --dev      reload the window when the files in app/ change", common::VERSION);
+        println!("NitroSense for Linux {}\n\n  nitrosense            show the window\n  nitrosense --hidden   start without a window\n  nitrosense --quit     stop NitroSense\n  nitrosense --update   install the latest release\n  nitrosense --dev      reload the window when the files in app/ change", common::VERSION);
         return;
+    }
+    if has("--update") || has("update") {
+        std::process::exit(update());
     }
     let command = if has("--quit") { "quit" } else if has("--hidden") { "hidden" } else { "show" };
 
@@ -45,6 +49,48 @@ fn main() {
             std::process::exit(1);
         }
         std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+}
+
+// `nitrosense --update`: what Live Update's Update All does, from a terminal. The new release's installer runs here,
+// so its output and any password prompt show in the terminal; a running NitroSense then restarts as the new version.
+fn update() -> i32 {
+    use daemon::updates;
+    let app_dir = common::app_dir();
+    if updates::is_checkout(&app_dir) {
+        eprintln!("This NitroSense runs from a git checkout: update it with git pull, then ./nitrosense.sh --dev.");
+        return 1;
+    }
+    let latest = match updates::check(common::VERSION) {
+        Ok(result) => result["updates"][0].clone(),
+        Err(error) => {
+            eprintln!("nitrosense: checking for updates failed: {error}");
+            return 1;
+        }
+    };
+    let Some(version) = latest["version"].as_str() else {
+        println!("NitroSense {} is up to date.", common::VERSION);
+        return 0;
+    };
+    println!("Updating NitroSense {} to {version}", common::VERSION);
+    let progress = |stage: &str| {
+        if stage == "downloading" {
+            println!("Downloading {version}");
+        }
+    };
+    match updates::install(version, &app_dir, &progress, updates::Output::Terminal) {
+        Ok(_) if tell_running("restart") => {
+            println!("NitroSense {version} is installed and running.");
+            0
+        }
+        Ok(_) => {
+            println!("NitroSense {version} is installed.");
+            0
+        }
+        Err(error) => {
+            eprintln!("nitrosense: the update failed: {error}");
+            1
+        }
     }
 }
 

@@ -203,9 +203,9 @@ fn quit() -> ! {
     std::process::exit(0);
 }
 
-// After an update: start the new version in this one's place, with its window showing (the user asked for the
-// update, so it must not start hidden).
-fn relaunch() -> ! {
+// After an update: start the new version in this one's place. `show`: with its window showing (Update All: the
+// user asked for the update, so it must not start hidden); otherwise hidden.
+fn relaunch(show: bool) -> ! {
     use std::os::unix::process::CommandExt;
     if let Some(writer) = ui_writer() {
         send_line(&writer, &json!({ "control": "quit" }));
@@ -214,7 +214,11 @@ fn relaunch() -> ! {
     let _ = std::fs::remove_file(common::socket_path());
     let mut args = std::env::args();
     let program = args.next().unwrap_or_else(|| "nitrosense".to_string());
-    let error = std::process::Command::new(program).args(args.filter(|arg| arg != "--hidden")).exec();
+    let mut args: Vec<String> = args.filter(|arg| arg != "--hidden").collect();
+    if !show {
+        args.push("--hidden".to_string());
+    }
+    let error = std::process::Command::new(program).args(args).exec();
     eprintln!("nitrosense: restarting failed: {error}");
     std::process::exit(1);
 }
@@ -282,14 +286,14 @@ fn handle(cmd: &str, args: &[Value]) -> Result<Option<Value>, String> {
                 }
                 emit("updates:progress", json!(stage));
             };
-            let result = updates::install(&version, &daemon.app_dir, &progress);
+            let result = updates::install(&version, &daemon.app_dir, &progress, updates::Output::Captured);
             match &result {
                 // Kept until the restart.
                 Ok(result) if result["installed"] == true => {
                     // Long enough for the "finished" dialog to be read.
                     std::thread::spawn(|| {
                         std::thread::sleep(Duration::from_millis(2500));
-                        relaunch();
+                        relaunch(true);
                     });
                 }
                 Ok(_) => *lock(&daemon.update) = None,
@@ -402,6 +406,8 @@ fn serve(stream: UnixStream) {
             match hello["cmd"].as_str() {
                 Some("quit") => quit(),
                 Some("show") => show(),
+                // `nitrosense --update` installed a new version: it takes this one's place, window open if it was.
+                Some("restart") => relaunch(ui_writer().is_some()),
                 _ => {}
             }
         }

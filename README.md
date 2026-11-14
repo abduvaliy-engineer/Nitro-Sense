@@ -152,10 +152,10 @@ Log out and back in afterwards if the installer added you to the group. Other op
 
 ### Packages
 
-1.0 installs with the installer only. The .deb and .rpm packages of 0.14 and 0.15 and the AUR package files packaged
-the Electron app; they come back once they're rebuilt for this one. A 0.15 .deb or .rpm can't update itself to 1.0 (Update All fails
-and 0.15 keeps working): remove the app package (`sudo apt remove nitrosense-linux` or
-`sudo dnf remove nitrosense-linux`), then run the installer. The driver package can stay; the installer leaves a
+1.0 installs with the installer only. The .deb and .rpm packages of 0.14 and 0.15 and the AUR package files
+packaged the Electron app; they come back once they're rebuilt for this one. A 0.15 .deb or .rpm can't update
+itself to 1.0 (Update All fails and 0.15 keeps working): remove the app package (`sudo apt remove nitrosense-linux`
+or `sudo dnf remove nitrosense-linux`), then run the installer. The driver package can stay; the installer leaves a
 linuwu-sense it didn't build alone.
 
 ### NitroSense artwork
@@ -205,14 +205,15 @@ linuwu-sense handles it itself.
 ## Running
 
 Start NitroSense from your app launcher, with the NitroSense key, or by running `nitrosense`. It is
-single-instance: starting it again focuses the open window.
+single-instance: starting it again focuses the open window. `nitrosense --update` installs the latest release,
+`nitrosense --quit` stops it, and `nitrosense --help` lists the rest.
 
 It is two programs. `nitrosense`, the background part, drives the hardware, App Sync, the mode-change flash and the
 Scenario's mode on plugging in and unplugging; it keeps running, loads no toolkit and stays small (about 9 MB of
 memory). `nitrosense-ui` is the window (WebKitGTK showing `app/renderer`) and runs only while it's open.
 
-For development, `./nitrosense.sh --dev` builds in the checkout and makes the launcher run that build with `--dev`, which
-reloads the window when files in `app/` change. After changing Rust code: `cargo build --release`, then
+For development, `./nitrosense.sh --dev` builds in the checkout and makes the launcher run that build with `--dev`,
+which reloads the window when files in `app/` change. After changing Rust code: `cargo build --release`, then
 `nitrosense --quit` and start it again.
 
 ## Updates and releases
@@ -220,8 +221,9 @@ reloads the window when files in `app/` change. After changing Rust code: `cargo
 Live Update in the side panel checks this repository's GitHub releases. **Update All** downloads the new release's
 source, runs its `nitrosense.sh --update` (which builds it) and restarts NitroSense; it only asks for a password when
 packages, the driver or permissions changed. Closing the window doesn't stop an update: opening it again shows the
-update's progress. A development checkout (`./nitrosense.sh --dev`) is not overwritten; it opens the release page
-instead.
+update's progress. `nitrosense --update` does the same from a terminal, where you see the installer's output and
+type a password if one is needed; a running NitroSense then restarts as the new version. A development checkout
+(`./nitrosense.sh --dev`) is not overwritten; Update All opens the release page instead.
 
 Development happens on the `dev` branch. Merging `dev` into `main` is a release: the Release workflow publishes
 the version in `Cargo.toml` as a GitHub release. The Checks workflow builds and tests every PR, also with Debian 13's
