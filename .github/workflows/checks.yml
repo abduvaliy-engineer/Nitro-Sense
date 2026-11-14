@@ -18,17 +18,17 @@ jobs:
           bash -n install.sh data/nitrosense-setup data/nitrosense-artwork packaging/aur/*/PKGBUILD packaging/aur/*/*.install \
             packaging/deb-rpm/build.sh tests/packages.sh
           for script in packaging/deb-rpm/*/*.sh packaging/deb-rpm/linuwu-sense-gpu-mode-dkms/hook; do sh -n "$script"; done
-          python3 -m py_compile tools/*.py app/backend/*.py packaging/deb-rpm/depends.py data/nitrosense-modekey
+          python3 -m py_compile tools/*.py packaging/deb-rpm/depends.py data/nitrosense-modekey
       - name: udev rules
         run: udevadm verify --resolve-names=never data/70-nitrosense.rules
-      - name: Lighting encoder
-        run: node tests/lighting-encode.js app
-      - name: App Sync matching
-        run: node tests/appsync-match.js app
+      - name: Build libraries (WebKitGTK, GTK 3)
+        run: sudo apt-get update -q && sudo apt-get install -y -q libwebkit2gtk-4.1-dev libgtk-3-dev
+      - name: Build
+        run: cargo build --locked
+      - name: Backend tests (lighting encoder, App Sync matching, Live Update's .deb and .rpm choice)
+        run: cargo test --locked
       - name: Scenario mode on plugging in and unplugging
         run: node tests/scenario-power.js app
-      - name: Live Update's .deb and .rpm choice
-        run: node tests/package-update.js app
       - name: Mode Switch Key service
         run: python3 -I -B tests/mode-key.py data/nitrosense-modekey
       - name: NitroSense key binding
@@ -40,7 +40,7 @@ jobs:
       - name: Version stays 0.x
         # 1.0.0 is reserved for the complete one-to-one NitroSense; until then the minor keeps counting (0.10, 0.11, ...).
         run: |
-          version=$(node -p "require('./app/package.json').version")
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
           case "$version" in
             0.*) ;;
             *) echo "::error::$version: NitroSense for Linux stays 0.x until it matches NitroSense one to one"; exit 1 ;;
@@ -49,10 +49,10 @@ jobs:
         # The Release workflow publishes packaging/aur as is: the app package moves with the app's version, and the
         # driver package builds the same linuwu-sense commit as install.sh.
         run: |
-          version=$(node -p "require('./app/package.json').version")
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
           pkgver=$(sed -n 's/^pkgver=//p' packaging/aur/nitrosense-linux/PKGBUILD)
           if [ "$pkgver" != "$version" ]; then
-            echo "::error::packaging/aur/nitrosense-linux/PKGBUILD has pkgver=$pkgver but app/package.json is $version"
+            echo "::error::packaging/aur/nitrosense-linux/PKGBUILD has pkgver=$pkgver but Cargo.toml is $version"
             exit 1
           fi
           pinned=$(sed -n 's/^LINUWU_COMMIT=//p' install.sh)
@@ -64,9 +64,9 @@ jobs:
       - name: New version for a release
         if: github.base_ref == 'main'
         run: |
-          version=$(node -p "require('./app/package.json').version")
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
           if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
-            echo "::error::v$version is already released; bump the version in app/package.json"
+            echo "::error::v$version is already released; bump the version in Cargo.toml"
             exit 1
           fi
 
@@ -158,7 +158,7 @@ jobs:
       - name: Check them
         run: |
           # Live Update finds them under the names it expects.
-          node tests/package-update.js app dist
+          NITROSENSE_DIST=dist cargo test --locked built_packages
           # Acer's artwork stays out of the packages: the only assets/acer entry is the symlink to it.
           if dpkg-deb --contents dist/nitrosense-linux_*_amd64.deb | grep '/assets/acer/'; then
             echo "::error::the .deb holds Acer's artwork"

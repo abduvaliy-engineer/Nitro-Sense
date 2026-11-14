@@ -1,6 +1,6 @@
 name: Release
 
-# Every merge into main publishes the version in app/package.json with its .deb and .rpm packages; the app's Live
+# Every merge into main publishes the version in Cargo.toml with its .deb and .rpm packages; the app's Live
 # Update picks it up. A manual run on main (gh workflow run release.yml --ref main) keeps the existing release and
 # publishes the AUR packages again.
 on:
@@ -22,7 +22,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version=$(node -p "require('./app/package.json').version")
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
           if gh release view "v$version" >/dev/null 2>&1; then
             echo "v$version is already released"
             # A release whose packages didn't get attached gets them now.

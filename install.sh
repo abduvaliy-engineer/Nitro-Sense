@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # NitroSense for Linux installer: packages, the linuwu-sense driver, permissions, Acer's NitroSense artwork,
-# the app itself, its launcher and the NitroSense key.
+# the app itself (built here with cargo), its launcher and the NitroSense key.
 #
 #   ./install.sh                 install or update
 #   ./install.sh --assets PATH   take the artwork from NitroSense's app.asar, its WindowsApps folder or a
@@ -17,10 +17,9 @@ PREFIX=${XDG_DATA_HOME:-$HOME/.local/share}/nitrosense
 BIN=$HOME/.local/bin
 APPS=${XDG_DATA_HOME:-$HOME/.local/share}/applications
 AUTOSTART=${XDG_CONFIG_HOME:-$HOME/.config}/autostart
-ELECTRON_VERSION=43.8.6
-# electron-v$ELECTRON_VERSION-linux-x64.zip's sha256, from the release's SHASUMS256.txt. The .deb and .rpm bundle the
-# same build: packaging/deb-rpm/build.sh reads both lines.
-ELECTRON_SHA256=1c657678e0701c5d55b18a3fe18cd9e8a0a375c976292fbfb8406ab13a763402
+# The app is built from this source with cargo. Its build folder is kept between updates, so only what changed is
+# compiled again.
+BUILD_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/nitrosense/build
 # Until linuwu-sense #154 (gpu_mode, for GPU Operating) is merged upstream, the driver comes from our fork:
 # upstream 0x7375646F/Linuwu-Sense at 73a25ec plus only that patch (branch gpu-mode-pinned).
 LINUWU_REPO=https://github.com/abduvaliy-engineer/Linuwu-Sense
@@ -41,10 +40,12 @@ UNINSTALL=0
 UPDATE=0
 ROOT_PHASE=""
 STAGE=""
+NEED_RUST=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --root-phase) ROOT_PHASE=${2:?}; shift ;;  # internal: the root half, for user $2
     --stage) STAGE=${2:?}; shift ;;              # internal: where the root half puts Windows' NitroSense
+    --need-rust) NEED_RUST=1 ;;                  # internal: the user has no usable cargo, so the root half installs Rust
     --assets) ASSETS_SOURCE=${2:?--assets needs a path}; shift ;;
     --dev) DEV=1 ;;
     --no-driver) DRIVER=0 ;;
@@ -66,6 +67,7 @@ run_root_phase() {
   [ "$DRIVER" -eq 0 ] && args+=(--no-driver)
   [ "$UNINSTALL" -eq 1 ] && args+=(--uninstall)
   [ -n "$STAGE" ] && args+=(--stage "$STAGE")
+  [ "$NEED_RUST" -eq 1 ] && args+=(--need-rust)
   if [ -t 0 ] && have sudo; then
     sudo bash "$REPO/install.sh" "${args[@]}"
   else
@@ -80,6 +82,18 @@ ask() {
 have() { command -v "$1" >/dev/null 2>&1; }
 # The Mode Switch Key service's unit, pointing at this install's copy of the service.
 modekey_unit() { sed "s|@MODEKEY@|$MODEKEY|" "$REPO/data/nitrosense-modekey@.service"; }
+
+# The Rust version the app needs (rust-version in Cargo.toml).
+rust_wanted() { sed -n 's/^rust-version = "\(.*\)"/\1/p' "$REPO/Cargo.toml"; }
+# Whether this user's cargo can build the app.
+rust_ready() {
+  have cargo || return 1
+  local current
+  current=$(cargo --version | awk '{print $2}')
+  [ "$(printf '%s\n%s\n' "$(rust_wanted)" "$current" | sort -V | head -n1)" = "$(rust_wanted)" ]
+}
+# The libraries the window is built against (WebKitGTK and GTK 3, with their headers).
+libraries_ready() { have pkg-config && pkg-config --exists webkit2gtk-4.1 gtk+-3.0; }
 
 # A linuwu-sense this installer built from another commit gets rebuilt; one installed some other way is left alone.
 # Builds record their commit; older ones are recognised by the dkms.conf this installer writes.
@@ -97,6 +111,8 @@ driver_outdated() {
 MODEL=$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)
 APP_DIR=$PREFIX/app
 [ "$DEV" -eq 1 ] && APP_DIR=$REPO/app
+# cargo from rustup lives in the user's home, which a launcher's PATH may not have.
+[ -n "$ROOT_PHASE" ] || [[ :$PATH: == *":$HOME/.cargo/bin:"* ]] || PATH=$HOME/.cargo/bin:$PATH
 # The NitroSense key binding and the group join; the AUR package ships the same file as nitrosense-setup.
 NS_LAUNCHER=$BIN/nitrosense
 # shellcheck source=data/nitrosense-setup
@@ -119,7 +135,7 @@ fi
 if [ "$UNINSTALL" -eq 1 ]; then
   say "Removing NitroSense"
   "$BIN/nitrosense" --quit 2>/dev/null || true
-  rm -rf "$PREFIX" "$BIN/nitrosense" "$APPS/nitrosense.desktop" "$AUTOSTART/nitrosense.desktop"
+  rm -rf "$PREFIX" "$BUILD_DIR" "$BIN/nitrosense" "$APPS/nitrosense.desktop" "$AUTOSTART/nitrosense.desktop"
   key_unbind
   run_root_phase
   say "Done. linuwu-sense is still installed; remove it with: sudo dkms remove linuwu-sense/$LINUWU_VERSION --all"
@@ -145,9 +161,10 @@ if [ -n "$ROOT_PHASE" ]; then
   fi
 
   say "Installing packages"
+  # The window is WebKitGTK; building it takes a C toolchain, pkg-config and the libraries' headers.
   if have pacman; then
-    pkgs=(python git unzip)
-    pacman -Si electron43 >/dev/null 2>&1 && pkgs+=(electron43)
+    pkgs=(python git unzip webkit2gtk-4.1 gtk3 gcc pkgconf)
+    [ "$NEED_RUST" -eq 1 ] && pkgs+=(rust)
     have hyprctl && pkgs+=(hyprpicker)
     if [ "$NEED_DRIVER" -eq 1 ]; then
       kernel_pkg=$(pacman -Qqo "/usr/lib/modules/$(uname -r)/vmlinuz" 2>/dev/null || echo linux)
@@ -155,15 +172,17 @@ if [ -n "$ROOT_PHASE" ]; then
     fi
     as_root pacman -S --needed --noconfirm "${pkgs[@]}"
   elif have apt-get; then
-    pkgs=(python3 git unzip curl)
-    [ "$NEED_DRIVER" -eq 1 ] && pkgs+=(dkms build-essential "linux-headers-$(uname -r)")
+    pkgs=(python3 git unzip curl build-essential pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev)
+    [ "$NEED_RUST" -eq 1 ] && pkgs+=(cargo)
+    [ "$NEED_DRIVER" -eq 1 ] && pkgs+=(dkms "linux-headers-$(uname -r)")
     as_root apt-get install -y "${pkgs[@]}"
   elif have dnf; then
-    pkgs=(python3 git unzip curl)
-    [ "$NEED_DRIVER" -eq 1 ] && pkgs+=(dkms gcc make "kernel-devel-$(uname -r)")
+    pkgs=(python3 git unzip curl gcc pkgconf-pkg-config webkit2gtk4.1-devel gtk3-devel)
+    [ "$NEED_RUST" -eq 1 ] && pkgs+=(cargo)
+    [ "$NEED_DRIVER" -eq 1 ] && pkgs+=(dkms make "kernel-devel-$(uname -r)")
     as_root dnf install -y "${pkgs[@]}"
   else
-    warn "Unknown package manager: install python3, git, unzip, curl (and dkms + kernel headers for the driver)."
+    warn "Unknown package manager: install python3, git, unzip, curl, Rust (cargo), a C compiler, pkg-config and the WebKitGTK 4.1 and GTK 3 development files (and dkms + kernel headers for the driver)."
   fi
 
   # ---------- linuwu-sense driver ----------
@@ -263,12 +282,6 @@ EOF
   exit 0
 fi
 
-# Ubuntu 24.04 and newer let only programs with an AppArmor profile create the user namespaces Chromium's sandbox
-# needs, so Electron's own build can't start from a home folder there; the .deb brings a profile for its Electron.
-if ! have electron43 && [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null)" = 1 ]; then
-  die "Electron can't start from a home folder here: Ubuntu 24.04 and newer block its sandbox. Install the .deb from https://github.com/abduvaliy-engineer/Nitro-Sense/releases/latest instead."
-fi
-
 NEW_GROUP=0
 id -nG "$USER" | grep -qw linuwu_sense || NEW_GROUP=1
 if [ "$UPDATE" -eq 0 ] && [ -z "$ASSETS_SOURCE" ]; then
@@ -279,8 +292,10 @@ fi
 system_current() {
   modinfo linuwu_sense >/dev/null 2>&1 && ! { [ "$DRIVER" -eq 1 ] && driver_outdated; } && [ "$NEW_GROUP" -eq 0 ] \
     && [ -e /etc/nitrosense/cpu_max_mhz ] && cmp -s "$REPO/data/70-nitrosense.rules" /etc/udev/rules.d/70-nitrosense.rules \
-    && cmp -s "$REPO/data/nitrosense-modekey" "$MODEKEY" && modekey_unit | cmp -s - "$MODEKEY_UNIT"
+    && cmp -s "$REPO/data/nitrosense-modekey" "$MODEKEY" && modekey_unit | cmp -s - "$MODEKEY_UNIT" \
+    && libraries_ready && [ "$NEED_RUST" -eq 0 ]
 }
+rust_ready || NEED_RUST=1
 if [ "$UPDATE" -eq 1 ] && system_current; then
   say "Driver and permissions are up to date"
 else
@@ -288,21 +303,31 @@ else
   run_root_phase
 fi
 
-# Electron: the distribution's electron43, otherwise Electron's own build.
-if have electron43; then
-  ELECTRON=$(command -v electron43)
-else
-  ELECTRON=$PREFIX/electron/electron
-  # Electron's builds name their version in a "version" file; another pinned version replaces the copy.
-  if [ ! -x "$ELECTRON" ] || [ "$(cat "$PREFIX/electron/version" 2>/dev/null)" != "$ELECTRON_VERSION" ]; then
-    say "Downloading Electron $ELECTRON_VERSION"
-    tmp=$(mktemp -d)
-    curl -fL --progress-bar -o "$tmp/electron.zip" \
-      "https://github.com/electron/electron/releases/download/v$ELECTRON_VERSION/electron-v$ELECTRON_VERSION-linux-x64.zip"
-    echo "$ELECTRON_SHA256  $tmp/electron.zip" | sha256sum -c --quiet || die "The Electron download doesn't match its checksum."
-    rm -rf "$PREFIX/electron" && mkdir -p "$PREFIX/electron"
-    unzip -q "$tmp/electron.zip" -d "$PREFIX/electron"
-    rm -rf "$tmp"
+# ---------- build ----------
+
+if ! rust_ready; then
+  have cargo && die "Rust $(rust_wanted) or newer is needed to build NitroSense; this cargo is $(cargo --version | awk '{print $2}'). Install a newer one with rustup (https://rustup.rs), then run this again."
+  die "cargo (Rust) is needed to build NitroSense. Install it with your package manager or rustup (https://rustup.rs), then run this again."
+fi
+libraries_ready || die "The WebKitGTK 4.1 and GTK 3 development files are needed to build NitroSense."
+# A development install builds in the checkout (target/), so the app finds the checkout's app/ folder.
+TARGET_DIR=$BUILD_DIR
+[ "$DEV" -eq 1 ] && TARGET_DIR=$REPO/target
+say "Building NitroSense (a minute or two the first time)"
+cargo build --release --locked --manifest-path "$REPO/Cargo.toml" --target-dir "$TARGET_DIR"
+BUILT=$TARGET_DIR/release
+[ -x "$BUILT/nitrosense" ] && [ -x "$BUILT/nitrosense-ui" ] || die "The build didn't produce the app."
+
+# An earlier version ran on Electron. Stop a running copy before its files go (not during a Live Update: the app
+# running it restarts itself afterwards).
+WAS_ELECTRON=0
+# Its launcher was a script naming Electron; the new one is a link to the program.
+[ ! -L "$BIN/nitrosense" ] && grep -qs electron "$BIN/nitrosense" && WAS_ELECTRON=1
+WAS_RUNNING=0
+if [ "$UPDATE" -eq 0 ]; then
+  if pgrep -u "$(id -u)" -x nitrosense >/dev/null || pgrep -u "$(id -u)" -f 'electron.*nitrosense' >/dev/null; then
+    WAS_RUNNING=1
+    "$BIN/nitrosense" --quit >/dev/null 2>&1 || true
   fi
 fi
 
@@ -313,7 +338,23 @@ if [ "$DEV" -eq 0 ]; then
   # Keep artwork extracted by an earlier run.
   [ -d "$APP_DIR/assets/acer" ] && mv "$APP_DIR/assets/acer" "$PREFIX/acer.keep"
   rm -rf "$APP_DIR" && mkdir -p "$PREFIX"
+  # The Electron an earlier version downloaded. A Live Update from that version still needs it once, to restart.
+  [ "$UPDATE" -eq 1 ] && [ "$WAS_ELECTRON" -eq 1 ] || rm -rf "$PREFIX/electron"
   cp -a "$REPO/app" "$APP_DIR"
+  # The background part (nitrosense) and the window (nitrosense-ui) sit next to app/, where they look for it.
+  # install replaces the files instead of writing into them, so a running copy keeps working until it restarts.
+  install -m755 "$BUILT/nitrosense" "$BUILT/nitrosense-ui" "$PREFIX/"
+  if [ "$UPDATE" -eq 1 ] && [ "$WAS_ELECTRON" -eq 1 ]; then
+    # A Live Update from the Electron version: that app restarts itself as "electron <app folder>" when this is
+    # done. These two files make that start hand over to the new program and leave.
+    printf '{ "name": "nitrosense-linux", "main": "main.js" }\n' >"$APP_DIR/package.json"
+    {
+      echo '// Left by the update from the Electron version: start the new NitroSense and quit.'
+      echo 'const { app } = require("electron");'
+      printf 'require("child_process").spawn("%s", [], { detached: true, stdio: "ignore" }).unref();\n' "$PREFIX/nitrosense"
+      echo 'app.exit(0);'
+    } >"$APP_DIR/main.js"
+  fi
   if [ -d "$PREFIX/acer.keep" ]; then
     if [ -d "$APP_DIR/assets/acer" ]; then
       rm -rf "$PREFIX/acer.keep"
@@ -361,18 +402,24 @@ fi
 
 say "Adding the launcher and desktop entry"
 mkdir -p "$BIN" "$APPS"
+rm -f "$BIN/nitrosense"
 if [ "$DEV" -eq 1 ]; then
-  printf '#!/bin/sh\n# Development: live reload from the checkout.\ncd "%s" && exec "%s" . --dev "$@"\n' "$APP_DIR" "$ELECTRON" >"$BIN/nitrosense"
+  printf '#!/bin/sh\n# Development: the build in the checkout, reloading the window when files in app/ change.\nexec "%s" --dev "$@"\n' "$BUILT/nitrosense" >"$BIN/nitrosense"
+  chmod +x "$BIN/nitrosense"
 else
-  printf '#!/bin/sh\nexec "%s" "%s" "$@"\n' "$ELECTRON" "$APP_DIR" >"$BIN/nitrosense"
+  ln -s "$PREFIX/nitrosense" "$BIN/nitrosense"
 fi
-chmod +x "$BIN/nitrosense"
 install -m644 "$REPO/data/nitrosense.desktop" "$APPS/nitrosense.desktop"
 # Like NitroSense, it starts hidden at login so App Sync and the mode-change flash keep working.
 mkdir -p "$AUTOSTART"
 printf '[Desktop Entry]\nType=Application\nName=NitroSense\nExec=%s --hidden\nNoDisplay=true\n' "$BIN/nitrosense" >"$AUTOSTART/nitrosense.desktop"
 
 key_bind
+
+# A copy that was running in the background keeps doing so, now as the new version.
+if [ "$WAS_RUNNING" -eq 1 ]; then
+  setsid "$BIN/nitrosense" --hidden >/dev/null 2>&1 </dev/null &
+fi
 
 # ---------- other tools ----------
 

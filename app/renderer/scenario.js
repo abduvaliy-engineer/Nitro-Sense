@@ -97,7 +97,8 @@
 
   // linuwu-sense resets the fans to auto when the platform profile changes, so the mode goes first.
   // user: the user picked this profile (App Sync's temporary switches pass false and keep state.select).
-  async function apply(index, { notify = true, user = true } = {}) {
+  // app: the linked app App Sync switched for; the notification names it.
+  async function apply(index, { notify = true, user = true, app = null } = {}) {
     await load();
     const profile = state.profiles[index];
     if (!profile) return;
@@ -120,7 +121,7 @@
     if (notify) {
       window.nitro.notify(
         `${profile.name} Enabled`,
-        `${onBattery() ? "Current system mode:" : "System mode (AC Plugged In):"}\n${MODE_NAMES[mode] ?? mode}`,
+        `${app ? `App Sync: ${app}\n` : ""}${onBattery() ? "Current system mode:" : "System mode (AC Plugged In):"}\n${MODE_NAMES[mode] ?? mode}`,
       );
     }
   }
@@ -163,10 +164,11 @@
     await setLighting({ mode, global: { ...LIGHTING_GLOBAL, effect: global.effect }, keyboard: clone(LIGHTING_KEYBOARD) });
   }
 
-  // App start: show the active profile's lighting again, as NitroSense does when it opens.
+  // App start: show the active profile's lighting again, as NitroSense does when it opens. The background part
+  // sends nothing when the keyboard already shows it, so reopening the window doesn't restart the animation.
   async function restoreLighting() {
     await load();
-    await window.nitro.lighting.apply(state.profiles[state.active].lighting);
+    await window.nitro.lighting.restore(state.profiles[state.active].lighting);
   }
 
   // The profile's mode for the current power state, and its fans on AC (linuwu-sense puts the fans on auto
@@ -320,10 +322,10 @@
   }
 
   // App Sync: the linked app in front gets its profile; otherwise the user's own profile comes back.
-  window.nitro.appSync.onSwitch(async ({ index, power }) => {
+  window.nitro.appSync.onSwitch(async ({ index, power, app }) => {
     if (power) lastPower = power;
     await load();
-    if (index !== state.active && state.profiles[index]) apply(index, { notify: true, user: false });
+    if (index !== state.active && state.profiles[index]) apply(index, { notify: true, user: false, app });
   });
 
   window.NitroScenario = {

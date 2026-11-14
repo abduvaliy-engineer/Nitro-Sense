@@ -155,24 +155,13 @@
   background: var(--color-mgd);
   box-shadow: 0 0 8px #000;
   transform-origin: top left;
-  animation: ns-menu-open 120ms cubic-bezier(0, 0, 0.2, 1);
+  /* Opening, the items' fade-in and closing are animated by menu.js, a frame at a time: at the end of a CSS
+     animation WebKitGTK can show the element in its starting state for one frame, which made menus flicker. */
+  opacity: 0;
+  transform: scale(0.8);
 }
 
-.ns-menu > * { animation: ns-menu-items 400ms 100ms cubic-bezier(0.55, 0, 0.55, 0.2) backwards; }
-.ns-menu.closing { animation: ns-menu-close 100ms 25ms linear forwards; }
-
-@keyframes ns-menu-open {
-  from { opacity: 0; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes ns-menu-items {
-  from { opacity: 0; }
-}
-
-@keyframes ns-menu-close {
-  to { opacity: 0; }
-}
+.ns-menu > * { opacity: var(--ns-menu-items, 0); }
 
 .ns-menu-item {
   display: flex;
