@@ -45,6 +45,8 @@ struct Daemon {
     /// nitrosense-ui, next to this program. Found at start: once an update replaces this program's file, its own
     /// path reads "<path> (deleted)".
     ui_program: Option<PathBuf>,
+    /// The update being installed ({ version, stage }), for a window opened during it.
+    update: Mutex<Option<Value>>,
     dev: bool,
 }
 
@@ -263,16 +265,40 @@ fn handle(cmd: &str, args: &[Value]) -> Result<Option<Value>, String> {
         "updates:version" => Ok(Some(json!(common::VERSION))),
         "updates:checkout" => Ok(Some(json!(updates::is_checkout(&daemon.app_dir)))),
         "updates:packaged" => Ok(Some(json!(updates::packaged(&daemon.app_dir)))),
+        "updates:status" => Ok(lock(&daemon.update).clone()),
+        // One at a time: a window opened during an update follows it instead of starting another.
         "updates:install" => {
-            let result = updates::install(&text(args, 0), &daemon.app_dir, &|stage| emit("updates:progress", json!(stage)))?;
-            if result["installed"] == true {
-                // Long enough for the "finished" dialog to be read.
-                std::thread::spawn(|| {
-                    std::thread::sleep(Duration::from_millis(2500));
-                    relaunch();
-                });
+            let version = text(args, 0);
+            {
+                let mut update = lock(&daemon.update);
+                if update.is_some() {
+                    return Err("An update is already being installed".to_string());
+                }
+                *update = Some(json!({ "version": version, "stage": "downloading" }));
             }
-            Ok(Some(result))
+            let progress = |stage: &str| {
+                if let Some(update) = &mut *lock(&daemon.update) {
+                    update["stage"] = json!(stage);
+                }
+                emit("updates:progress", json!(stage));
+            };
+            let result = updates::install(&version, &daemon.app_dir, &progress);
+            match &result {
+                // Kept until the restart.
+                Ok(result) if result["installed"] == true => {
+                    // Long enough for the "finished" dialog to be read.
+                    std::thread::spawn(|| {
+                        std::thread::sleep(Duration::from_millis(2500));
+                        relaunch();
+                    });
+                }
+                Ok(_) => *lock(&daemon.update) = None,
+                Err(_) => {
+                    *lock(&daemon.update) = None;
+                    emit("updates:progress", json!("failed"));
+                }
+            }
+            result.map(Some)
         }
         "updates:open" => {
             let url = text(args, 0);
@@ -451,7 +477,14 @@ pub fn run(_lock: std::fs::File, hidden: bool, dev: bool) {
         }
     };
     let ui_program = std::env::current_exe().ok().and_then(|exe| exe.canonicalize().ok()).and_then(|exe| Some(exe.parent()?.join("nitrosense-ui")));
-    let state = Daemon { ui: Mutex::new(Ui::Closed), waiting_switch: Mutex::new(None), app_dir: common::app_dir(), ui_program, dev };
+    let state = Daemon {
+        ui: Mutex::new(Ui::Closed),
+        waiting_switch: Mutex::new(None),
+        app_dir: common::app_dir(),
+        ui_program,
+        update: Mutex::new(None),
+        dev,
+    };
     if DAEMON.set(state).is_err() {
         return;
     }

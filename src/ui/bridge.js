@@ -58,6 +58,8 @@
       checkout: () => invoke("updates:checkout"),
       packaged: () => invoke("updates:packaged"),
       install: (version) => invoke("updates:install", version),
+      // The update being installed ({ version, stage }), or undefined.
+      status: () => invoke("updates:status"),
       onProgress: (callback) => on("updates:progress", callback),
       open: (url) => invoke("updates:open", url),
     },
