@@ -14,6 +14,7 @@ mod daemon;
 
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::UnixStream;
+use std::process::{Command, Stdio};
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -40,6 +41,14 @@ fn main() {
             return;
         }
         if let Some(lock) = daemon::single_instance_lock() {
+            // Started from a terminal, the background part would end with it: the terminal's hangup kills it, and
+            // a write to the closed terminal aborts it. It starts again without the terminal instead (--dev stays,
+            // for its log).
+            if !has("--dev") && on_terminal() {
+                drop(lock);
+                detach(&args);
+                return;
+            }
             daemon::run(lock, command == "hidden", has("--dev"));
             return;
         }
@@ -91,6 +100,27 @@ fn update() -> i32 {
             eprintln!("nitrosense: the update failed: {error}");
             1
         }
+    }
+}
+
+fn on_terminal() -> bool {
+    [0, 1, 2].into_iter().any(|fd| unsafe { libc::isatty(fd) } == 1)
+}
+
+// The same command in a new session, with no terminal.
+fn detach(args: &[String]) {
+    use std::os::unix::process::CommandExt;
+    let Ok(program) = std::env::current_exe() else { return };
+    let mut command = Command::new(program);
+    command.args(args).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    unsafe {
+        command.pre_exec(|| {
+            libc::setsid();
+            Ok(())
+        });
+    }
+    if let Err(error) = command.spawn() {
+        eprintln!("nitrosense: can't start in the background: {error}");
     }
 }
 
