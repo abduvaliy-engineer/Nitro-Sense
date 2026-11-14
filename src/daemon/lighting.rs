@@ -210,7 +210,7 @@ fn send_enek(device: &str, reports: &[Vec<u8>]) -> Result<(), SendError> {
     let failed = |error: std::io::Error| match error.kind() {
         std::io::ErrorKind::NotFound => SendError::Vanished,
         std::io::ErrorKind::PermissionDenied => SendError::Failed(format!(
-            "No permission to use the keyboard lighting ({device}). Run install.sh to grant the linuwu_sense group access."
+            "No permission to use the keyboard lighting ({device}). Run nitrosense.sh to grant the linuwu_sense group access."
         )),
         _ => SendError::Failed(format!("Keyboard lighting failed: {error}")),
     };

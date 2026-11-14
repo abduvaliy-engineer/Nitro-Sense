@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# install.sh's driver_outdated: which installed linuwu-sense trees the installer rebuilds.
-# Usage: bash tests/driver-outdated.sh [install.sh]
+# nitrosense.sh's driver_outdated: which installed linuwu-sense trees the installer rebuilds.
+# Usage: bash tests/driver-outdated.sh [nitrosense.sh]
 set -euo pipefail
-INSTALL=${1:-$(dirname "$0")/../install.sh}
+INSTALL=${1:-$(dirname "$0")/../nitrosense.sh}
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 eval "$(grep -E '^LINUWU_COMMIT=' "$INSTALL")"

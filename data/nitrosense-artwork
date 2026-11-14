@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # NitroSense for Linux: Acer's NitroSense artwork, taken from Acer's own NitroSense package and checked file by file
-# against data/acer-assets.tsv (install.sh uses the same functions).
+# against data/acer-assets.tsv (nitrosense.sh uses the same functions).
 #   sudo nitrosense-artwork          NitroSense on a mounted Windows drive, else Acer's package from the Microsoft
 #                                    Store (about 340 MB) for whatever is still missing
 #   sudo nitrosense-artwork SOURCE   NitroSense's app.asar, its WindowsApps folder or a .msix/.msixbundle
 # The .deb and .rpm packages run it when they're installed; NITROSENSE_ASSETS=SOURCE works like SOURCE.
-# Sourced by install.sh, it only defines the functions, with NS_ROOT set to the checkout.
+# Sourced by nitrosense.sh, it only defines the functions, with NS_ROOT set to the checkout.
 
 NS_ROOT=${NS_ROOT:-/usr/lib/nitrosense-linux}  # holds tools/ and data/acer-assets.tsv
 NS_ARTWORK=${NS_ARTWORK:-/var/lib/nitrosense-linux/acer}

@@ -120,7 +120,7 @@ fn run_checked(command: &str, args: &[&str], timeout: Duration) -> Result<(), St
     }
 }
 
-/// Running from a git checkout (./install.sh --dev or cargo run): updates come through git, not here.
+/// Running from a git checkout (./nitrosense.sh --dev or cargo run): updates come through git, not here.
 pub fn is_checkout(app_dir: &Path) -> bool {
     app_dir.join("../.git").exists()
 }
@@ -241,7 +241,7 @@ fn install_release(version: &str, progress: &dyn Fn(&str)) -> Result<(), String>
         .find(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
         .ok_or("The release's archive is empty")?;
     // Generous timeout: a new release may need NitroSense's artwork downloaded again, and the app built.
-    let installer = source.path().join("install.sh").to_string_lossy().into_owned();
+    let installer = source.path().join("nitrosense.sh").to_string_lossy().into_owned();
     run_checked("bash", &[&installer, "--update"], Duration::from_secs(30 * 60))
 }
 

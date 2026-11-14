@@ -2,14 +2,14 @@
 # NitroSense for Linux installer: packages, the linuwu-sense driver, permissions, Acer's NitroSense artwork,
 # the app itself (built here with cargo), its launcher and the NitroSense key.
 #
-#   ./install.sh                 install or update
-#   ./install.sh --assets PATH   take the artwork from NitroSense's app.asar, its WindowsApps folder or a
-#                                .msix/.appx/.msixbundle/.appxbundle (default: a mounted Windows partition,
-#                                else Acer's package from the Microsoft Store)
-#   ./install.sh --dev           run the app from this checkout with live reload instead of installing a copy
-#   ./install.sh --no-driver     skip building linuwu-sense
-#   ./install.sh --uninstall     remove the app, launcher and permissions (the driver stays)
-#   ./install.sh --update        used by the app's Live Update: no questions, root only when the system part changed
+#   ./nitrosense.sh                 install or update
+#   ./nitrosense.sh --assets PATH   take the artwork from NitroSense's app.asar, its WindowsApps folder or a
+#                                   .msix/.appx/.msixbundle/.appxbundle (default: a mounted Windows partition,
+#                                   else Acer's package from the Microsoft Store)
+#   ./nitrosense.sh --dev           run the app from this checkout with live reload instead of installing a copy
+#   ./nitrosense.sh --no-driver     skip building linuwu-sense
+#   ./nitrosense.sh --uninstall     remove the app, launcher and permissions (the driver stays)
+#   ./nitrosense.sh --update        used by the app's Live Update: no questions, root only when the system part changed
 set -euo pipefail
 
 REPO=$(cd "$(dirname "$0")" && pwd)
@@ -69,9 +69,9 @@ run_root_phase() {
   [ -n "$STAGE" ] && args+=(--stage "$STAGE")
   [ "$NEED_RUST" -eq 1 ] && args+=(--need-rust)
   if [ -t 0 ] && have sudo; then
-    sudo bash "$REPO/install.sh" "${args[@]}"
+    sudo bash "$REPO/nitrosense.sh" "${args[@]}"
   else
-    pkexec /usr/bin/env bash "$REPO/install.sh" "${args[@]}"
+    pkexec /usr/bin/env bash "$REPO/nitrosense.sh" "${args[@]}"
   fi
 }
 ask() {
@@ -418,7 +418,7 @@ else
       extract_assets "$tmp/NitroSense.msix"
     else
       warn "The download failed. Run again later, or point the installer at a NitroSense package:"
-      warn "  ./install.sh --assets <NitroSense .msixbundle / .appx / app.asar>"
+      warn "  ./nitrosense.sh --assets <NitroSense .msixbundle / .appx / app.asar>"
     fi
     rm -rf "$tmp"
   fi

@@ -127,7 +127,7 @@ that file.
 ```sh
 git clone https://github.com/abduvaliy-engineer/Nitro-Sense.git
 cd Nitro-Sense
-./install.sh
+./nitrosense.sh
 ```
 
 Run it as your normal user; it asks for `sudo` when it needs root. It:
@@ -168,7 +168,7 @@ them from Acer's own NitroSense package and checks every file against `data/acer
 - by downloading NitroSense (about 340 MB) from the Microsoft Store's servers. No Windows install or Microsoft
   account is needed, and the download is deleted afterwards. The Store build is NitroSense 5.0, so the Home
   gauge frame and the Disco lighting icon look like NitroSense 5.0's.
-- `./install.sh --assets PATH` takes a NitroSense `app.asar`, WindowsApps folder or `.msix`/`.msixbundle` instead.
+- `./nitrosense.sh --assets PATH` takes a NitroSense `app.asar`, WindowsApps folder or `.msix`/`.msixbundle` instead.
 
 ### NitroSense key
 
@@ -183,7 +183,7 @@ The installer binds the NitroSense key (`XF86Presentation`) to `nitrosense`:
   `bindsym XF86Presentation exec nitrosense`.
 - **X11 sessions** never receive the key: its keycode (433) is above X11's limit of 255.
 
-`./install.sh --uninstall` removes only the bindings it added.
+`./nitrosense.sh --uninstall` removes only the bindings it added.
 
 ### Mode Switch Key
 
@@ -211,16 +211,16 @@ It is two programs. `nitrosense`, the background part, drives the hardware, App 
 Scenario's mode on plugging in and unplugging; it keeps running, loads no toolkit and stays small (about 9 MB of
 memory). `nitrosense-ui` is the window (WebKitGTK showing `app/renderer`) and runs only while it's open.
 
-For development, `./install.sh --dev` builds in the checkout and makes the launcher run that build with `--dev`, which
+For development, `./nitrosense.sh --dev` builds in the checkout and makes the launcher run that build with `--dev`, which
 reloads the window when files in `app/` change. After changing Rust code: `cargo build --release`, then
 `nitrosense --quit` and start it again.
 
 ## Updates and releases
 
 Live Update in the side panel checks this repository's GitHub releases. **Update All** downloads the new release's
-source, runs its `install.sh --update` (which builds it) and restarts NitroSense; it only asks for a password when
+source, runs its `nitrosense.sh --update` (which builds it) and restarts NitroSense; it only asks for a password when
 packages, the driver or permissions changed. Closing the window doesn't stop an update: opening it again shows the
-update's progress. A development checkout (`./install.sh --dev`) is not overwritten; it opens the release page
+update's progress. A development checkout (`./nitrosense.sh --dev`) is not overwritten; it opens the release page
 instead.
 
 Development happens on the `dev` branch. Merging `dev` into `main` is a release: the Release workflow publishes
@@ -246,7 +246,7 @@ tests/                    key binding, driver rebuild, the Mode Switch Key servi
 docs/screenshots/         README screenshots
 .github/workflows/        checks on every PR, release on merge into main
 Cargo.toml, Cargo.lock    the Rust build
-install.sh                installer
+nitrosense.sh             installer (install.sh passes on to it, for Live Update from 0.15)
 nitrosense/               first GTK prototype (superseded)
 ```
 

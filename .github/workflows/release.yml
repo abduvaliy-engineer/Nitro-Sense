@@ -1,7 +1,7 @@
 name: Release
 
 # Every merge into main publishes the version in Cargo.toml as a GitHub release. Live Update finds it there and
-# installs its tag archive with install.sh. A manual run on main (gh workflow run release.yml --ref main) publishes
+# installs its tag archive with nitrosense.sh. A manual run on main (gh workflow run release.yml --ref main) publishes
 # a release whose creation failed.
 on:
   push:

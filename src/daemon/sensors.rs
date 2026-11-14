@@ -159,7 +159,7 @@ fn physical_cores(state: &mut State, ids: &[i64]) -> Vec<usize> {
     cores
 }
 
-// NitroSense scales the CPU gauge to the SMBIOS "Max Speed" (root-only to read), which install.sh
+// NitroSense scales the CPU gauge to the SMBIOS "Max Speed" (root-only to read), which nitrosense.sh
 // stores in /etc/nitrosense/cpu_max_mhz; fall back to the kernel's cpuinfo_max_freq.
 fn read_cpu_max() -> Option<i64> {
     if let Some(smbios) = read_int("/etc/nitrosense/cpu_max_mhz").filter(|&mhz| mhz != 0) {

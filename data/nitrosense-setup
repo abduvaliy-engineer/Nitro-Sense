@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# NitroSense for Linux: the per-user setup a system package can't do (install.sh runs the same functions).
+# NitroSense for Linux: the per-user setup a system package can't do (nitrosense.sh runs the same functions).
 #   nitrosense-setup            join the linuwu_sense group and bind the NitroSense key (Hyprland, GNOME)
 #   nitrosense-setup --remove   remove the NitroSense key binding again
-# Sourced by install.sh, it only defines the functions; NS_LAUNCHER is the command GNOME's shortcut runs.
+# Sourced by nitrosense.sh, it only defines the functions; NS_LAUNCHER is the command GNOME's shortcut runs.
 
 NS_LAUNCHER=${NS_LAUNCHER:-$(command -v nitrosense || echo nitrosense)}
 HYPR_LUA=$HOME/.config/hypr/bindings.lua

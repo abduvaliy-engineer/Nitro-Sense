@@ -15,7 +15,7 @@ jobs:
       - name: Syntax
         run: |
           for file in $(git ls-files 'app/*.js' ':!app/vendor'); do node --check "$file"; done
-          bash -n install.sh data/nitrosense-setup data/nitrosense-artwork
+          bash -n nitrosense.sh install.sh data/nitrosense-setup data/nitrosense-artwork
           python3 -m py_compile tools/*.py data/nitrosense-modekey
       - name: udev rules
         run: udevadm verify --resolve-names=never data/70-nitrosense.rules
@@ -34,7 +34,7 @@ jobs:
           command -v gsettings >/dev/null || sudo apt-get install -y libglib2.0-bin
           bash tests/key-binding.sh data/nitrosense-setup
       - name: Driver rebuild rule
-        run: bash tests/driver-outdated.sh install.sh
+        run: bash tests/driver-outdated.sh nitrosense.sh
       - name: New version for a release
         if: github.base_ref == 'main'
         run: |
@@ -45,7 +45,7 @@ jobs:
           fi
 
   rust-1-85:
-    # install.sh builds with the distribution's cargo, and Debian 13's is Rust 1.85 (rust-version in Cargo.toml): a
+    # nitrosense.sh builds with the distribution's cargo, and Debian 13's is Rust 1.85 (rust-version in Cargo.toml): a
     # dependency that needs a newer Rust would break installs and Live Updates there.
     runs-on: ubuntu-latest
     container: debian:13
