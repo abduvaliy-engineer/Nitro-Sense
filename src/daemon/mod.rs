@@ -42,6 +42,9 @@ struct Daemon {
     /// An App Sync switch that arrived while the window was starting.
     waiting_switch: Mutex<Option<Value>>,
     app_dir: PathBuf,
+    /// nitrosense-ui, next to this program. Found at start: once an update replaces this program's file, its own
+    /// path reads "<path> (deleted)".
+    ui_program: Option<PathBuf>,
     dev: bool,
 }
 
@@ -106,9 +109,11 @@ pub fn notify(title: &str, body: &str) {
 
 fn start_ui() {
     let daemon = daemon();
-    let program = std::env::current_exe().ok().and_then(|exe| exe.canonicalize().ok()).and_then(|exe| Some(exe.parent()?.join("nitrosense-ui")));
-    let Some(program) = program else { return };
-    let mut command = std::process::Command::new(&program);
+    let Some(program) = &daemon.ui_program else {
+        eprintln!("nitrosense: can't find nitrosense-ui");
+        return;
+    };
+    let mut command = std::process::Command::new(program);
     command.env("NITROSENSE_SOCKET", common::socket_path()).env("NITROSENSE_APP_DIR", &daemon.app_dir);
     if daemon.dev {
         command.arg("--dev");
@@ -441,7 +446,8 @@ pub fn run(_lock: std::fs::File, hidden: bool, dev: bool) {
             std::process::exit(1);
         }
     };
-    let state = Daemon { ui: Mutex::new(Ui::Closed), waiting_switch: Mutex::new(None), app_dir: common::app_dir(), dev };
+    let ui_program = std::env::current_exe().ok().and_then(|exe| exe.canonicalize().ok()).and_then(|exe| Some(exe.parent()?.join("nitrosense-ui")));
+    let state = Daemon { ui: Mutex::new(Ui::Closed), waiting_switch: Mutex::new(None), app_dir: common::app_dir(), ui_program, dev };
     if DAEMON.set(state).is_err() {
         return;
     }
