@@ -15,20 +15,18 @@ jobs:
       - name: Syntax
         run: |
           for file in $(git ls-files 'app/*.js' ':!app/vendor'); do node --check "$file"; done
-          bash -n install.sh data/nitrosense-setup data/nitrosense-artwork packaging/aur/*/PKGBUILD packaging/aur/*/*.install \
-            packaging/deb-rpm/build.sh tests/packages.sh
-          for script in packaging/deb-rpm/*/*.sh packaging/deb-rpm/linuwu-sense-gpu-mode-dkms/hook; do sh -n "$script"; done
-          python3 -m py_compile tools/*.py app/backend/*.py packaging/deb-rpm/depends.py data/nitrosense-modekey
+          bash -n nitrosense.sh install.sh data/nitrosense-setup data/nitrosense-artwork
+          python3 -m py_compile tools/*.py data/nitrosense-modekey
       - name: udev rules
         run: udevadm verify --resolve-names=never data/70-nitrosense.rules
-      - name: Lighting encoder
-        run: node tests/lighting-encode.js app
-      - name: App Sync matching
-        run: node tests/appsync-match.js app
+      - name: Build libraries (WebKitGTK, GTK 3)
+        run: sudo apt-get update -q && sudo apt-get install -y -q libwebkit2gtk-4.1-dev libgtk-3-dev
+      - name: Build
+        run: cargo build --locked
+      - name: Backend tests (lighting encoder, App Sync matching, Live Update's .deb and .rpm choice)
+        run: cargo test --locked
       - name: Scenario mode on plugging in and unplugging
         run: node tests/scenario-power.js app
-      - name: Live Update's .deb and .rpm choice
-        run: node tests/package-update.js app
       - name: Mode Switch Key service
         run: python3 -I -B tests/mode-key.py data/nitrosense-modekey
       - name: NitroSense key binding
@@ -36,180 +34,30 @@ jobs:
           command -v gsettings >/dev/null || sudo apt-get install -y libglib2.0-bin
           bash tests/key-binding.sh data/nitrosense-setup
       - name: Driver rebuild rule
-        run: bash tests/driver-outdated.sh install.sh
-      - name: Version stays 0.x
-        # 1.0.0 is reserved for the complete one-to-one NitroSense; until then the minor keeps counting (0.10, 0.11, ...).
-        run: |
-          version=$(node -p "require('./app/package.json').version")
-          case "$version" in
-            0.*) ;;
-            *) echo "::error::$version: NitroSense for Linux stays 0.x until it matches NitroSense one to one"; exit 1 ;;
-          esac
-      - name: AUR package versions
-        # The Release workflow publishes packaging/aur as is: the app package moves with the app's version, and the
-        # driver package builds the same linuwu-sense commit as install.sh.
-        run: |
-          version=$(node -p "require('./app/package.json').version")
-          pkgver=$(sed -n 's/^pkgver=//p' packaging/aur/nitrosense-linux/PKGBUILD)
-          if [ "$pkgver" != "$version" ]; then
-            echo "::error::packaging/aur/nitrosense-linux/PKGBUILD has pkgver=$pkgver but app/package.json is $version"
-            exit 1
-          fi
-          pinned=$(sed -n 's/^LINUWU_COMMIT=//p' install.sh)
-          packaged=$(sed -n 's/^_commit=\([0-9a-f]*\).*/\1/p' packaging/aur/linuwu-sense-gpu-mode-dkms/PKGBUILD)
-          if [ "$packaged" != "$pinned" ]; then
-            echo "::error::linuwu-sense-gpu-mode-dkms builds $packaged but install.sh builds $pinned"
-            exit 1
-          fi
+        run: bash tests/driver-outdated.sh nitrosense.sh
       - name: New version for a release
         if: github.base_ref == 'main'
         run: |
-          version=$(node -p "require('./app/package.json').version")
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
           if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
-            echo "::error::v$version is already released; bump the version in app/package.json"
+            echo "::error::v$version is already released; bump the version in Cargo.toml"
             exit 1
           fi
 
-  aur:
-    # Builds both AUR packages from this commit in a clean Arch Linux, the way an AUR helper does after a release.
-    # Nothing is published here; only the Release workflow on main publishes.
+  rust-1-85:
+    # nitrosense.sh builds with the distribution's cargo, and Debian 13's is Rust 1.85 (rust-version in Cargo.toml): a
+    # dependency that needs a newer Rust would break installs and Live Updates there.
     runs-on: ubuntu-latest
-    container: archlinux:base-devel
-    defaults:
-      run:
-        shell: bash
+    container: debian:13
     steps:
-      - name: Tools
-        run: pacman -Syu --noconfirm --needed git namcap python
+      - name: Rust and the build libraries
+        run: |
+          apt-get update -q
+          apt-get install -y -q --no-install-recommends ca-certificates git cargo build-essential pkg-config \
+            libwebkit2gtk-4.1-dev libgtk-3-dev
       - uses: actions/checkout@v4
-      - name: Acer's NitroSense package (for the artwork)
-        id: msix
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/nitrosense
-          key: nitrosense-msix-${{ hashFiles('data/acer-assets.tsv') }}
-      - name: Download it from the Microsoft Store
-        if: steps.msix.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p /var/cache/nitrosense
-          python3 -I tools/fetch-nitrosense.py /var/cache/nitrosense/NitroSense.msix
-      - name: Build the packages
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          useradd -m builder
-          chmod -R a+rX /var/cache/nitrosense
-          version=$(sed -n 's/^pkgver=//p' packaging/aur/nitrosense-linux/PKGBUILD)
-          app=$(mktemp -d)
-          cp packaging/aur/nitrosense-linux/* "$app/"
-          # The release's tag archive doesn't exist yet: archive this commit with the same layout instead.
-          git archive --prefix="Nitro-Sense-$version/" -o "$app/nitrosense-linux-$version.tar.gz" HEAD
-          driver=$(mktemp -d)
-          cp packaging/aur/linuwu-sense-gpu-mode-dkms/* "$driver/"
-          chown -R builder "$app" "$driver"
-          su builder -c "cd '$app' && NITROSENSE_ASSETS=/var/cache/nitrosense/NitroSense.msix makepkg --nodeps --skipchecksums && makepkg --printsrcinfo >.SRCINFO"
-          su builder -c "cd '$driver' && makepkg --nodeps && makepkg --printsrcinfo >.SRCINFO"
-          echo "APP=$app" >>"$GITHUB_ENV"
-          echo "DRIVER=$driver" >>"$GITHUB_ENV"
-      - name: Check the app package
-        run: |
-          namcap "$APP/PKGBUILD" "$APP"/nitrosense-linux-*.pkg.tar.zst
-          bsdtar -tf "$APP"/nitrosense-linux-*.pkg.tar.zst >files.txt
-          app=usr/lib/nitrosense-linux/app
-          for file in usr/bin/nitrosense usr/bin/nitrosense-setup "$app/main.js" "$app/packaged" \
-              usr/share/applications/nitrosense.desktop etc/xdg/autostart/nitrosense.desktop \
-              usr/lib/udev/rules.d/70-nitrosense.rules usr/lib/sysusers.d/nitrosense-linux.conf \
-              usr/share/licenses/nitrosense-linux/LICENSE; do
-            grep -qxF "$file" files.txt || { echo "::error::the package lacks /$file"; exit 1; }
-          done
-          while IFS=$'\t' read -r target _; do
-            [[ -z $target || $target == \#* ]] && continue
-            grep -qxF "$app/assets/acer/$target" files.txt || { echo "::error::the package lacks artwork $target"; exit 1; }
-          done <data/acer-assets.tsv
-          grep -qx 'aur' <(bsdtar -xOf "$APP"/nitrosense-linux-*.pkg.tar.zst "$app/packaged")
-          grep -qxF $'\tdepends = linuwu-sense-dkms' "$APP/.SRCINFO"
-      - name: Check the driver package
-        run: |
-          namcap "$DRIVER/PKGBUILD" "$DRIVER"/linuwu-sense-gpu-mode-dkms-*.pkg.tar.zst
-          bsdtar -tf "$DRIVER"/linuwu-sense-gpu-mode-dkms-*.pkg.tar.zst >files.txt
-          version=$(sed -n 's/^pkgver=//p' "$DRIVER/PKGBUILD")
-          src=usr/src/linuwu-sense-$version
-          for file in "$src/dkms.conf" "$src/Makefile" "$src/src/linuwu_sense.c" \
-              usr/lib/modprobe.d/linuwu-sense-gpu-mode-dkms.conf usr/lib/modules-load.d/linuwu-sense-gpu-mode-dkms.conf \
-              usr/lib/systemd/system/linuwu_sense.service usr/share/licenses/linuwu-sense-gpu-mode-dkms/LICENSE; do
-            grep -qxF "$file" files.txt || { echo "::error::the driver package lacks /$file"; exit 1; }
-          done
-          source=$(bsdtar -xOf "$DRIVER"/linuwu-sense-gpu-mode-dkms-*.pkg.tar.zst "$src/src/linuwu_sense.c")
-          grep -q 'ACER_WMID_MISC_SETTING_GPU_MODE' <<<"$source" || { echo "::error::the driver lacks gpu_mode"; exit 1; }
-          grep -q '\bstrncpy(' <<<"$source" && { echo "::error::the driver still calls strncpy"; exit 1; }
-          grep -qxF $'\tprovides = linuwu-sense-dkms' "$DRIVER/.SRCINFO"
+      - name: Build
+        run: cargo build --locked
+      - name: Tests
+        run: cargo test --locked
 
-  packages:
-    # Builds the .deb and .rpm packages from this commit, the way the Release workflow does for a release.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Downloads (nfpm, Electron, linuwu-sense)
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/nitrosense-build
-          key: package-downloads-${{ hashFiles('packaging/deb-rpm/build.sh', 'install.sh', 'packaging/aur/linuwu-sense-gpu-mode-dkms/PKGBUILD') }}
-      - name: Build the packages
-        run: bash packaging/deb-rpm/build.sh dist
-      - name: Check them
-        run: |
-          # Live Update finds them under the names it expects.
-          node tests/package-update.js app dist
-          # Acer's artwork stays out of the packages: the only assets/acer entry is the symlink to it.
-          if dpkg-deb --contents dist/nitrosense-linux_*_amd64.deb | grep '/assets/acer/'; then
-            echo "::error::the .deb holds Acer's artwork"
-            exit 1
-          fi
-          ls -l dist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: packages
-          path: dist/
-          retention-days: 7
-
-  packages-install:
-    # Installs the packages on each distribution they're for and checks them there (tests/packages.sh): files,
-    # Electron starting, the artwork, the AppArmor profile, the driver built by DKMS, a reinstall and the removal.
-    needs: packages
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        image: ["ubuntu:24.04", "ubuntu:26.04", "debian:13", "fedora:44", "fedora:45"]
-    container: ${{ matrix.image }}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Tools
-        # actions/cache needs tar and zstd; Python fetches Acer's package when the cache has none.
-        run: |
-          if command -v apt-get >/dev/null; then
-            apt-get update -q && apt-get install -y -q ca-certificates python3 zstd
-          else
-            dnf install -y -q python3 tar zstd
-          fi
-      - uses: actions/checkout@v4
-      - name: Acer's NitroSense package (for the artwork)
-        id: msix
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/nitrosense
-          key: nitrosense-msix-${{ hashFiles('data/acer-assets.tsv') }}
-      - name: Download it from the Microsoft Store
-        if: steps.msix.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p /var/cache/nitrosense
-          python3 -I tools/fetch-nitrosense.py /var/cache/nitrosense/NitroSense.msix
-      - uses: actions/download-artifact@v4
-        with:
-          name: packages
-          path: dist
-      - name: Install, check, reinstall and remove
-        env:
-          NITROSENSE_ASSETS: /var/cache/nitrosense/NitroSense.msix
-        run: bash tests/packages.sh dist

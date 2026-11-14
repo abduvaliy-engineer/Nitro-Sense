@@ -201,7 +201,7 @@
       keyboard.title.textContent = "Driver";
       const driver = !info.driver.loaded
         ? "linuwu-sense driver not loaded"
-        : info.driver.writable ? "linuwu-sense driver ready" : "linuwu-sense driver needs permission (run install.sh)";
+        : info.driver.writable ? "linuwu-sense driver ready" : "linuwu-sense driver needs permission (run nitrosense.sh)";
       const lighting = !info.keyboard.device
         ? "Keyboard lighting not found"
         : info.keyboard.writable ? "Keyboard lighting ready" : "Keyboard lighting needs permission";

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The NitroSense key binding (data/nitrosense-setup, used by install.sh and the AUR package) against throwaway
+# The NitroSense key binding (data/nitrosense-setup, used by nitrosense.sh) against throwaway
 # settings: a temp HOME for Hyprland's config, and for GNOME a minimal copy of its media-keys schema with GSettings'
 # keyfile backend in a temp dir, so no real desktop settings are touched.
 # Usage: bash tests/key-binding.sh [data/nitrosense-setup]   (needs gsettings and glib-compile-schemas)

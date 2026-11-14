@@ -1,7 +1,0 @@
-{
-  "name": "nitrosense-linux",
-  "version": "0.15.1",
-  "private": true,
-  "license": "GPL-3.0-or-later",
-  "main": "main.js"
-}

@@ -1,0 +1,40 @@
+[package]
+name = "nitrosense-linux"
+version = "1.0.0"
+edition = "2021"
+# nitrosense.sh builds with the distribution's cargo: Debian 13 ships 1.85. Resolver 3 picks dependency versions that
+# still build with it when the lock file is updated.
+rust-version = "1.85"
+resolver = "3"
+license = "GPL-3.0-or-later"
+description = "Unofficial NitroSense for Linux"
+repository = "https://github.com/abduvaliy-engineer/Nitro-Sense"
+publish = false
+
+# nitrosense: the background part (hardware, App Sync, mode-change flash, settings). It never loads a toolkit.
+[[bin]]
+name = "nitrosense"
+path = "src/main.rs"
+
+# nitrosense-ui: the window (WebKitGTK showing app/renderer). It exits when the window closes.
+[[bin]]
+name = "nitrosense-ui"
+path = "src/ui/main.rs"
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = "1"
+libc = "0.2"
+base64 = "0.22"
+sha2 = "0.10"
+ureq = { version = "2", features = ["json"] }
+gio = "0.18"
+gtk = "0.18"
+wry = "0.57"
+tao = "0.37"
+
+[profile.release]
+opt-level = "s"
+# No link-time optimization: it needs several GB of memory, and nitrosense.sh builds this on the user's laptop.
+strip = true
+panic = "abort"
