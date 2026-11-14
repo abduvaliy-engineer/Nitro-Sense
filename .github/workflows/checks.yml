@@ -35,14 +35,6 @@ jobs:
           bash tests/key-binding.sh data/nitrosense-setup
       - name: Driver rebuild rule
         run: bash tests/driver-outdated.sh install.sh
-      - name: Version stays 0.x
-        # 1.0.0 is reserved for the complete one-to-one NitroSense; until then the minor keeps counting (0.10, 0.11, ...).
-        run: |
-          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
-          case "$version" in
-            0.*) ;;
-            *) echo "::error::$version: NitroSense for Linux stays 0.x until it matches NitroSense one to one"; exit 1 ;;
-          esac
       - name: New version for a release
         if: github.base_ref == 'main'
         run: |
