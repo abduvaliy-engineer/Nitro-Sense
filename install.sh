@@ -85,12 +85,38 @@ modekey_unit() { sed "s|@MODEKEY@|$MODEKEY|" "$REPO/data/nitrosense-modekey@.ser
 
 # The Rust version the app needs (rust-version in Cargo.toml).
 rust_wanted() { sed -n 's/^rust-version = "\(.*\)"/\1/p' "$REPO/Cargo.toml"; }
+# Whether version $1 is $2 or newer.
+version_at_least() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]; }
 # Whether this user's cargo can build the app.
-rust_ready() {
-  have cargo || return 1
-  local current
-  current=$(cargo --version | awk '{print $2}')
-  [ "$(printf '%s\n%s\n' "$(rust_wanted)" "$current" | sort -V | head -n1)" = "$(rust_wanted)" ]
+rust_ready() { have cargo && version_at_least "$(cargo --version | awk '{print $2}')" "$(rust_wanted)"; }
+# Ubuntu ships newer Rust as versioned packages (cargo-1.85, ...) under /usr/lib/rust-<version>: when the default
+# cargo is missing or too old, the newest of those goes first on PATH.
+use_versioned_rust() {
+  rust_ready && return 0
+  local dir
+  for dir in $(printf '%s\n' /usr/lib/rust-1.*/bin | sort -V -r); do
+    [ -x "$dir/cargo" ] || continue
+    PATH=$dir:$PATH
+    rust_ready && return 0
+    PATH=${PATH#"$dir:"}
+  done
+  return 1
+}
+# The apt package with a cargo new enough: the distribution's own (Debian 13: 1.85), or else Ubuntu's newest
+# versioned one (Ubuntu 24.04's own cargo is 1.75).
+apt_cargo() {
+  local candidate versioned
+  candidate=$(apt-cache policy cargo 2>/dev/null | sed -n 's/^ *Candidate: \([0-9.]*\).*/\1/p' | head -n1)
+  if [ -n "$candidate" ] && version_at_least "$candidate" "$(rust_wanted)"; then
+    echo cargo
+    return
+  fi
+  versioned=$(apt-cache search --names-only '^cargo-1\.[0-9]+$' 2>/dev/null | awk '{print $1}' | sort -V | tail -n1)
+  if [ -n "$versioned" ] && version_at_least "${versioned#cargo-}" "$(rust_wanted)"; then
+    echo "$versioned"
+  else
+    echo cargo
+  fi
 }
 # The libraries the window is built against (WebKitGTK and GTK 3, with their headers).
 libraries_ready() { have pkg-config && pkg-config --exists webkit2gtk-4.1 gtk+-3.0; }
@@ -173,7 +199,7 @@ if [ -n "$ROOT_PHASE" ]; then
     as_root pacman -S --needed --noconfirm "${pkgs[@]}"
   elif have apt-get; then
     pkgs=(python3 git unzip curl build-essential pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev)
-    [ "$NEED_RUST" -eq 1 ] && pkgs+=(cargo)
+    [ "$NEED_RUST" -eq 1 ] && pkgs+=("$(apt_cargo)")
     [ "$NEED_DRIVER" -eq 1 ] && pkgs+=(dkms "linux-headers-$(uname -r)")
     as_root apt-get install -y "${pkgs[@]}"
   elif have dnf; then
@@ -295,7 +321,7 @@ system_current() {
     && cmp -s "$REPO/data/nitrosense-modekey" "$MODEKEY" && modekey_unit | cmp -s - "$MODEKEY_UNIT" \
     && libraries_ready && [ "$NEED_RUST" -eq 0 ]
 }
-rust_ready || NEED_RUST=1
+use_versioned_rust || NEED_RUST=1
 if [ "$UPDATE" -eq 1 ] && system_current; then
   say "Driver and permissions are up to date"
 else
@@ -305,7 +331,7 @@ fi
 
 # ---------- build ----------
 
-if ! rust_ready; then
+if ! use_versioned_rust; then
   have cargo && die "Rust $(rust_wanted) or newer is needed to build NitroSense; this cargo is $(cargo --version | awk '{print $2}'). Install a newer one with rustup (https://rustup.rs), then run this again."
   die "cargo (Rust) is needed to build NitroSense. Install it with your package manager or rustup (https://rustup.rs), then run this again."
 fi

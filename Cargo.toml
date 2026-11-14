@@ -2,7 +2,10 @@
 name = "nitrosense-linux"
 version = "0.16.0"
 edition = "2021"
+# install.sh builds with the distribution's cargo: Debian 13 ships 1.85. Resolver 3 picks dependency versions that
+# still build with it when the lock file is updated.
 rust-version = "1.85"
+resolver = "3"
 license = "GPL-3.0-or-later"
 description = "Unofficial NitroSense for Linux"
 repository = "https://github.com/abduvaliy-engineer/Nitro-Sense"
