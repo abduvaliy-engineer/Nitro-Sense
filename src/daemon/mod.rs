@@ -159,7 +159,10 @@ fn ui_closed(writer: Option<&Writer>) {
         *state = Ui::Closed;
     }
     scenario::watch_apps();
-    if let Some(change) = lock(&daemon.waiting_switch).take() {
+    // Taken first: applying the switch configures App Sync, which waits for App Sync's thread, and that thread
+    // takes this lock in on_switch.
+    let change = lock(&daemon.waiting_switch).take();
+    if let Some(change) = change {
         scenario::switch(&change);
     }
 }
@@ -301,7 +304,8 @@ fn handle(cmd: &str, args: &[Value]) -> Result<Option<Value>, String> {
                 }
                 _ => None,
             };
-            if let (Some(writer), Some(change)) = (writer, lock(&daemon.waiting_switch).take()) {
+            let change = lock(&daemon.waiting_switch).take();
+            if let (Some(writer), Some(change)) = (writer, change) {
                 send_line(&writer, &json!({ "event": "appsync:switch", "payload": change }));
             }
             Ok(None)
