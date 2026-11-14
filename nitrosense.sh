@@ -137,8 +137,9 @@ driver_outdated() {
 MODEL=$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)
 APP_DIR=$PREFIX/app
 [ "$DEV" -eq 1 ] && APP_DIR=$REPO/app
-# cargo from rustup lives in the user's home, which a launcher's PATH may not have.
-[ -n "$ROOT_PHASE" ] || [[ :$PATH: == *":$HOME/.cargo/bin:"* ]] || PATH=$HOME/.cargo/bin:$PATH
+# cargo from rustup lives in CARGO_HOME (~/.cargo), which a launcher's PATH may not have.
+CARGO_BIN=${CARGO_HOME:-$HOME/.cargo}/bin
+[ -n "$ROOT_PHASE" ] || [[ :$PATH: == *":$CARGO_BIN:"* ]] || PATH=$CARGO_BIN:$PATH
 # The NitroSense key binding and the group join.
 NS_LAUNCHER=$BIN/nitrosense
 # shellcheck source=data/nitrosense-setup
