@@ -25,7 +25,7 @@ pub fn changed_within(window: Duration) -> bool {
 pub fn write(file: &str, value: impl Display) -> Result<(), String> {
     std::fs::write(file, format!("{value}\n")).map_err(|error| {
         if error.kind() == std::io::ErrorKind::PermissionDenied {
-            format!("No permission to write {file}. Run install.sh (or nitrosense-setup for the .deb, .rpm and AUR packages), then log in again.")
+            format!("No permission to write {file}. Run install.sh, then log in again.")
         } else {
             format!("Driver rejected {value}: {error}")
         }

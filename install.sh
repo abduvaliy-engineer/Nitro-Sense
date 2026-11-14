@@ -139,11 +139,11 @@ APP_DIR=$PREFIX/app
 [ "$DEV" -eq 1 ] && APP_DIR=$REPO/app
 # cargo from rustup lives in the user's home, which a launcher's PATH may not have.
 [ -n "$ROOT_PHASE" ] || [[ :$PATH: == *":$HOME/.cargo/bin:"* ]] || PATH=$HOME/.cargo/bin:$PATH
-# The NitroSense key binding and the group join; the AUR package ships the same file as nitrosense-setup.
+# The NitroSense key binding and the group join.
 NS_LAUNCHER=$BIN/nitrosense
 # shellcheck source=data/nitrosense-setup
 . "$REPO/data/nitrosense-setup"
-# Finding and checking NitroSense's artwork; the .deb and .rpm ship the same file as nitrosense-artwork.
+# Finding and checking NitroSense's artwork.
 NS_ROOT=$REPO
 # shellcheck source=data/nitrosense-artwork
 . "$REPO/data/nitrosense-artwork"

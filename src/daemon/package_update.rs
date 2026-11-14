@@ -7,7 +7,7 @@ pub struct File {
     pub sha256: String,
 }
 
-// The file names packaging/deb-rpm/build.sh gives the packages (nfpm's: name, version, release 1, architecture).
+// The file names 0.14's packaging/deb-rpm/build.sh gave the packages (nfpm's: name, version, release 1, architecture).
 fn app_package(format: &str, version: &str) -> Option<String> {
     match format {
         "deb" => Some(format!("nitrosense-linux_{version}-1_amd64.deb")),
@@ -84,7 +84,7 @@ pub fn install_command(format: &str, paths: &[String]) -> Result<Vec<String>, St
 #[cfg(test)]
 mod tests {
     //! Live Update's package choice for .deb and .rpm installs, without network or package manager. With
-    //! NITROSENSE_DIST set to packaging/deb-rpm/build.sh's output it also checks the names of the packages built there.
+    //! NITROSENSE_DIST set to a folder of built packages it also checks their names.
     use super::*;
 
     fn sha(c: &str) -> String {
