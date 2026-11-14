@@ -80,6 +80,12 @@ ask() {
   [[ $reply =~ ^[Yy] ]]
 }
 have() { command -v "$1" >/dev/null 2>&1; }
+# One install, update or removal at a time: Update All, nitrosense --update and this script all end up here.
+if [ -z "$ROOT_PHASE" ] && have flock; then
+  mkdir -p "${XDG_CACHE_HOME:-$HOME/.cache}/nitrosense"
+  exec 9>"${XDG_CACHE_HOME:-$HOME/.cache}/nitrosense/install.lock"
+  flock -n 9 || die "Another NitroSense install or update is running; try again once it has finished."
+fi
 # The Mode Switch Key service's unit, pointing at this install's copy of the service.
 modekey_unit() { sed "s|@MODEKEY@|$MODEKEY|" "$REPO/data/nitrosense-modekey@.service"; }
 
@@ -445,7 +451,7 @@ key_bind
 
 # A copy that was running in the background keeps doing so, now as the new version.
 if [ "$WAS_RUNNING" -eq 1 ]; then
-  setsid "$BIN/nitrosense" --hidden >/dev/null 2>&1 </dev/null &
+  setsid "$BIN/nitrosense" --hidden >/dev/null 2>&1 </dev/null 9>&- &
 fi
 
 # ---------- other tools ----------
