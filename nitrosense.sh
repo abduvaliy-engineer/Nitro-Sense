@@ -23,7 +23,7 @@ BUILD_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/nitrosense/build
 # Until linuwu-sense #154 (gpu_mode, for GPU Operating) is merged upstream, the driver comes from our fork:
 # upstream 0x7375646F/Linuwu-Sense at 73a25ec plus only that patch (branch gpu-mode-pinned).
 LINUWU_REPO=https://github.com/abduvaliy-engineer/Linuwu-Sense
-LINUWU_COMMIT=75ce417b7eb1f85f6c74d83c6148ce61b2cfb6ff
+LINUWU_COMMIT=0c431b9e1cae819e99ebf6d861313a5642a79dca
 LINUWU_VERSION=1.0.0
 LINUWU_SRC=/usr/src/linuwu-sense-$LINUWU_VERSION
 # The Mode Switch Key service runs as root, so it lives outside the user's copy.
