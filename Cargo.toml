@@ -1,6 +1,6 @@
 [package]
 name = "nitrosense-linux"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 # nitrosense.sh builds with the distribution's cargo: Debian 13 ships 1.85. Resolver 3 picks dependency versions that
 # still build with it when the lock file is updated.
